@@ -1,16 +1,16 @@
 /**
  * The reducer: `(state, action) -> Result<state>`.
  *
- * Pure. No DOM, no I/O, no clock, no `Math.random()`. The M0 slice implements
- * only movement rolling and turn handover — enough to prove the determinism
- * guarantee end to end before any rules exist.
- *
- * Later phases (move, space, action) are declared in `Phase` already so the
- * shape does not change when they arrive; they simply reject for now.
+ * Pure. No DOM, no I/O, no clock, no `Math.random()`. The M1 slice implements
+ * movement: roll `1d6`, then walk one edge at a time, then hand over. Card
+ * resolution (`space`) and the action phase arrive in M2, and the declared
+ * `Phase` values already reserve their slots so the shape does not change.
  */
 
+import { ARRIVAL_NODE } from "../content/board";
+import { gateBetween, getNode, neighborsOf } from "./board";
 import { rollD6 } from "./rng";
-import { reject, ok, SEAT_ORDER } from "./types";
+import { ok, reject, SEAT_ORDER } from "./types";
 import type { Action, GameState, Player, Result, SeatId } from "./types";
 
 export function createGame(seed: number, seats: readonly SeatId[] = SEAT_ORDER): GameState {
@@ -19,7 +19,7 @@ export function createGame(seed: number, seats: readonly SeatId[] = SEAT_ORDER):
   const players = Object.fromEntries(
     seats.map((seat) => [
       seat,
-      { seat, node: "outer-02", integrity: 6, fate: 0 } satisfies Player,
+      { seat, node: ARRIVAL_NODE, integrity: 6, fate: 0 } satisfies Player,
     ]),
   ) as Record<SeatId, Player>;
 
@@ -52,8 +52,52 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
       });
     }
 
-    case "endTurn": {
+    case "moveTo": {
       if (state.phase !== "move") {
+        return reject("wrong-phase", `Cannot move during the ${state.phase} phase.`);
+      }
+      if (state.moveRemaining <= 0) {
+        return reject("no-moves-left", "No movement remaining this turn.");
+      }
+
+      const player = state.players[state.seat];
+      if (!neighborsOf(player.node).includes(action.node)) {
+        return reject("not-adjacent", "That space is not adjacent.");
+      }
+
+      let destination;
+      try {
+        destination = getNode(action.node);
+      } catch {
+        return reject("unknown-node", "That space does not exist.");
+      }
+
+      const gate = gateBetween(player.node, action.node);
+      const moveRemaining = state.moveRemaining - 1;
+      const arrived = moveRemaining === 0;
+
+      const notes = [`${state.seat} moved to ${destination.name.en}.`];
+      if (gate) {
+        // M1 does not enforce clearance yet (M3); the crossing is logged so the
+        // missing check is visible in every playtest rather than silently absent.
+        notes.push(`  crossed ${gate.id} without a clearance check (not implemented yet).`);
+      }
+
+      return ok({
+        ...state,
+        rng: state.rng,
+        phase: arrived ? "action" : "move",
+        moveRemaining,
+        players: {
+          ...state.players,
+          [state.seat]: { ...player, node: action.node },
+        },
+        log: [...state.log, ...notes],
+      });
+    }
+
+    case "endTurn": {
+      if (state.phase !== "action") {
         return reject("wrong-phase", `Cannot end the turn during the ${state.phase} phase.`);
       }
 
@@ -65,7 +109,6 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
 
       return ok({
         ...state,
-        rng: state.rng,
         seat: nextSeat,
         round,
         phase: "roll",

@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --ink: #0b0d10;
+  --panel: #14181d;
+  --line: #262c34;
+  --text: #d7dde5;
+  --muted: #7d8896;
+  --accent: #7fd1ff;
+  --danger: #ff6b6b;
+  --warn: #ffb454;
+  --safe: #6ee7a0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Board type: a dossier feel without shipping a webfont yet. */
+.node-label {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  fill: var(--muted);
+  pointer-events: none;
+  user-select: none;
+}

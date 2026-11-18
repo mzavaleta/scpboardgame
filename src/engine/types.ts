@@ -9,6 +9,8 @@ export type SeatId = "p1" | "p2" | "p3";
 
 export const SEAT_ORDER: readonly SeatId[] = ["p1", "p2", "p3"] as const;
 
+export type NodeId = string;
+
 /** Turn phases, in order (§S2). */
 export type Phase = "turnStart" | "roll" | "move" | "space" | "action" | "end";
 
@@ -27,7 +29,7 @@ export type RngState = {
 
 export type Player = {
   readonly seat: SeatId;
-  readonly node: string;
+  readonly node: NodeId;
   readonly integrity: number;
   readonly fate: number;
 };
@@ -43,14 +45,19 @@ export type GameState = {
   readonly log: readonly string[];
 };
 
-export type Action = { readonly type: "rollMovement" } | { readonly type: "endTurn" };
+export type Action =
+  | { readonly type: "rollMovement" }
+  | { readonly type: "moveTo"; readonly node: NodeId }
+  | { readonly type: "endTurn" };
 
 export type Rejection = {
   /** Machine-readable, stable. Tests assert on this, never on the message. */
   readonly code:
     | "wrong-phase"
     | "unknown-action"
-    | "game-over";
+    | "not-adjacent"
+    | "no-moves-left"
+    | "unknown-node";
   /** Shown to a human. Never asserted on. */
   readonly message: string;
 };

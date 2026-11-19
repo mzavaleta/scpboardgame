@@ -31,6 +31,8 @@
 | **Next** | **M3** — the clearances/threat milestone: an economy that lets Records buy something (`setClearance` sources, `attemptClearance`, and **D28's stat exchange** — design them together, they answer the same question), the threat track + warhead, hunters that move, the contested protocol track, `scripts/sim.ts`, the **role draft** (replacing the 3/3 placeholder) |
 | **Known debt** | **Records have no sink and clearance can never be raised** — no card or action sets it, so every gate is a 4dF gamble (18.5% / 38.2% / 61.7% bad at G1-2 / G3-4 / G5-6) · hunters are counted but inert · Threat has no track or warhead · no protocol track or directives · `drawCard`/`removeGear`/`bound` are logged substitutions · respawn returns the same character · placeholder 3/3 stats · no Spanish in the UI · layout breaks below ~900 px · Q23 (land short for 1 Fate) not implemented · `i18n` keys absent · 20 authors are `PENDING` in attribution |
 
+**The one thing still owed on M2 is a playtest** — the fifteen-minute brief is §14j, with five questions and my predictions on record.
+
 **How to pick this back up:** read §14f, then `src/engine/reduce.ts` (the `space` phase), `src/engine/encounter.ts` (draw bands and the tier table), `src/engine/effects.ts` (the closed interpreter) and `src/content/anomalies.ts` (the deck). §14f.5 lists every substitution so nothing inert is mistaken for broken.
 
 ---
@@ -1384,6 +1386,55 @@ To see variety without a new seed, force a different roll and land on a differen
 The dev strip now also shows the **next card in each pile** while a landing is pending, so the draw can be
 chosen rather than discovered.
 
+### 14j. Playtest brief — M2
+
+M2 is closed **on code**: 90 tests, a full turn unit-tested, the tree clean. It has **not been played end
+to end**, and that is the only thing still owed. Everything below fits in fifteen minutes.
+
+**What M2 is for.** Not "is it fun". Two questions: *does the tier table behave the way the arithmetic says it
+does*, and *is choosing a landing a real decision*.
+
+**What M2 cannot tell you** — do not report these as bugs: hunters (inert), the threat track and warhead (a
+counter only), the protocol track, directives, evidence being spent, roles, equipment, victory. All M3/M4.
+
+#### 14j.1 The fifteen minutes
+
+1. **New game**, then force a `2` and look at the dev strip *before* you move: `DRAW 914·1471·3000` is the
+   next card in each pile. Choose your landing knowing it.
+2. **Contain** and read the log line out loud: `4dF ±n + stat − difficulty = shift → tier`. Check the
+   arithmetic by hand once — that is the whole resolution system in one sentence.
+3. **New game two more times**, so you meet at least four different Safe entries. The point is whether the
+   five tier names match what actually happens, not whether you like the cards.
+4. **Force a 4 and take the bridge** (Requisition Cage). At clearance 1 every gate is a test. Notice whether
+   you had *any* way to improve your odds. (You don't. That is the finding, not a bug.)
+5. **Reach a middle cell for a Keter**: cross G1, then follow the ring. See what 61–81% bad feels like.
+6. **Decline a Euclid or Keter once**, for `+1 Threat`. Ask honestly whether that cost changed your mind.
+7. **Get downed and respawn.** Two bad Keter cards will do it.
+
+#### 14j.2 The five questions
+
+| # | Question | What counts as an answer |
+| --- | --- | --- |
+| 1 | **Does `contain` vs `decline` ever feel like a real choice?** | you declined something, or you noticed you never would |
+| 2 | **Does a gate feel like a wall or like a gamble?** | "I can't get in without luck" vs "I should have prepared" |
+| 3 | **Does the tier table read?** | whether the log line made you believe the outcome, or felt arbitrary |
+| 4 | **Is Keter danger or a trap?** | whether you wanted to go back, or wrote the middle ring off |
+| 5 | **How long is a real session?** | wall-clock minutes for two seats, since M2 added no length |
+
+#### 14j.3 Predictions, on record
+
+1. **`decline` will never be chosen.** One Threat against a 60% contain is not a trade.
+2. **Keter will read as unfair, not as dangerous.** Difficulty 5 against a fixed 3 is 81.5% bad, and nothing
+   a player can do changes it.
+3. **Records become noise by turn three**, because nothing spends them.
+4. **A gate test will feel like a coin flip with no preparation** — because clearance cannot be bought yet.
+5. **Two seats will reach the Command Center in about ten minutes**, since M2 added cost but no length.
+
+If all five hold, M2 is a working engine with a hole where the economy goes, and M3 is exactly the right next
+step. If any one fails, that failure is worth more than the five that held.
+
+**Report format, same as always:** the URL, and any case where the board disagrees with the log.
+
 ---
 
 # Part IV — Implementation design (specification, no code)
@@ -2624,6 +2675,7 @@ Three additions, all declared. The alternative — special-casing each card — 
 | 2026-11-18 | **C3 written — 6 roles, 6 aspects, 18 compels.** Corrected a leftover from D5: **roles have no Move stat**, because the owner's `1d6` made the original movement allowance redundant and keeping it would mean two movement systems arguing. Clearance starts at **1 for everyone**, or one role would skip the access economy that provides the game's pacing. Balance band `combat + intellect ∈ {5,6}` and Integrity 5–7, validator-enforced, because the draft only works if the options are genuinely comparable. **Framing recorded as legal and deliberate**: `By the Book` #1 and `Methodical` #3 let a player compel someone to place intent evidence under *their own* name — public, permanent, and unable to gift a saboteur a victory because the footprint check only reads a player's own tokens. It only costs the innocent their credibility. Rule added: **every aspect must carry at least one compel that takes something**, or it is a stat rather than a weakness. One vocabulary addition, `forceMove(node)`, with the line that keeps it safe: a forced move never performs a gate check, so compels cannot smuggle anyone past Clearance. |
 | 2026-11-18 | **C4 written — the 14 main directives, and the two mechanics they forced.** Ten containment / four breach. Containment directives carry **no** footprint (D18 is about suspicion; demanding evidence from honest players turns everyone into a suspect for the wrong reason) and the validator encodes that asymmetry. The four breach directives each demand a *different observable act* — Saboteur holds the core, Extractor wants the sample, Denial wants the gates, Abandonment wants someone bleeding — so "breach" is not one personality. **D22**: `Protocol Custodian` and a saboteur footprint cannot both exist without an answer to "who fired it", which produced the **three-step contested protocol track** — the last act becomes play (a public counter pushed up by three people and quietly down by one) instead of arithmetic. **D23**: `abandonedAlly` is placed when a player **moves away from a node holding a downed ally**, which loads the rescue mechanic politically. **Structural finding:** the win conditions could not be expressed in the S1 state model, so `Player` gained `counters` — found here instead of in M4. |
 | 2026-11-18 | **§14c added — the M1 playtest brief.** A playtest without questions produces anecdotes, so the document now states what M1 can and cannot tell you (no cards, no gate checks, no Spanish — do not report those), the five questions it exists to answer (distance to the core, `1d6` agency, adjacency legibility, token stacking, wall-clock lap time), and the two report formats that matter: the `?seed=` URL, and any case where the **board disagrees with the log** — which would mean the renderer and the reducer have diverged. Predictions recorded so they can be checked: the middle and inner rings will feel cramped at 10 and 8 slots, `1d6` will waste about one turn per lap, and even-slot-only labels will make odd nodes feel like filler. |
+| 2026-11-19 | **§14j added — the M2 playtest brief.** M2 is closed on code and **not yet played end to end**, so the remaining debt is a person, not a patch. The brief is fifteen minutes: force a roll and read the per-pile card preview first, contain once and check the arithmetic by hand, meet four different Safe entries, take a bridge at clearance 1, reach a Keter cell, decline once, and get downed. Five questions, and **five predictions on record** so they can be wrong: decline will never be chosen (one Threat against a 60% contain is not a trade), Keter will read as unfair rather than dangerous (81.5% bad and nothing changes it), Records become noise by turn three because nothing spends them, a gate test feels like a coin flip with no preparation, and two seats reach the core in about ten minutes because M2 added cost but no length. |
 | 2026-11-19 | **M2 closed.** The acceptance criterion for M2 (§14b) is "a full turn is unit-tested", and it was covered across several tests but never as **one continuous run** — so `encounter.test.ts` now walks `createGame → devRoll → moveTo → space opens → contain → tier decides Records/Integrity/evidence → log in order → endTurn` in a single test, asserting the payload from the tier rather than from the card. 90 tests, typecheck and build clean, working tree clean. **What is decided and built:** 20 cards, three weighted piles (D27), the five tiers, the closed effect interpreter, clearance at gates with the mid-path bug fixed (§14f.1), the downed state, two-seat tables, the dev strip with a per-pile card preview. **What is explicitly not in this milestone** and is the first job of M3: **Records have no sink and clearance can never be raised** — no card and no action sets it, so every gate is a pure 4dF gamble, which is why the middle ring currently feels locked rather than earned. Recorded, not scheduled: D28 (containment as a collectible spent on stats) and §14g (1–3 draws per node, facility tests), which the D27 weighted draw now makes cheap. |
 | 2026-11-19 | **Two seed bugs, both mine.** Owner: *"creating new game actually not changing the seed right now, is same seed."* Root cause: `newSeed()` read `?seed=` **before** generating a random one, so once a playtest URL carried a seed, **New game could never produce another** — a no-op in exactly the situation the button exists for. Found while fixing it: the strip's seed and the game's seed came from two separate `newSeed()` calls, so a visit **without** `?seed=` could display one seed while playing another. Fixes: `seedFromUrl()` is read once for the opening table, `randomSeed()` is used for every new game, and an effect keeps the address bar in step — which also fixes the *first* game leaving the URL bare and therefore unreproducible. Verified in the browser: three consecutive New game clicks give `2026 → 199528385 → 148758814`; a bare URL becomes `?seed=134053928&players=2` on load; and `?seed=424242` replays to the identical hash across a reload (`9c3663f4`, then `d6bd89dc` after a forced roll, both reproduced exactly). |
 | 2026-11-19 | **D28 — what containing is for (§14i), and the Panacea report answered.** Owner: *"same as talisman you want to collect them to later interchange it for more stats, depending on what type the contained is … some can turn into objects … can be discarded and remains on that node."* So containment is reading **(b)** with a Talisman exchange: trophies in, stats out. The useful discovery is that `reward.records` is already 1/2/3 by tier, i.e. **a tier-weighted trophy value**, so the cheap variant needs no new state — spend the existing Records at a facility. More importantly this is the **missing lever** for the Keter trap recorded in §5 and §14g: with a stat economy, difficulty 5 stops being a wall and becomes a place you *become able* to enter, which gives Records the sink they lacked. Two things it forces: an `exchangeTrophies` action on a facility node (deferred in §14b), and an explicit stat ceiling now that the role band is a starting value. Recorded, not scheduled. Separately: the "always a Panacea" report was checked, not assumed — determinism, not a bug. Ten seeds at the same node give five different cards, and 600 seeds distribute the six Safe cards at 14.0–20.5% against 16.7% expected, i.e. flat. The dev strip now previews the next card of each pile. |

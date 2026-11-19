@@ -11,6 +11,7 @@ import { reachableEndpoints } from "../engine/movement";
 import { hashState } from "../engine/hash";
 import { createGame, reduce } from "../engine/reduce";
 import { peekRolls } from "../engine/rng";
+import { seatsFor } from "../engine/types";
 import type { Action, GameState, SeatId } from "../engine/types";
 import { Board } from "./board/Board";
 
@@ -28,15 +29,30 @@ const KIND_CODE: Record<(typeof BOARD.nodes)[number]["kind"], string> = {
   core: "CC",
 };
 
+function param(name: string): string | null {
+  return new URLSearchParams(window.location.search).get(name);
+}
+
 function newSeed(): number {
-  const fromUrl = new URLSearchParams(window.location.search).get("seed");
+  const fromUrl = param("seed");
   if (fromUrl && Number.isFinite(Number(fromUrl))) return Number(fromUrl);
   return Math.floor(Math.random() * 1_000_000_000);
 }
 
+/** §D10: two or three. Two is the default because a playtest is half as long. */
+function initialSeatCount(): 2 | 3 {
+  return param("players") === "3" ? 3 : 2;
+}
+
+/** Seed *and* table in the URL, so a playtest reopens exactly as it was dealt. */
+function remember(seed: number, seats: 2 | 3): void {
+  window.history.replaceState(null, "", `?seed=${seed}&players=${seats}`);
+}
+
 export function App() {
   const [seed, setSeed] = useState(newSeed);
-  const [state, setState] = useState<GameState>(() => createGame(newSeed()));
+  const [seatCount, setSeatCount] = useState<2 | 3>(initialSeatCount);
+  const [state, setState] = useState<GameState>(() => createGame(newSeed(), seatsFor(initialSeatCount())));
   const [error, setError] = useState<string>("");
 
   const dispatch = useCallback((action: Action) => {
@@ -51,14 +67,16 @@ export function App() {
     });
   }, []);
 
-  const restart = useCallback(() => {
+  const start = useCallback((seats: 2 | 3) => {
     const next = newSeed();
-    // Seed in the URL so a playtest that found something odd can be reopened exactly.
-    window.history.replaceState(null, "", `?seed=${next}`);
+    remember(next, seats);
     setSeed(next);
-    setState(createGame(next));
+    setSeatCount(seats);
+    setState(createGame(next, seatsFor(seats)));
     setError("");
   }, []);
+
+  const restart = useCallback(() => start(seatCount), [start, seatCount]);
 
   // Dev tool (§14e): present in `pnpm dev`, or when the URL says so. It never
   // ships to a plain build, because it is a testing aid, not a rule.
@@ -88,9 +106,26 @@ export function App() {
         <span className="text-[var(--muted)]">
           hash <code className="text-[var(--accent)]">{stateHash}</code>
         </span>
+        <span className="ml-auto flex items-center gap-1 text-xs text-[var(--muted)]">
+          players
+          {([2, 3] as const).map((count) => (
+            <button
+              key={count}
+              onClick={() => start(count)}
+              title={`Start a ${count}-player game with a new seed`}
+              className={`w-6 rounded border px-1 ${
+                count === seatCount
+                  ? "border-[var(--accent)] text-[var(--text)]"
+                  : "border-[var(--line)] hover:text-[var(--text)]"
+              }`}
+            >
+              {count}
+            </button>
+          ))}
+        </span>
         <button
           onClick={restart}
-          className="ml-auto rounded border border-[var(--line)] px-3 py-1 text-xs text-[var(--muted)] hover:text-[var(--text)]"
+          className="rounded border border-[var(--line)] px-3 py-1 text-xs text-[var(--muted)] hover:text-[var(--text)]"
         >
           New game
         </button>

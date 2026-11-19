@@ -9,6 +9,16 @@ export type SeatId = "p1" | "p2" | "p3";
 
 export const SEAT_ORDER: readonly SeatId[] = ["p1", "p2", "p3"] as const;
 
+/**
+ * The seats of a table of `count` players (§D10: MVP is 2-3).
+ *
+ * Seats are always a prefix of `SEAT_ORDER`, so a two-seat game is the same game
+ * three-seat one would be, minus the third seat — never a different order.
+ */
+export function seatsFor(count: 2 | 3): readonly SeatId[] {
+  return SEAT_ORDER.slice(0, count);
+}
+
 export type NodeId = string;
 
 /** Turn phases, in order (§S2). */

@@ -8,6 +8,7 @@ import { ARRIVAL_NODE } from "../content/board";
 import { distance } from "./board";
 import { reachableEndpoints } from "./movement";
 import { createGame, reduce } from "./reduce";
+import { seatsFor } from "./types";
 import type { Action, GameState } from "./types";
 
 function apply(state: GameState, action: Action): GameState {
@@ -116,6 +117,23 @@ describe("turn handover", () => {
       state = apply(state, { type: "moveTo", node: options[0] as string });
       state = apply(state, { type: "endTurn" });
     }
+    expect(state.seat).toBe("p1");
+    expect(state.round).toBe(2);
+  });
+
+  it("cycles a two-seat game, incrementing the round after two turns", () => {
+    // D10: MVP is 2-3 players. Two seats must be a real table, not a subset that
+    // happens to work, because most playtests will use it: half the turns.
+    let state = createGame(9, seatsFor(2));
+    expect(Object.keys(state.players).sort()).toEqual(["p1", "p2"]);
+
+    for (let turn = 0; turn < 2; turn += 1) {
+      state = apply(state, { type: "rollMovement" });
+      const options = reachableEndpoints(state.players[state.seat].node, state.roll);
+      state = apply(state, { type: "moveTo", node: options[0] as string });
+      state = apply(state, { type: "endTurn" });
+    }
+
     expect(state.seat).toBe("p1");
     expect(state.round).toBe(2);
   });

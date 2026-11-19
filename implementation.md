@@ -18,20 +18,20 @@
 **Part V — Content v1** · [C1](#c1-the-board-v1) the board · [C2](#c2-the-anomaly-deck-20-cards) the anomaly deck · [C3](#c3-roles-aspects-and-compels) roles, aspects & compels · [C4](#c4-main-directives-14) main directives · [C5](#c5-escalation-14-and-equipment-10) escalation & equipment
 **Reference** · [15](#15-log-append-only) log (append-only, one line per exchange)
 
-**Where things stand:** business `CLOSED` · design `CLOSED` · implementation specification `CLOSED` (S1–S9) · MVP content `CLOSED` (C1–C5, 54 cards) · **M0 done** · **M1 done and revised after the first playtest**
+**Where things stand:** business `CLOSED` · design `CLOSED` · implementation specification `CLOSED` (S1–S9) · MVP content `CLOSED` (C1–C5, 54 cards) · **M0 done** · **M1 done** · **M2 done** — encounters, the tier table, Integrity, and clearance at gates
 
 ### ⏸ Resume here — checkpoint 2026-11-18
 
 | | |
 | --- | --- |
-| **Last commit** | `9cf685c` — Talisman-exact movement (D26) |
-| **Health** | `pnpm test` → **55 passing**, 5 files · `pnpm typecheck` clean · `pnpm build` clean |
-| **Playable** | `pnpm dev` → localhost:5173 · **2 or 3 players** (2 by default), roll (or **force any face** with the dev strip, §14e), choose a landing, end turn · `?seed=&players=` reopens the exact table |
-| **Implemented** | seeded engine (`rng`, `hash`, `reduce`), board data + graph, movement with landing options, SVG board, log, turn handover, dev roll tool |
-| **Next** | **M2** — `4dF` + the five outcome tiers; one anomaly encounter end to end; Integrity; the downed state |
-| **Known debt** | no encounters (the `space` phase resolves nothing) · gates cross with no clearance check (M3) · no Spanish in the UI · layout breaks below ~900 px (desktop-only) · Q23 (land short for 1 Fate) not implemented · `i18n` keys absent |
+| **Last commit** | `907514c` — M2: encounters, the tier table, clearance at gates |
+| **Health** | `pnpm test` → **83 passing**, 6 files · `pnpm typecheck` clean · `pnpm build` clean |
+| **Playable** | `pnpm dev` → localhost:5173 · **2 or 3 players** (2 by default) · roll (or **force a face**, §14e) → land → **an anomaly is drawn** → contain or decline → 4dF + stat vs difficulty → a tier → Records, Integrity, Threat · `?seed=&players=` reopens the exact table |
+| **Implemented** | seeded engine (`rng`, `hash`, `reduce`), board data + graph, movement with landing options, SVG board, log, turn handover, dev roll tool, **the closed effect interpreter, the 20 anomaly cards, the five tiers, clearance checks, the downed state** |
+| **Next** | **M3** — clearance economy (`setClearance` sources, `attemptClearance`), the threat track + warhead, hunters that move, the contested protocol track, `scripts/sim.ts`, the **role draft** (replacing the 3/3 placeholder) |
+| **Known debt** | hunters are counted but inert · Threat has no track or warhead · no protocol track or directives · `drawCard`/`removeGear`/`bound` are logged substitutions · respawn returns the same character · placeholder 3/3 stats · no Spanish in the UI · layout breaks below ~900 px · Q23 (land short for 1 Fate) not implemented · `i18n` keys absent · 20 authors are `PENDING` in attribution |
 
-**How to pick this back up:** read §S2 (turn loop) and §C2 (anomaly schema), then `src/engine/movement.ts` and `src/engine/reduce.ts`. The `space` phase is the empty slot where M2 begins.
+**How to pick this back up:** read §14f, then `src/engine/reduce.ts` (the `space` phase), `src/engine/encounter.ts` (draw bands and the tier table), `src/engine/effects.ts` (the closed interpreter) and `src/content/anomalies.ts` (the deck). §14f.5 lists every substitution so nothing inert is mistaken for broken.
 
 ---
 
@@ -1060,6 +1060,77 @@ planned instead of gambled on.
 That is the honest price of keeping the stream intact; if it ever becomes a nuisance, the exit is a
 `MatchConfig.devTools` flag rather than a second reducer.
 
+### 14f. M2 — what landed, what it decided, and what it exposed
+
+**The 20 anomaly cards, the `space` phase, the five tiers, Integrity, Records, Threat, evidence, the
+downed state, and clearance checks at gates.** A turn now has a game in it:
+`roll → choose a landing → the landing resolves → contain or decline → 4dF → a tier → the world changes`.
+
+#### 14f.1 A real bug: gates were undetectable, not merely unchecked
+
+`gateBetween(a, b)` only matched **adjacent** nodes. That was fine while movement was one edge at a time, and
+it silently became dead code the moment movement became a single destination (§D26): a path that crosses G1
+in the middle of four edges never contains a `from`/`to` pair that is a gate. So for two milestones the log
+line "crossed G1 without a clearance check" could only ever fire for a one-step gate hop, which the die
+almost never produces.
+
+The fix is `gatesAlong(from, to, steps)`: enumerate the simple paths of exactly `steps` edges and keep the
+gates that **every** path must cross. If a route exists that avoids a gate, a player would take it, so no
+check applies — the intersection is not a heuristic, it is the correct answer to "can this move avoid G1?".
+`board.test.ts` and `encounter.test.ts` pin both directions: arrival → `middle-04` must cross G1, arrival →
+`outer-06` must not.
+
+Clearance then resolves in one order, which is also the fiction: **level, then the key, then the test.**
+
+#### 14f.2 The tier table pays, and only breaches stain
+
+| Outcome | Records | Payload |
+| --- | --- | --- |
+| `clean` (≥ +3) | yes | none |
+| `success` (+1..+2) | yes | none |
+| `collateral` (0) | yes | `collateral` |
+| `failure` (−1..−2) | no | `failure` |
+| `breach` (≤ −3) | no | `breach` + **`accident` evidence** |
+
+Evidence on breach is **one rule for twenty cards**, not twenty card texts (§C2.4), and it is the `accident`
+class — so standing next to a Keter failure can never hand a saboteur a breach victory (§C2.3).
+
+#### 14f.3 Decisions M2 had to make
+
+1. **Placeholder stats are 3/3, not 2/2.** Keter difficulty runs to 5 and §5 assumes `difficulty ≤ stat + 2`,
+   so a 2 stat would make every Keter card a *guaranteed* breach — the playtest would then have been
+   measuring a placeholder instead of the tier table. 3/3 is inside the role balance band
+   (`combat + intellect ∈ {5,6}`) and is replaced by the role draft in M3.
+2. **`declineCost` is now a real number**: free on Safe, `raiseThreat(1)` on Euclid and Keter. §C2.1 left the
+   field to tuning; without a cost, declining is strictly better than a bad bet and the choice is not a
+   choice. `PROPOSED` — this is the kind of number the simulator (M3) should argue with.
+3. **Gate checks read as pass/fail, not as tiers.** Printing "collateral" on a door that opened is noise, so
+   `TestResult.kind` distinguishes a gate test from an anomaly test and the log says what it means.
+
+#### 14f.4 The deck validator found a content error
+
+Writing the deck as typed data immediately failed the band check: **SCP-914 is listed at Int 2 inside the
+Safe band, which §C2.2 declares as 0–1.** The band is the design constraint and the card is an entry, so the
+card moved to difficulty 1. This is the content filter working in the cheap direction — a type error instead
+of a playtest.
+
+#### 14f.5 Substitutions, logged rather than hidden (§14b rule)
+
+Each of these resolves into real state *and* says so in the public log, so inert mechanics are visible debt:
+
+| Effect | Today | Lands in |
+| --- | --- | --- |
+| `spawnHunter` | counted (`hunters`), does not move or attack | M3 |
+| `raiseThreat` | real counter in the status strip | warhead at the top of the track — M3 |
+| `drawCard(equipment)` | logs the intent | M4 |
+| `removeGear` | logs the intent | M3 |
+| `addTag("bound")` | stored, inert | M3 |
+| `addTag("key")` | **works** — bypasses one gate and is spent | done |
+| `respawn` | same character, full Integrity, arrival gate | Q22/Q26 new character — M3 |
+
+**What M2 does not do**, so nobody reports it as a bug: hunters do not move, there is no protocol track, no
+directives, no evidence consumers, no roles, no equipment, no Spanish in the UI.
+
 ---
 
 # Part IV — Implementation design (specification, no code)
@@ -1219,23 +1290,30 @@ a bit of a) so you can skipp turns until you get recued if you like."*
 
 ```ts
 type Action =
+  // ---- implemented (M2) ----
+  | { type: "rollMovement" }
+  | { type: "moveTo"; node: NodeId }                   // one destination, simple path of N edges (D26)
+  | { type: "resolveAnomaly"; choice: "contain" | "decline" }
+  | { type: "respawn" }                                // downed seats only, while waiting to roll
+  | { type: "endTurn" }
+  | { type: "devRoll"; value: number }                 // dev tool only (§14e), never production UI
+  // ---- designed, not built yet ----
   | { type: "spendFateToReroll" }
-  | { type: "move"; path: EdgeId[] }
-  | { type: "chooseEncounterOption"; optionIndex: number }
-  | { type: "drawSideDirective" }                      // terminal spaces only
   | { type: "compel"; target: SeatId; aspectId: AspectId; compelIndex: number }
   | { type: "respondCompel"; accept: boolean }         // the ONE off-turn action
   | { type: "attemptClearance" }
   | { type: "useItem"; itemId: ItemId; target?: SeatId }
   | { type: "rest" }
   | { type: "rescue"; target: SeatId }                 // downed ally on your node
-  | { type: "chooseDownedAction"; choice: "wait" | "respawn" }
   | { type: "advanceProtocol" }                        // Intellect test at the core; steps +1
   | { type: "sabotageProtocol" }                       // steps -1, places tamperedProtocol evidence
-  | { type: "sealGate"; gateId: EdgeId }               // one action; gate blocked 2 rounds; places sealedGate
-  | { type: "castVote"; choice: VoteChoice }
-  | { type: "endTurn" };
+  | { type: "sealGate"; gateId: EdgeId }               // gate blocked 2 rounds; places sealedGate
+  | { type: "castVote"; choice: VoteChoice };
 ```
+
+The two halves are deliberate: the top block is what the reducer accepts today, the bottom is the designed
+vocabulary kept in place so a missing action cannot be mistaken for an oversight. `moveTo` replaced the
+original `move(path)`, because D26 made a destination — not a path — the thing a player chooses.
 
 `validate(state, action)` returns `ok` or a **reason code plus human text**, never a bare boolean — the
 UI has to explain refusal, and refusal reasons are themselves test data.
@@ -2293,6 +2371,7 @@ Three additions, all declared. The alternative — special-casing each card — 
 | 2026-11-18 | **C3 written — 6 roles, 6 aspects, 18 compels.** Corrected a leftover from D5: **roles have no Move stat**, because the owner's `1d6` made the original movement allowance redundant and keeping it would mean two movement systems arguing. Clearance starts at **1 for everyone**, or one role would skip the access economy that provides the game's pacing. Balance band `combat + intellect ∈ {5,6}` and Integrity 5–7, validator-enforced, because the draft only works if the options are genuinely comparable. **Framing recorded as legal and deliberate**: `By the Book` #1 and `Methodical` #3 let a player compel someone to place intent evidence under *their own* name — public, permanent, and unable to gift a saboteur a victory because the footprint check only reads a player's own tokens. It only costs the innocent their credibility. Rule added: **every aspect must carry at least one compel that takes something**, or it is a stat rather than a weakness. One vocabulary addition, `forceMove(node)`, with the line that keeps it safe: a forced move never performs a gate check, so compels cannot smuggle anyone past Clearance. |
 | 2026-11-18 | **C4 written — the 14 main directives, and the two mechanics they forced.** Ten containment / four breach. Containment directives carry **no** footprint (D18 is about suspicion; demanding evidence from honest players turns everyone into a suspect for the wrong reason) and the validator encodes that asymmetry. The four breach directives each demand a *different observable act* — Saboteur holds the core, Extractor wants the sample, Denial wants the gates, Abandonment wants someone bleeding — so "breach" is not one personality. **D22**: `Protocol Custodian` and a saboteur footprint cannot both exist without an answer to "who fired it", which produced the **three-step contested protocol track** — the last act becomes play (a public counter pushed up by three people and quietly down by one) instead of arithmetic. **D23**: `abandonedAlly` is placed when a player **moves away from a node holding a downed ally**, which loads the rescue mechanic politically. **Structural finding:** the win conditions could not be expressed in the S1 state model, so `Player` gained `counters` — found here instead of in M4. |
 | 2026-11-18 | **§14c added — the M1 playtest brief.** A playtest without questions produces anecdotes, so the document now states what M1 can and cannot tell you (no cards, no gate checks, no Spanish — do not report those), the five questions it exists to answer (distance to the core, `1d6` agency, adjacency legibility, token stacking, wall-clock lap time), and the two report formats that matter: the `?seed=` URL, and any case where the **board disagrees with the log** — which would mean the renderer and the reducer have diverged. Predictions recorded so they can be checked: the middle and inner rings will feel cramped at 10 and 8 slots, `1d6` will waste about one turn per lap, and even-slot-only labels will make odd nodes feel like filler. |
+| 2026-11-18 | **M2 landed — the game has a turn in it.** The `space` phase draws from three piles (6 Safe / 8 Euclid / 6 Keter, §C2.2), the active seat contains or declines, `4dF + stat − difficulty` resolves against the §5 tier table, and Integrity / Records / Fate / Threat / evidence move through a closed effect interpreter. Three findings, all recorded in §14f. **(1) A real bug:** `gateBetween` only matched adjacent nodes, so since D26 every gate crossed mid-path was *undetectable*, not merely unchecked — replaced by `gatesAlong`, the intersection of gates over all simple paths of exactly N edges. **(2) A placeholder correction:** stats are 3/3, not 2/2, because Keter difficulty reaches 5 and §5 assumes `difficulty ≤ stat + 2`; at 2/2 every Keter card would have been a guaranteed breach and the playtest would have measured the placeholder. **(3) A content error caught by the validator:** SCP-914 sat at Int 2 inside the Safe band 0–1, so the card moved to 1 — the filter working as a type error instead of a playtest. Also decided: `declineCost` is free on Safe and `raiseThreat(1)` on Euclid/Keter (PROPOSED, §C2.1 left it to tuning), and gate checks now read pass/fail instead of borrowing tier names. 83 tests in 6 files; the replay fuzz now also drives encounters, gate checks and respawn. |
 | 2026-11-18 | **M1 verified face by face, and two-seat tables added.** Owner: *"all die throws lands where they should be"* — the whole §14c landing table checks out in play, so **movement is closed** and M1 has no correctness debt left. Two consequences recorded. (1) The gap the table exposed: `createGame` always dealt **three** seats and the UI had no way to ask for two, so a two-player playtest — half the turns, and the MVP's headline configuration (D10) — was untestable. Added `seatsFor(count)` (a prefix of `SEAT_ORDER`, never a reordering) and a `players 2 | 3` control in the status strip; **two is now the default**, because a playtest is half as long. `players` joined `seed` in the URL, so a table reopens exactly as it was dealt. A test pins that a two-seat game wraps the round after two turns. 55 tests. (2) What is left in M1 is judgement, not correctness: token stacking at the start node, the three-seat round counter, and the fact that clicking an unreachable node does nothing at all and says nothing. |
 | 2026-11-18 | **§14e added — the dev roll tool.** Owner: *"im not able to roll a die and keep rolling so I cant, but as as in dev could we add a dev tool? that way I can pick whatever die I want?"* → `devRoll(value)` in the reducer plus a footer strip that appears under `pnpm dev` or `?dev`. Two decisions inside it: it **consumes exactly one die** so the stream position stays identical to a real roll (a dev tool that skipped the RNG would make the resulting game unreproducible by its seed, which is the property the engine is built on), and it **announces itself in the public log**, because a forced roll that looked real would make every replay note a lie. The strip also shows the next five rolls — a pure `peekRolls` read, cursor untouched — so a test session can be planned instead of gambled. 54 tests, 5 files; verified in the browser: forced 2 → 2 landings, forced 6 → 5 landings, matching §14c exactly, and the dev buttons disable after the move. |
 | 2026-11-18 | **§14d added — the descent measured, and it is three moves.** Ran a myopic greedy descent through the real reducer over 400 seeds, two seats: the first player reaches the Command Center in a **median of 3 moves** (min 2, p90 5, max 9); 400/400 arrived. Nine edges is three rolls, so **the board is a corridor, not a clock** — which is only acceptable because D22 makes the core a room to hold, not a line to cross. The finding is not "movement is too fast", it is **where the length has to come from**: clearance gates (M3, promoted from polish to pacing mechanism), the contested protocol track (D22), and encounters as cost (M2). If any of the three is missing the game ends in six turns. This is the most useful thing M1 measured, and it answers playtest question 1 without waiting for feel. |

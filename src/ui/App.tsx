@@ -6,7 +6,8 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { BOARD } from "../content/board";
-import { getNode, neighborsOf } from "../engine/board";
+import { getNode } from "../engine/board";
+import { reachableEndpoints } from "../engine/movement";
 import { hashState } from "../engine/hash";
 import { createGame, reduce } from "../engine/reduce";
 import type { Action, GameState, SeatId } from "../engine/types";
@@ -74,7 +75,7 @@ export function App() {
           phase <b className="text-[var(--text)]">{state.phase}</b>
         </span>
         <span className="text-[var(--muted)]">
-          moves left <b className="text-[var(--text)]">{state.moveRemaining}</b>
+          rolled <b className="text-[var(--text)]">{state.roll}</b>
         </span>
         <span className="text-[var(--muted)]">
           seed <b className="text-[var(--text)]">{seed}</b>
@@ -168,7 +169,7 @@ export function App() {
           {state.phase === "move" && (
             <span className="text-[var(--muted)]">
               {" "}
-              · click a highlighted space ({neighborsOf(active.node).length} adjacent)
+              · choose where to land ({reachableEndpoints(active.node, state.roll).length} options)
             </span>
           )}
         </span>
@@ -176,7 +177,7 @@ export function App() {
         {error && <span className="ml-auto text-sm text-[var(--danger)]">{error}</span>}
         {!error && (
           <span className="ml-auto text-xs text-[var(--muted)]">
-            M1 sandbox — movement only. Gates are crossable without a clearance check (M3).
+            M1 — no encounters yet (M2). Gates cross without a clearance check (M3).
           </span>
         )}
       </footer>

@@ -39,7 +39,8 @@ export type GameState = {
   readonly round: number;
   readonly seat: SeatId;
   readonly phase: Phase;
-  readonly moveRemaining: number;
+  /** The movement roll for this turn. Distance is fixed; the destination is yours to choose. */
+  readonly roll: number;
   readonly players: Readonly<Record<SeatId, Player>>;
   /** Public narration. Every entry here is public by definition (§S5). */
   readonly log: readonly string[];
@@ -55,8 +56,7 @@ export type Rejection = {
   readonly code:
     | "wrong-phase"
     | "unknown-action"
-    | "not-adjacent"
-    | "no-moves-left"
+    | "unreachable"
     | "unknown-node";
   /** Shown to a human. Never asserted on. */
   readonly message: string;

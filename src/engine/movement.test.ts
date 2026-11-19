@@ -1,12 +1,12 @@
 /**
- * Movement rules for M1: roll `1d6`, walk the graph one edge per step, hand over.
- * Clearance checks at gates are deliberately absent (M3) — the crossing is
- * logged instead, so the gap is visible in playtests rather than invisible.
+ * Movement rules (§D5, owner's ruling): the die is the distance, the player is
+ * the direction, and the move is one decision that cannot be undone.
  */
 
 import { describe, expect, it } from "vitest";
 import { ARRIVAL_NODE } from "../content/board";
-import { distance, neighborsOf } from "./board";
+import { distance } from "./board";
+import { reachableEndpoints } from "./movement";
 import { createGame, reduce } from "./reduce";
 import type { Action, GameState } from "./types";
 
@@ -16,104 +16,94 @@ function apply(state: GameState, action: Action): GameState {
   return result.value;
 }
 
-function rolled(seed = 2026): GameState {
+function rolled(seed: number): GameState {
   return apply(createGame(seed), { type: "rollMovement" });
 }
 
-describe("rolling", () => {
-  it("only works in the roll phase", () => {
-    const state = rolled();
-    const again = reduce(state, { type: "rollMovement" });
-    expect(again.ok).toBe(false);
-    if (!again.ok) expect(again.error.code).toBe("wrong-phase");
+describe("where you can land", () => {
+  it("offers both directions around a ring", () => {
+    // Arrival gate is outer-02. +4 is outer-06, -4 is outer-10.
+    // Sorted, so the same list reaches the UI and the replay log.
+    expect(reachableEndpoints(ARRIVAL_NODE, 4)).toEqual(["middle-04", "outer-06", "outer-10"]);
   });
 
-  it("grants between one and six moves", () => {
-    for (let seed = 1; seed <= 50; seed += 1) {
-      expect(rolled(seed).moveRemaining).toBeGreaterThanOrEqual(1);
-      expect(rolled(seed).moveRemaining).toBeLessThanOrEqual(6);
+  it("offers a bridge when the gate is exactly on the distance", () => {
+    // outer-02 -> 03 -> 04 -> 05 is three steps; G1 to middle-04 is the fourth.
+    expect(reachableEndpoints(ARRIVAL_NODE, 4)).toContain("middle-04");
+    // With a roll of three the gate is not reachable: it is one step further.
+    expect(reachableEndpoints(ARRIVAL_NODE, 3)).not.toContain("middle-04");
+  });
+
+  it("never offers the space you started on", () => {
+    for (let steps = 1; steps <= 6; steps += 1) {
+      expect(reachableEndpoints(ARRIVAL_NODE, steps)).not.toContain(ARRIVAL_NODE);
     }
+  });
+
+  it("never offers a space you cannot reach in exactly that many steps", () => {
+    for (let steps = 1; steps <= 6; steps += 1) {
+      for (const endpoint of reachableEndpoints(ARRIVAL_NODE, steps)) {
+        expect(distance(ARRIVAL_NODE, endpoint)).toBeLessThanOrEqual(steps);
+      }
+    }
+  });
+
+  it("is deterministic", () => {
+    expect(reachableEndpoints(ARRIVAL_NODE, 5)).toEqual(reachableEndpoints(ARRIVAL_NODE, 5));
   });
 });
 
 describe("moving", () => {
-  it("rejects a non-adjacent space with a stable code", () => {
-    const state = rolled();
-    const far = state.players[state.seat].node === "outer-00" ? "outer-06" : "outer-00";
-    const result = reduce(state, { type: "moveTo", node: far });
+  it("lands on the chosen space and closes the move", () => {
+    const state = rolled(2026);
+    const options = reachableEndpoints(state.players[state.seat].node, state.roll);
+    const target = options[0] as string;
+
+    const next = apply(state, { type: "moveTo", node: target });
+
+    expect(next.players[state.seat].node).toBe(target);
+    expect(next.phase).toBe("action");
+  });
+
+  it("refuses a space that is not a legal landing with a stable code", () => {
+    const state = rolled(2026);
+    const options = new Set(reachableEndpoints(state.players[state.seat].node, state.roll));
+    const illegal = ["outer-00", "outer-01", "core-00", "inner-03"].find((node) => !options.has(node)) as string;
+
+    const result = reduce(state, { type: "moveTo", node: illegal });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe("not-adjacent");
+    if (!result.ok) expect(result.error.code).toBe("unreachable");
   });
 
-  it("moves the token and spends exactly one step", () => {
-    const state = rolled();
-    const from = state.players[state.seat].node;
-    const to = neighborsOf(from)[0] as string;
-    const next = apply(state, { type: "moveTo", node: to });
+  it("cannot move twice in a turn", () => {
+    const state = rolled(2026);
+    const first = reachableEndpoints(state.players[state.seat].node, state.roll)[0] as string;
+    const landed = apply(state, { type: "moveTo", node: first });
 
-    expect(next.players[state.seat].node).toBe(to);
-    expect(next.moveRemaining).toBe(state.moveRemaining - 1);
-    expect(next.phase).toBe(state.moveRemaining === 1 ? "action" : "move");
+    const second = reduce(landed, { type: "moveTo", node: first });
+    expect(second.ok).toBe(false);
+    if (!second.ok) expect(second.error.code).toBe("wrong-phase");
   });
 
-  it("reaches the action phase after exactly the rolled number of steps", () => {
-    let state = rolled();
-    let steps = 0;
-    while (state.phase === "move") {
-      const from = state.players[state.seat].node;
-      const to = neighborsOf(from)[0] as string;
-      state = apply(state, { type: "moveTo", node: to });
-      steps += 1;
-      expect(steps).toBeLessThanOrEqual(6);
-    }
-    expect(steps).toBe(state.moveRemaining + steps);
-    expect(state.phase).toBe("action");
-    expect(state.moveRemaining).toBe(0);
-  });
-
-  it("refuses to move without steps left", () => {
-    let state = rolled();
-    while (state.phase === "move") {
-      state = apply(state, { type: "moveTo", node: neighborsOf(state.players[state.seat].node)[0] as string });
-    }
-    const result = reduce(state, { type: "moveTo", node: neighborsOf(state.players[state.seat].node)[0] as string });
+  it("does not let you double back to where you started", () => {
+    const state = rolled(2026);
+    const result = reduce(state, { type: "moveTo", node: state.players[state.seat].node });
     expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.error.code).toBe("wrong-phase");
+    if (!result.ok) expect(result.error.code).toBe("unreachable");
   });
 
-  it("walks from the arrival gate to the Command Center without leaving the graph", () => {
-    // Greedy descent by graph distance: proves a legal path exists and that
-    // movement can actually traverse it, which is stronger than reachability.
-    let state = createGame(4);
-    let guard = 0;
-
-    while (state.players[state.seat].node !== "core-00") {
-      if (state.phase === "roll") {
-        state = apply(state, { type: "rollMovement" });
-        continue;
-      }
-      if (state.phase === "action") {
-        state = apply(state, { type: "endTurn" });
-        continue;
-      }
-
-      const from = state.players[state.seat].node;
-      const next = neighborsOf(from)
-        .slice()
-        .sort((a, b) => distance(a, "core-00") - distance(b, "core-00"))[0] as string;
-
-      state = apply(state, { type: "moveTo", node: next });
-      guard += 1;
-      expect(guard).toBeLessThan(200);
+  it("always offers at least one landing somewhere on the board", () => {
+    for (let seed = 1; seed <= 30; seed += 1) {
+      const state = rolled(seed);
+      const options = reachableEndpoints(state.players[state.seat].node, state.roll);
+      expect(options.length).toBeGreaterThan(0);
     }
-
-    expect(state.players[state.seat].node).toBe("core-00");
   });
 });
 
 describe("turn handover", () => {
   it("only ends from the action phase", () => {
-    const result = reduce(rolled(), { type: "endTurn" });
+    const result = reduce(rolled(1), { type: "endTurn" });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("wrong-phase");
   });
@@ -122,9 +112,8 @@ describe("turn handover", () => {
     let state = createGame(9);
     for (let turn = 0; turn < 3; turn += 1) {
       state = apply(state, { type: "rollMovement" });
-      while (state.phase === "move") {
-        state = apply(state, { type: "moveTo", node: neighborsOf(state.players[state.seat].node)[0] as string });
-      }
+      const options = reachableEndpoints(state.players[state.seat].node, state.roll);
+      state = apply(state, { type: "moveTo", node: options[0] as string });
       state = apply(state, { type: "endTurn" });
     }
     expect(state.seat).toBe("p1");

@@ -11,7 +11,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { neighborsOf } from "./board";
+import { reachableEndpoints } from "./movement";
 import { hashState } from "./hash";
 import { createGame, reduce } from "./reduce";
 import { nextInt } from "./rng";
@@ -35,7 +35,7 @@ export function legalActions(state: GameState): Action[] {
     case "roll":
       return [{ type: "rollMovement" }];
     case "move":
-      return neighborsOf(node).map((node) => ({ type: "moveTo", node }));
+      return reachableEndpoints(node, state.roll).map((node) => ({ type: "moveTo", node }));
     case "action":
       return [{ type: "endTurn" }];
     default:
@@ -110,8 +110,8 @@ describe("turn machinery", () => {
   it("moves to the move phase on a roll, with 1..6 movement", () => {
     const state = play(1, [{ type: "rollMovement" }]);
     expect(state.phase).toBe("move");
-    expect(state.moveRemaining).toBeGreaterThanOrEqual(1);
-    expect(state.moveRemaining).toBeLessThanOrEqual(6);
+    expect(state.roll).toBeGreaterThanOrEqual(1);
+    expect(state.roll).toBeLessThanOrEqual(6);
   });
 
   it("advances the seat and keeps the round until it wraps", () => {

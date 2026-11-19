@@ -369,6 +369,29 @@ board game where a failed check costs a turn *and* a resource.
 `+1` and the curve lands where we want it (~76% non-bad). One mechanism, one knob, and the simulation
 harness tells us when the knob is wrong.
 
+> **Correction, 2026-11-18 (found while building M2).** The sign in that last sentence was backwards.
+> `shift = 4dF + stat − difficulty`, so a *higher* difficulty means a *lower* mean shift, not higher.
+> Measured across the 81 outcomes of 4dF:
+
+| `difficulty − stat` | mean shift | bad outcomes (failure + breach) |
+| ---: | ---: | ---: |
+| −2 | +2 | 6.2% |
+| −1 | +1 | 18.4% |
+| 0 | 0 | 38.2% |
+| +1 | −1 | 61.7% |
+| +2 | −2 | 81.5% |
+
+> So `difficulty ≤ stat + 2` is the **harshest** band in the table, not the tuned one. The "~76% non-bad"
+> quoted above lives between `−1` and `0`, i.e. around `difficulty ≈ stat`. What the paragraph meant was
+> the mirror image: **difficulty ≈ stat − 1** for the comfortable case.
+>
+> This is a tuning error in the document, not in the engine — the code implements the table exactly. It is
+> left as a decision for M3's simulator because the role draft will fix the real stat range. Two live
+> consequences today: **the Safe ring is genuinely gentle** (difficulty 0–1 against an average 3 stat:
+> 0% breach, ~6% failure), and **Keter is a trap for an average character** (difficulty 4–5: 61.7%–81.5%
+> bad, up to 38.2% breach). A specialist at 4 against difficulty 5 still fails or breaches 61.7% of the
+> time, which means Keter currently reads as "do not enter" rather than "costly".
+
 ## 6. Player count and match configuration (D10, D12)
 
 v1 is tuned for **2–4 players**, and the engine is **parametric in N** so a 5–6 player mode is
@@ -1130,6 +1153,32 @@ Each of these resolves into real state *and* says so in the public log, so inert
 
 **What M2 does not do**, so nobody reports it as a bug: hunters do not move, there is no protocol track, no
 directives, no evidence consumers, no roles, no equipment, no Spanish in the UI.
+
+### 14f.6 Collateral that is a reward — four cards break the tier's promise
+
+The §5 table defines shift 0 as *success at a cost*. Four Safe cards were written with a **benefit** in the
+collateral column instead:
+
+| Card | Collateral | What it actually is |
+| --- | --- | --- |
+| SCP-005 | `addTag(key)` | one gate bypassed |
+| SCP-131 | `grantFate(1)` | +1 Fate |
+| SCP-294 | `drawCard(equipment, 1)` | an item |
+| SCP-500 | `modifyIntegrity(2)` | a heal |
+
+The incentive is inverted: rolling *worse* pays better (1 Record **and** the benefit), and on SCP-500 nothing
+in the failure or breach columns can hurt much, so at stat 3 it is close to a free card — 81.5% contain-and-
+pay-nothing, 12.3% contain-and-heal, 6.2% nothing, 0% breach.
+
+**Decision: not rewritten yet.** These payloads come straight from §C2.4, rewriting them is content work, and
+M3's simulator is the right place to argue about tuning. What is enforced instead is a **ratchet**: a test
+pins the offending list to exactly these four cards, so the error cannot spread to a new card, and the list
+shrinking is a welcome failure.
+
+**Proposed rule for future content:** a collateral payload must contain at least one *cost*. A benefit may
+ride along (the SCP-914 refinery gives items **and** eats one), but a benefit alone is a reward wearing the
+wrong label. Note the distinction that matters in code: `addTag("key")` is a benefit, `addTag("bound")` is a
+cost — same effect kind, different meaning, so the ratchet test reads the tag name.
 
 ---
 
@@ -2371,6 +2420,7 @@ Three additions, all declared. The alternative — special-casing each card — 
 | 2026-11-18 | **C3 written — 6 roles, 6 aspects, 18 compels.** Corrected a leftover from D5: **roles have no Move stat**, because the owner's `1d6` made the original movement allowance redundant and keeping it would mean two movement systems arguing. Clearance starts at **1 for everyone**, or one role would skip the access economy that provides the game's pacing. Balance band `combat + intellect ∈ {5,6}` and Integrity 5–7, validator-enforced, because the draft only works if the options are genuinely comparable. **Framing recorded as legal and deliberate**: `By the Book` #1 and `Methodical` #3 let a player compel someone to place intent evidence under *their own* name — public, permanent, and unable to gift a saboteur a victory because the footprint check only reads a player's own tokens. It only costs the innocent their credibility. Rule added: **every aspect must carry at least one compel that takes something**, or it is a stat rather than a weakness. One vocabulary addition, `forceMove(node)`, with the line that keeps it safe: a forced move never performs a gate check, so compels cannot smuggle anyone past Clearance. |
 | 2026-11-18 | **C4 written — the 14 main directives, and the two mechanics they forced.** Ten containment / four breach. Containment directives carry **no** footprint (D18 is about suspicion; demanding evidence from honest players turns everyone into a suspect for the wrong reason) and the validator encodes that asymmetry. The four breach directives each demand a *different observable act* — Saboteur holds the core, Extractor wants the sample, Denial wants the gates, Abandonment wants someone bleeding — so "breach" is not one personality. **D22**: `Protocol Custodian` and a saboteur footprint cannot both exist without an answer to "who fired it", which produced the **three-step contested protocol track** — the last act becomes play (a public counter pushed up by three people and quietly down by one) instead of arithmetic. **D23**: `abandonedAlly` is placed when a player **moves away from a node holding a downed ally**, which loads the rescue mechanic politically. **Structural finding:** the win conditions could not be expressed in the S1 state model, so `Player` gained `counters` — found here instead of in M4. |
 | 2026-11-18 | **§14c added — the M1 playtest brief.** A playtest without questions produces anecdotes, so the document now states what M1 can and cannot tell you (no cards, no gate checks, no Spanish — do not report those), the five questions it exists to answer (distance to the core, `1d6` agency, adjacency legibility, token stacking, wall-clock lap time), and the two report formats that matter: the `?seed=` URL, and any case where the **board disagrees with the log** — which would mean the renderer and the reducer have diverged. Predictions recorded so they can be checked: the middle and inner rings will feel cramped at 10 and 8 slots, `1d6` will waste about one turn per lap, and even-slot-only labels will make odd nodes feel like filler. |
+| 2026-11-18 | **Two arithmetic findings, from one Panacea.** Owner forced a roll, drew SCP-500, and the card turned out to be the flabbiest in the deck. Checking it produced two corrections. **(1) §5 had a sign error:** it claimed `difficulty ≤ stat + 2` puts the expected shift near `+1`, but a higher difficulty *lowers* the shift, so `+2` is the harshest band (81.5% bad, 38.2% breach) and the "~76% non-bad" lives near `difficulty ≈ stat`. The engine was always right; the prose was not. Consequence named honestly: the Safe ring is gentle, and **Keter is currently a trap** for an average character. **(2) Four Safe cards have a benefit in the collateral column** (005 key, 131 Fate, 294 item, 500 heal), which inverts the tier table — worse rolls pay better. Content is not rewritten yet (M3's simulator is the right place to argue tuning); instead a **ratchet test** pins the offending list to those four cards so the error cannot spread, and `addTag("bound")` is recorded as a *cost* despite sharing an effect kind with `addTag("key")`. 84 tests. |
 | 2026-11-18 | **M2 landed — the game has a turn in it.** The `space` phase draws from three piles (6 Safe / 8 Euclid / 6 Keter, §C2.2), the active seat contains or declines, `4dF + stat − difficulty` resolves against the §5 tier table, and Integrity / Records / Fate / Threat / evidence move through a closed effect interpreter. Three findings, all recorded in §14f. **(1) A real bug:** `gateBetween` only matched adjacent nodes, so since D26 every gate crossed mid-path was *undetectable*, not merely unchecked — replaced by `gatesAlong`, the intersection of gates over all simple paths of exactly N edges. **(2) A placeholder correction:** stats are 3/3, not 2/2, because Keter difficulty reaches 5 and §5 assumes `difficulty ≤ stat + 2`; at 2/2 every Keter card would have been a guaranteed breach and the playtest would have measured the placeholder. **(3) A content error caught by the validator:** SCP-914 sat at Int 2 inside the Safe band 0–1, so the card moved to 1 — the filter working as a type error instead of a playtest. Also decided: `declineCost` is free on Safe and `raiseThreat(1)` on Euclid/Keter (PROPOSED, §C2.1 left it to tuning), and gate checks now read pass/fail instead of borrowing tier names. 83 tests in 6 files; the replay fuzz now also drives encounters, gate checks and respawn. |
 | 2026-11-18 | **M1 verified face by face, and two-seat tables added.** Owner: *"all die throws lands where they should be"* — the whole §14c landing table checks out in play, so **movement is closed** and M1 has no correctness debt left. Two consequences recorded. (1) The gap the table exposed: `createGame` always dealt **three** seats and the UI had no way to ask for two, so a two-player playtest — half the turns, and the MVP's headline configuration (D10) — was untestable. Added `seatsFor(count)` (a prefix of `SEAT_ORDER`, never a reordering) and a `players 2 | 3` control in the status strip; **two is now the default**, because a playtest is half as long. `players` joined `seed` in the URL, so a table reopens exactly as it was dealt. A test pins that a two-seat game wraps the round after two turns. 55 tests. (2) What is left in M1 is judgement, not correctness: token stacking at the start node, the three-seat round counter, and the fact that clicking an unreachable node does nothing at all and says nothing. |
 | 2026-11-18 | **§14e added — the dev roll tool.** Owner: *"im not able to roll a die and keep rolling so I cant, but as as in dev could we add a dev tool? that way I can pick whatever die I want?"* → `devRoll(value)` in the reducer plus a footer strip that appears under `pnpm dev` or `?dev`. Two decisions inside it: it **consumes exactly one die** so the stream position stays identical to a real roll (a dev tool that skipped the RNG would make the resulting game unreproducible by its seed, which is the property the engine is built on), and it **announces itself in the public log**, because a forced roll that looked real would make every replay note a lie. The strip also shows the next five rolls — a pure `peekRolls` read, cursor untouched — so a test session can be planned instead of gambled. 54 tests, 5 files; verified in the browser: forced 2 → 2 landings, forced 6 → 5 landings, matching §14c exactly, and the dev buttons disable after the move. |

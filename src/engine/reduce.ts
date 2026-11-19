@@ -237,7 +237,8 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
         }
         case "collateral": {
           apply([{ kind: "modifyRecords", delta: card.reward.records }, ...card.collateral]);
-          notes.push(`  contained, but not for free.`);
+          // No editorial line here: for a few Safe cards the collateral column is a
+          // reward (§14f.6), so "not for free" would be a lie. The effects say it.
           break;
         }
         case "failure": {

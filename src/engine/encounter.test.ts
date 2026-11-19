@@ -354,6 +354,28 @@ describe("the deck as content", () => {
     }
   });
 
+  it("keeps the reward-only collateral list from growing (§14f.6)", () => {
+    // The §5 table promises "success at a cost" at shift 0, but four Safe cards
+    // were written with a benefit in the collateral column. Rewriting content is
+    // M3's job (the sim measures it), so this is a ratchet: the list may not grow.
+    const KNOWN = ["scp-005", "scp-131", "scp-294", "scp-500"];
+
+    const onlyBenefits = (effect: { kind: string; tag?: string; delta?: number }): boolean => {
+      if (effect.kind === "addTag") return effect.tag !== "bound";
+      if (effect.kind === "drawCard") return true;
+      if (effect.kind === "modifyIntegrity" || effect.kind === "grantFate") return (effect.delta ?? 0) > 0;
+      return false;
+    };
+
+    const offenders = ANOMALIES.filter(
+      (card) => card.collateral.length > 0 && card.collateral.every(onlyBenefits),
+    )
+      .map((card) => card.id)
+      .sort();
+
+    expect(offenders).toEqual([...KNOWN].sort());
+  });
+
   it("never puts a Keter card on an outer lab node", () => {
     expect(getNode("outer-00").kind).toBe("lab");
     expect(deckForNode("outer-00")).toBe("safe");

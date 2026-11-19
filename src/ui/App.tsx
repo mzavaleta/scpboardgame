@@ -4,7 +4,7 @@
  * shows state honestly and hides nothing behind decoration.
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { anomalyById } from "../content/anomalies";
 import { BOARD } from "../content/board";
 import { getNode } from "../engine/board";
@@ -35,9 +35,18 @@ function param(name: string): string | null {
   return new URLSearchParams(window.location.search).get(name);
 }
 
-function newSeed(): number {
-  const fromUrl = param("seed");
-  if (fromUrl && Number.isFinite(Number(fromUrl))) return Number(fromUrl);
+/**
+ * `?seed=` is an instruction for the **first** game of the session, not a setting.
+ *
+ * Reading it every time `New game` runs made the button a no-op whenever the URL
+ * carried a seed — which is every playtest URL, so it was a no-op always.
+ */
+function seedFromUrl(): number | null {
+  const raw = param("seed");
+  return raw !== null && Number.isFinite(Number(raw)) ? Number(raw) : null;
+}
+
+function randomSeed(): number {
   return Math.floor(Math.random() * 1_000_000_000);
 }
 
@@ -103,10 +112,25 @@ function EncounterPanel({ cardId, combat, intellect, onChoose }: EncounterProps)
 }
 
 export function App() {
-  const [seed, setSeed] = useState(newSeed);
-  const [seatCount, setSeatCount] = useState<2 | 3>(initialSeatCount);
-  const [state, setState] = useState<GameState>(() => createGame(newSeed(), seatsFor(initialSeatCount())));
+  // Resolve the opening table exactly once. Calling a random generator per
+  // `useState` also meant a fresh visit could show one seed in the strip while
+  // playing a different one — the two calls disagreed.
+  const [opening] = useState(() => ({
+    seed: seedFromUrl() ?? randomSeed(),
+    seats: initialSeatCount(),
+  }));
+  const [seed, setSeed] = useState(opening.seed);
+  const [seatCount, setSeatCount] = useState<2 | 3>(opening.seats);
+  const [state, setState] = useState<GameState>(() =>
+    createGame(opening.seed, seatsFor(opening.seats)),
+  );
   const [error, setError] = useState<string>("");
+
+  // The address bar is the playtest record: it always matches the table on screen,
+  // including on first load, so a bug can be reopened from the URL alone.
+  useEffect(() => {
+    remember(seed, seatCount);
+  }, [seed, seatCount]);
 
   const dispatch = useCallback((action: Action) => {
     setState((current) => {
@@ -121,8 +145,7 @@ export function App() {
   }, []);
 
   const start = useCallback((seats: 2 | 3) => {
-    const next = newSeed();
-    remember(next, seats);
+    const next = randomSeed();
     setSeed(next);
     setSeatCount(seats);
     setState(createGame(next, seatsFor(seats)));

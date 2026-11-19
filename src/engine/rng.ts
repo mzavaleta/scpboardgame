@@ -55,6 +55,24 @@ export function rollD6(state: RngState): readonly [value: number, next: RngState
 }
 
 /**
+ * The next `count` movement rolls, **without** advancing anything.
+ *
+ * Pure: `rollD6` is a function of `(seed, cursor)`, so looking ahead costs
+ * nothing and changes nothing. This is what the dev tool shows, and it is also
+ * how a test can predict the stream before consuming it.
+ */
+export function peekRolls(state: RngState, count: number): readonly number[] {
+  const out: number[] = [];
+  let cursor = state;
+  for (let index = 0; index < count; index += 1) {
+    const [value, next] = rollD6(cursor);
+    out.push(value);
+    cursor = next;
+  }
+  return out;
+}
+
+/**
  * `4dF` — tests only (§D5): four dice of `-1 | 0 | +1`, summed. Consumes four
  * cursor positions, so the distribution is built from four independent draws
  * and the "cursor strictly increases per draw" invariant stays meaningful.

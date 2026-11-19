@@ -49,7 +49,14 @@ export type GameState = {
 export type Action =
   | { readonly type: "rollMovement" }
   | { readonly type: "moveTo"; readonly node: NodeId }
-  | { readonly type: "endTurn" };
+  | { readonly type: "endTurn" }
+  /**
+   * Dev tool only (§14e): force the movement roll to a chosen face so a landing
+   * table can be tested without hunting seeds. Consumes one die like a real
+   * roll, so it never desyncs the stream, and it announces itself in the log.
+   * Never dispatched by production UI.
+   */
+  | { readonly type: "devRoll"; readonly value: number };
 
 export type Rejection = {
   /** Machine-readable, stable. Tests assert on this, never on the message. */
@@ -57,7 +64,8 @@ export type Rejection = {
     | "wrong-phase"
     | "unknown-action"
     | "unreachable"
-    | "unknown-node";
+    | "unknown-node"
+    | "invalid-value";
   /** Shown to a human. Never asserted on. */
   readonly message: string;
 };

@@ -25,9 +25,9 @@
 | | |
 | --- | --- |
 | **Last commit** | `9cf685c` — Talisman-exact movement (D26) |
-| **Health** | `pnpm test` → **46 passing**, 4 files · `pnpm typecheck` clean · `pnpm build` clean |
-| **Playable** | `pnpm dev` → localhost:5173 · roll, choose a landing, end turn · `?seed=` reproduces any game |
-| **Implemented** | seeded engine (`rng`, `hash`, `reduce`), board data + graph, movement with landing options, SVG board, log, turn handover |
+| **Health** | `pnpm test` → **54 passing**, 5 files · `pnpm typecheck` clean · `pnpm build` clean |
+| **Playable** | `pnpm dev` → localhost:5173 · roll (or **force any face** with the dev strip, §14e), choose a landing, end turn · `?seed=` reproduces any game |
+| **Implemented** | seeded engine (`rng`, `hash`, `reduce`), board data + graph, movement with landing options, SVG board, log, turn handover, dev roll tool |
 | **Next** | **M2** — `4dF` + the five outcome tiers; one anomaly encounter end to end; Integrity; the downed state |
 | **Known debt** | no encounters (the `space` phase resolves nothing) · gates cross with no clearance check (M3) · no Spanish in the UI · layout breaks below ~900 px (desktop-only) · Q23 (land short for 1 Fate) not implemented · `i18n` keys absent |
 
@@ -1034,6 +1034,31 @@ its end. But it does settle the priority order, and it is the most useful thing 
 `distance(node, "core-00")`, end the turn; stop at the first arrival; aggregate 400 seeds. The probe runs
 against the real reducer, so it measures the engine rather than a model of it. It becomes permanent work in
 `scripts/sim.ts` (M3); until then this table is the record.
+
+### 14e. The dev tool: force a movement roll
+
+Testing a landing table by re-rolling until the die cooperates is a waste of a human. The dev strip in the
+footer forces the movement roll to any face, so the table in §14c can be checked face by face in seconds.
+
+**What it does.** `devRoll(value)` in the reducer — same phase guard as `rollMovement`, a `1..6` range check
+(`invalid-value` otherwise), and one line in the public log: `p1 forced a roll of 2 (dev tool).`
+
+**Why it consumes a die.** The engine's whole claim is that `seed + actions` reproduces a game exactly. A dev
+tool that *skipped* the RNG would silently shift every later roll and make the resulting game unreproducible
+by its seed — the exact property the design spends its purity budget on. So `devRoll` advances the cursor by
+exactly one, identically to a real roll: only the *value* differs, never the stream position. A test asserts
+the rng state is byte-identical to what a real roll would have produced.
+
+**Why the log says it.** The log is public narration and the source of truth in a playtest (§14c). A forced
+roll that looked like a real one would make every subsequent replay note a lie.
+
+**Where it appears.** Only under `pnpm dev`, or when the URL carries `?dev` — never in a plain build. The strip
+also shows the **next five rolls** (`peekRolls`, a pure read: the cursor is untouched), so a session can be
+planned instead of gambled on.
+
+**Debt, stated plainly.** `devRoll` is part of the `Action` union, so the domain knows about a testing aid.
+That is the honest price of keeping the stream intact; if it ever becomes a nuisance, the exit is a
+`MatchConfig.devTools` flag rather than a second reducer.
 
 ---
 
@@ -2268,6 +2293,7 @@ Three additions, all declared. The alternative — special-casing each card — 
 | 2026-11-18 | **C3 written — 6 roles, 6 aspects, 18 compels.** Corrected a leftover from D5: **roles have no Move stat**, because the owner's `1d6` made the original movement allowance redundant and keeping it would mean two movement systems arguing. Clearance starts at **1 for everyone**, or one role would skip the access economy that provides the game's pacing. Balance band `combat + intellect ∈ {5,6}` and Integrity 5–7, validator-enforced, because the draft only works if the options are genuinely comparable. **Framing recorded as legal and deliberate**: `By the Book` #1 and `Methodical` #3 let a player compel someone to place intent evidence under *their own* name — public, permanent, and unable to gift a saboteur a victory because the footprint check only reads a player's own tokens. It only costs the innocent their credibility. Rule added: **every aspect must carry at least one compel that takes something**, or it is a stat rather than a weakness. One vocabulary addition, `forceMove(node)`, with the line that keeps it safe: a forced move never performs a gate check, so compels cannot smuggle anyone past Clearance. |
 | 2026-11-18 | **C4 written — the 14 main directives, and the two mechanics they forced.** Ten containment / four breach. Containment directives carry **no** footprint (D18 is about suspicion; demanding evidence from honest players turns everyone into a suspect for the wrong reason) and the validator encodes that asymmetry. The four breach directives each demand a *different observable act* — Saboteur holds the core, Extractor wants the sample, Denial wants the gates, Abandonment wants someone bleeding — so "breach" is not one personality. **D22**: `Protocol Custodian` and a saboteur footprint cannot both exist without an answer to "who fired it", which produced the **three-step contested protocol track** — the last act becomes play (a public counter pushed up by three people and quietly down by one) instead of arithmetic. **D23**: `abandonedAlly` is placed when a player **moves away from a node holding a downed ally**, which loads the rescue mechanic politically. **Structural finding:** the win conditions could not be expressed in the S1 state model, so `Player` gained `counters` — found here instead of in M4. |
 | 2026-11-18 | **§14c added — the M1 playtest brief.** A playtest without questions produces anecdotes, so the document now states what M1 can and cannot tell you (no cards, no gate checks, no Spanish — do not report those), the five questions it exists to answer (distance to the core, `1d6` agency, adjacency legibility, token stacking, wall-clock lap time), and the two report formats that matter: the `?seed=` URL, and any case where the **board disagrees with the log** — which would mean the renderer and the reducer have diverged. Predictions recorded so they can be checked: the middle and inner rings will feel cramped at 10 and 8 slots, `1d6` will waste about one turn per lap, and even-slot-only labels will make odd nodes feel like filler. |
+| 2026-11-18 | **§14e added — the dev roll tool.** Owner: *"im not able to roll a die and keep rolling so I cant, but as as in dev could we add a dev tool? that way I can pick whatever die I want?"* → `devRoll(value)` in the reducer plus a footer strip that appears under `pnpm dev` or `?dev`. Two decisions inside it: it **consumes exactly one die** so the stream position stays identical to a real roll (a dev tool that skipped the RNG would make the resulting game unreproducible by its seed, which is the property the engine is built on), and it **announces itself in the public log**, because a forced roll that looked real would make every replay note a lie. The strip also shows the next five rolls — a pure `peekRolls` read, cursor untouched — so a test session can be planned instead of gambled. 54 tests, 5 files; verified in the browser: forced 2 → 2 landings, forced 6 → 5 landings, matching §14c exactly, and the dev buttons disable after the move. |
 | 2026-11-18 | **§14d added — the descent measured, and it is three moves.** Ran a myopic greedy descent through the real reducer over 400 seeds, two seats: the first player reaches the Command Center in a **median of 3 moves** (min 2, p90 5, max 9); 400/400 arrived. Nine edges is three rolls, so **the board is a corridor, not a clock** — which is only acceptable because D22 makes the core a room to hold, not a line to cross. The finding is not "movement is too fast", it is **where the length has to come from**: clearance gates (M3, promoted from polish to pacing mechanism), the contested protocol track (D22), and encounters as cost (M2). If any of the three is missing the game ends in six turns. This is the most useful thing M1 measured, and it answers playtest question 1 without waiting for feel. |
 | 2026-11-18 | **Checkpoint.** Commit `9cf685c`, 46 tests green, typecheck and build clean. Added a **⏸ Resume here** block at the top of the document (commit, health, how to run, what is implemented, what is next, known debt), and the d6 emulation for `4dF` in §5 so the dice can be hand-verified without Fudge dice. Debt is now stated in one place instead of scattered through §14. |
 | 2026-11-18 | **First playtest — and the pickup rule changed the design.** Owner played M1 and reported: rolling and moving work, nothing happens on landing *(expected — M2)*, and you can move one space at a time and go back and forth *(not expected, and a real hole)*. Ruling recorded as **D26**: movement is Talisman-exact — the die fixes the distance, **you choose the destination**, the move is one irreversible decision, the path must be **simple**, and **only the landing space resolves**. The reason this was not cosmetic: one-edge-at-a-time movement meant four landings per turn, which would have burned the anomaly deck four times faster than the pacing math (§C1.1) and collapsed the 60–90 minute claim. Rework landed in `src/engine/movement.ts` (`reachableEndpoints` enumerates simple paths of exactly N edges, sorted for determinism), the reducer's `moveTo` now validates reachability instead of adjacency, and the board highlights **landing options** rather than neighbours — so a bridge exactly N away appears as an option with no special case. 46 tests green; verified in the browser: roll 4 from the arrival gate offers exactly three landings (`middle-04` via G1, `outer-06`, `outer-10`), which is the gate-as-option behaviour the owner asked for. |

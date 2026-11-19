@@ -93,6 +93,28 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
       });
     }
 
+    case "devRoll": {
+      // §14e. A dev tool, not a rule: it exists so a test can see any landing
+      // table on demand. It consumes the die anyway, so the stream position
+      // stays identical to a real roll and toggling it cannot desync a replay.
+      if (state.phase !== "roll") {
+        return reject("wrong-phase", `Cannot roll during the ${state.phase} phase.`);
+      }
+      if (!Number.isInteger(action.value) || action.value < 1 || action.value > 6) {
+        return reject("invalid-value", `A d6 shows 1 to 6, not ${action.value}.`);
+      }
+
+      const [, rng] = rollD6(state.rng);
+
+      return ok({
+        ...state,
+        rng,
+        phase: "move",
+        roll: action.value,
+        log: [...state.log, `${state.seat} forced a roll of ${action.value} (dev tool).`],
+      });
+    }
+
     case "endTurn": {
       if (state.phase !== "action") {
         return reject("wrong-phase", `Cannot end the turn during the ${state.phase} phase.`);

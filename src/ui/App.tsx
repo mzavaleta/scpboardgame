@@ -10,6 +10,7 @@ import { getNode } from "../engine/board";
 import { reachableEndpoints } from "../engine/movement";
 import { hashState } from "../engine/hash";
 import { createGame, reduce } from "../engine/reduce";
+import { peekRolls } from "../engine/rng";
 import type { Action, GameState, SeatId } from "../engine/types";
 import { Board } from "./board/Board";
 
@@ -58,6 +59,10 @@ export function App() {
     setState(createGame(next));
     setError("");
   }, []);
+
+  // Dev tool (§14e): present in `pnpm dev`, or when the URL says so. It never
+  // ships to a plain build, because it is a testing aid, not a rule.
+  const isDev = import.meta.env.DEV || new URLSearchParams(window.location.search).has("dev");
 
   const active = state.players[state.seat];
   const activeNode = getNode(active.node);
@@ -161,6 +166,26 @@ export function App() {
         >
           End turn
         </button>
+
+        {isDev && (
+          <div className="flex items-center gap-2 rounded border border-dashed border-[var(--line)] px-2 py-1">
+            <span className="text-[10px] uppercase tracking-widest text-[var(--muted)]">dev</span>
+            {[1, 2, 3, 4, 5, 6].map((face) => (
+              <button
+                key={face}
+                onClick={() => dispatch({ type: "devRoll", value: face })}
+                disabled={state.phase !== "roll"}
+                title={`Force a roll of ${face}`}
+                className="w-6 rounded border border-[var(--line)] text-xs disabled:opacity-25"
+              >
+                {face}
+              </button>
+            ))}
+            <span className="text-[10px] text-[var(--muted)]">
+              next {peekRolls(state.rng, 5).join(" ")}
+            </span>
+          </div>
+        )}
 
         <span className="ml-4 text-sm">
           <b style={{ color: SEAT_COLOR[state.seat] }}>{state.seat.toUpperCase()}</b>

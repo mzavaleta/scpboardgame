@@ -362,6 +362,47 @@ describe("weighted draws instead of a depleting pile (D27)", () => {
   });
 });
 
+describe("a whole turn (M2's acceptance criterion)", () => {
+  it("walks move → draw → test → tier → state change → handover in one run", () => {
+    const started = createGame(2026, seatsFor(2));
+    const rolled = apply(started, { type: "devRoll", value: 2 });
+    const landed = apply(rolled, { type: "moveTo", node: "outer-00" });
+
+    // 1. the landing opened an encounter instead of skipping the space phase
+    expect(landed.phase).toBe("space");
+    const card = anomalyById(landed.encounter?.card as string);
+    expect(card.tier).toBe("safe");
+
+    // 2. the decision resolves through the tier table
+    const resolved = apply(landed, { type: "resolveAnomaly", choice: "contain" });
+    const outcome = resolved.lastTest?.outcome as Outcome;
+    expect(resolved.phase).toBe("action");
+    expect(resolved.encounter).toBeNull();
+
+    // 3. the state change follows the tier, not the card
+    const records = resolved.players.p1?.records ?? 0;
+    const integrity = resolved.players.p1?.integrity ?? 0;
+    const held = outcome === "clean" || outcome === "success" || outcome === "collateral";
+
+    expect(records).toBe(held ? card.reward.records : 0);
+    if (outcome === "failure" || outcome === "breach") expect(integrity).toBeLessThan(6);
+    if (outcome === "breach") expect(resolved.players.p1?.evidence.accident).toBe(1);
+
+    // 4. the log reads in the order it happened
+    const log = resolved.log.join("\n");
+    expect(log).toMatch(/p1 forced a roll of 2/);
+    expect(log).toMatch(/p1 moved from Arrival Gate to Storage Vault 2/);
+    expect(log).toMatch(new RegExp(`contain ${card.name.en}`));
+    expect(log).toMatch(new RegExp(`→ ${outcome}`));
+
+    // 5. and the turn hands over cleanly
+    const ended = apply(resolved, { type: "endTurn" });
+    expect(ended.seat).toBe("p2");
+    expect(ended.phase).toBe("roll");
+    expect(ended.lastTest).toBeNull();
+  });
+});
+
 describe("the deck as content", () => {
   it("has 20 cards split 6 / 8 / 6", () => {
     expect(ANOMALIES).toHaveLength(20);

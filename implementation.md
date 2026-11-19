@@ -1180,6 +1180,78 @@ ride along (the SCP-914 refinery gives items **and** eats one), but a benefit al
 wrong label. Note the distinction that matters in code: `addTag("key")` is a benefit, `addTag("bound")` is a
 cost — same effect kind, different meaning, so the ratchet test reads the tag name.
 
+### 14g. Proposal — node-driven draws, facility tests, and what "contain" means
+
+Owner, verbatim (2026-11-19): *"i need to push on that because what contain means? also, i was picturing that
+depending where you land you either have to draw 1-3 cards depending on the ring, and the node. … outer ring,
+12 nodes lets say 10 are draw 1 card and 2 are 2 draw cards. that means that drawing more cards is good but
+also dangerous, because more bad things can pop. also if you land on lets say medical bay or so, you need to
+roll 4dF depending on the outcome you can get good things or none, the average of the time none. or depending
+on the role you can draw more cards or lose something. supply node can give equipment but only a type of
+equipment depening on the char you are and the role. also getting to the inner rings should require like a
+challenge, either be hacher and pass a 4sf check or have an special card or have a bomb, or a follower? …
+the inner circle might have more percentage of draw vs 1 and the inner one pretty mucho 2 and 3."*
+
+Status: `PROPOSED` — recorded, not implemented. §14b's rule applies: an MVP removes breadth, never risk, and
+this proposal adds both.
+
+#### 14g.1 "Contain" is currently doing unpaid work
+
+Three things the word can mean, and only one of them is built:
+
+| Meaning | State required | Who reads it | Status |
+| --- | --- | --- | --- |
+| **Resolve and forget** — you beat the test, take the Records, the card leaves the pile | nothing | nobody | **built (M2)** |
+| **A counted act** — a permanent, public number per player | `containments`, `containmentsByTier` (§C3) | the four containment Main Directives, the endgame protocol (§C4.4) | designed, not built |
+| **A fact on the board** — an anomaly sits on its node until somebody deals with it | an anomaly token per node | everyone at the table; makes the facility legible | not designed |
+
+So today the button means "resolve the encounter", and the fiction implies more than the engine records. That
+is a fair thing to push on. Two of the three readings are already in the document and one of them is cheap.
+
+**Recommendation:** build the middle row (counted act) as soon as directives need it, and treat the third row
+as decoration until something reads it — a token nobody consumes is exactly the "node kind that silently does
+nothing" that §14b warns about.
+
+#### 14g.2 What the proposal actually changes
+
+| Idea | Verdict |
+| --- | --- |
+| Draw count varies by node and ring (1–3) | **compatible with D26** — D26 fixed *when* a landing resolves, never *how many* cards it draws |
+| More cards = more reward and more danger | the best part of the proposal: it turns the landing into a **risk dial the player turns by choosing where to go**, which is exactly the agency D26 bought |
+| Facility nodes (medical, supply) resolve with a test instead of a card, expected value slightly negative | re-opens **facility events**, deferred in §14b as breadth — a milestone, not a tweak |
+| Supply gives role-filtered equipment | new rule on top of the equipment deck (M4) |
+| Entering the inner rings needs a challenge | **already the design**: G3/G4 need clearance 3, G5/G6 need clearance 4 (§C1.6) |
+
+#### 14g.3 The number that decides it
+
+**Nine of the 31 nodes draw today** (3 outer labs, 2 middle labs, 4 middle/inner cells). That is why 20 cards
+support a whole session: a ~35-landing game draws ~10 times.
+
+The proposal makes **31 of 31 nodes draw**, at one to three cards each. That is a 6–10× increase in draw
+volume, and the deck is the binding constraint:
+
+| Average draws per landing | Deck needed for a session | Content cost |
+| --- | --- | --- |
+| 1 (today, on draw nodes) | 20 | done |
+| 2 | ~60–80 | 3–4× the writing |
+| 3 | ~120 | 6× the writing |
+
+**Two ways to keep the idea without the content bill:**
+
+1. **Reshuffle on empty, with escalation.** When a pile runs dry, the discarded cards go back and the Threat
+   track takes a step. The deck becomes a cycle, not a resource — cheap in content, and it converts "the deck
+   is exhausted" from a bookkeeping dead-end into pressure.
+2. **Draw count is a ring property, not a node property.** Outer ring: 1 card at labs, 0 elsewhere. Middle: 2
+   at cells. Inner: 2–3. That keeps the average near today's rate while still making the inner rings denser —
+   which is the owner's stated goal, and the part of the proposal that costs nothing.
+
+#### 14g.4 What I would not do yet
+
+Nothing in this section is scheduled before M3 (clearance economy, threat track, hunters, protocol track, sim,
+role draft). Recording it here is deliberate: the proposal collides with the deck-size assumption that §C2.2
+and the M2 implementation are built on, and that assumption should be re-measured by the simulator before
+sixty cards get written.
+
 ---
 
 # Part IV — Implementation design (specification, no code)
@@ -2420,6 +2492,7 @@ Three additions, all declared. The alternative — special-casing each card — 
 | 2026-11-18 | **C3 written — 6 roles, 6 aspects, 18 compels.** Corrected a leftover from D5: **roles have no Move stat**, because the owner's `1d6` made the original movement allowance redundant and keeping it would mean two movement systems arguing. Clearance starts at **1 for everyone**, or one role would skip the access economy that provides the game's pacing. Balance band `combat + intellect ∈ {5,6}` and Integrity 5–7, validator-enforced, because the draft only works if the options are genuinely comparable. **Framing recorded as legal and deliberate**: `By the Book` #1 and `Methodical` #3 let a player compel someone to place intent evidence under *their own* name — public, permanent, and unable to gift a saboteur a victory because the footprint check only reads a player's own tokens. It only costs the innocent their credibility. Rule added: **every aspect must carry at least one compel that takes something**, or it is a stat rather than a weakness. One vocabulary addition, `forceMove(node)`, with the line that keeps it safe: a forced move never performs a gate check, so compels cannot smuggle anyone past Clearance. |
 | 2026-11-18 | **C4 written — the 14 main directives, and the two mechanics they forced.** Ten containment / four breach. Containment directives carry **no** footprint (D18 is about suspicion; demanding evidence from honest players turns everyone into a suspect for the wrong reason) and the validator encodes that asymmetry. The four breach directives each demand a *different observable act* — Saboteur holds the core, Extractor wants the sample, Denial wants the gates, Abandonment wants someone bleeding — so "breach" is not one personality. **D22**: `Protocol Custodian` and a saboteur footprint cannot both exist without an answer to "who fired it", which produced the **three-step contested protocol track** — the last act becomes play (a public counter pushed up by three people and quietly down by one) instead of arithmetic. **D23**: `abandonedAlly` is placed when a player **moves away from a node holding a downed ally**, which loads the rescue mechanic politically. **Structural finding:** the win conditions could not be expressed in the S1 state model, so `Player` gained `counters` — found here instead of in M4. |
 | 2026-11-18 | **§14c added — the M1 playtest brief.** A playtest without questions produces anecdotes, so the document now states what M1 can and cannot tell you (no cards, no gate checks, no Spanish — do not report those), the five questions it exists to answer (distance to the core, `1d6` agency, adjacency legibility, token stacking, wall-clock lap time), and the two report formats that matter: the `?seed=` URL, and any case where the **board disagrees with the log** — which would mean the renderer and the reducer have diverged. Predictions recorded so they can be checked: the middle and inner rings will feel cramped at 10 and 8 slots, `1d6` will waste about one turn per lap, and even-slot-only labels will make odd nodes feel like filler. |
+| 2026-11-19 | **Owner pushed on the word "contain", and proposed node-driven draws (§14g).** Two separate things. **(1) "Contain" currently means "resolve the encounter"** — Records move, the card leaves the pile, and nothing else. The fiction implies more: §C3 already declares `containments` / `containmentsByTier` counters that four Main Directives and the endgame protocol will read, and a third reading (an anomaly token on the node until somebody deals with it) does not exist at all. Recorded as three candidate meanings with a recommendation: build the counted act, not the token, until something consumes a token. **(2) A proposal to draw 1–3 cards per landing, by node and ring**, with facility tests at medical/supply, role-filtered equipment, and a challenge to enter the inner rings. Verdicts recorded: compatible with D26 (which fixed *when* a landing resolves, not *how much*), the inner-ring challenge is **already** the clearance system, and facility events re-open an explicit §14b deferral. The binding constraint is named with a number: **9 of 31 nodes draw today**, the proposal makes 31 of 31 draw, which is a 6–10× increase in volume and a 3–6× increase in content. Two cheap ways to keep the idea are recorded — reshuffle-on-empty with escalation, and treating draw count as a ring property. Nothing scheduled before M3. |
 | 2026-11-18 | **Two arithmetic findings, from one Panacea.** Owner forced a roll, drew SCP-500, and the card turned out to be the flabbiest in the deck. Checking it produced two corrections. **(1) §5 had a sign error:** it claimed `difficulty ≤ stat + 2` puts the expected shift near `+1`, but a higher difficulty *lowers* the shift, so `+2` is the harshest band (81.5% bad, 38.2% breach) and the "~76% non-bad" lives near `difficulty ≈ stat`. The engine was always right; the prose was not. Consequence named honestly: the Safe ring is gentle, and **Keter is currently a trap** for an average character. **(2) Four Safe cards have a benefit in the collateral column** (005 key, 131 Fate, 294 item, 500 heal), which inverts the tier table — worse rolls pay better. Content is not rewritten yet (M3's simulator is the right place to argue tuning); instead a **ratchet test** pins the offending list to those four cards so the error cannot spread, and `addTag("bound")` is recorded as a *cost* despite sharing an effect kind with `addTag("key")`. 84 tests. |
 | 2026-11-18 | **M2 landed — the game has a turn in it.** The `space` phase draws from three piles (6 Safe / 8 Euclid / 6 Keter, §C2.2), the active seat contains or declines, `4dF + stat − difficulty` resolves against the §5 tier table, and Integrity / Records / Fate / Threat / evidence move through a closed effect interpreter. Three findings, all recorded in §14f. **(1) A real bug:** `gateBetween` only matched adjacent nodes, so since D26 every gate crossed mid-path was *undetectable*, not merely unchecked — replaced by `gatesAlong`, the intersection of gates over all simple paths of exactly N edges. **(2) A placeholder correction:** stats are 3/3, not 2/2, because Keter difficulty reaches 5 and §5 assumes `difficulty ≤ stat + 2`; at 2/2 every Keter card would have been a guaranteed breach and the playtest would have measured the placeholder. **(3) A content error caught by the validator:** SCP-914 sat at Int 2 inside the Safe band 0–1, so the card moved to 1 — the filter working as a type error instead of a playtest. Also decided: `declineCost` is free on Safe and `raiseThreat(1)` on Euclid/Keter (PROPOSED, §C2.1 left it to tuning), and gate checks now read pass/fail instead of borrowing tier names. 83 tests in 6 files; the replay fuzz now also drives encounters, gate checks and respawn. |
 | 2026-11-18 | **M1 verified face by face, and two-seat tables added.** Owner: *"all die throws lands where they should be"* — the whole §14c landing table checks out in play, so **movement is closed** and M1 has no correctness debt left. Two consequences recorded. (1) The gap the table exposed: `createGame` always dealt **three** seats and the UI had no way to ask for two, so a two-player playtest — half the turns, and the MVP's headline configuration (D10) — was untestable. Added `seatsFor(count)` (a prefix of `SEAT_ORDER`, never a reordering) and a `players 2 | 3` control in the status strip; **two is now the default**, because a playtest is half as long. `players` joined `seed` in the URL, so a table reopens exactly as it was dealt. A test pins that a two-seat game wraps the round after two turns. 55 tests. (2) What is left in M1 is judgement, not correctness: token stacking at the start node, the three-seat round counter, and the fact that clicking an unreachable node does nothing at all and says nothing. |

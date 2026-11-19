@@ -5,13 +5,15 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
+import { anomalyById } from "../content/anomalies";
 import { BOARD } from "../content/board";
 import { getNode } from "../engine/board";
 import { reachableEndpoints } from "../engine/movement";
+import { describeTest } from "../engine/encounter";
 import { hashState } from "../engine/hash";
 import { createGame, reduce } from "../engine/reduce";
 import { peekRolls } from "../engine/rng";
-import { seatsFor } from "../engine/types";
+import { playersIn, playerAt, seatsFor } from "../engine/types";
 import type { Action, GameState, SeatId } from "../engine/types";
 import { Board } from "./board/Board";
 
@@ -49,6 +51,57 @@ function remember(seed: number, seats: 2 | 3): void {
   window.history.replaceState(null, "", `?seed=${seed}&players=${seats}`);
 }
 
+type EncounterProps = {
+  cardId: string;
+  combat: number;
+  intellect: number;
+  onChoose: (choice: "contain" | "decline") => void;
+};
+
+function EncounterPanel({ cardId, combat, intellect, onChoose }: EncounterProps) {
+  const card = anomalyById(cardId);
+  const stat = card.test.stat === "combat" ? combat : intellect;
+  const need = card.test.difficulty - stat;
+
+  return (
+    <div className="flex items-center gap-4 rounded border border-[var(--accent)] bg-[#0d1a22] px-3 py-2">
+      <div className="min-w-0">
+        <div className="text-sm">
+          <b>{card.name.en}</b>
+          <span className="text-[var(--muted)]">
+            {" "}
+            · {card.tier} · {card.name.es}
+          </span>
+        </div>
+        <div className="truncate text-xs text-[var(--muted)]">{card.text.en}</div>
+      </div>
+
+      <div className="ml-auto whitespace-nowrap text-right text-xs text-[var(--muted)]">
+        <div>
+          {card.test.stat} <b className="text-[var(--text)]">{stat}</b> vs difficulty{" "}
+          <b className="text-[var(--text)]">{card.test.difficulty}</b>
+        </div>
+        <div>
+          4dF needs {need > 0 ? `+${need}` : need} or better to reach 0 shift
+        </div>
+      </div>
+
+      <button
+        onClick={() => onChoose("contain")}
+        className="rounded bg-[var(--accent)] px-3 py-1.5 text-sm font-semibold text-[#04121b]"
+      >
+        Contain · {card.reward.records} Rec
+      </button>
+      <button
+        onClick={() => onChoose("decline")}
+        className="rounded border border-[var(--line)] px-3 py-1.5 text-sm"
+      >
+        {card.declineCost.length > 0 ? "Decline · +1 Threat" : "Decline · free"}
+      </button>
+    </div>
+  );
+}
+
 export function App() {
   const [seed, setSeed] = useState(newSeed);
   const [seatCount, setSeatCount] = useState<2 | 3>(initialSeatCount);
@@ -82,7 +135,7 @@ export function App() {
   // ships to a plain build, because it is a testing aid, not a rule.
   const isDev = import.meta.env.DEV || new URLSearchParams(window.location.search).has("dev");
 
-  const active = state.players[state.seat];
+  const active = playerAt(state.players, state.seat);
   const activeNode = getNode(active.node);
   const stateHash = useMemo(() => hashState(state), [state]);
 
@@ -99,6 +152,9 @@ export function App() {
         </span>
         <span className="text-[var(--muted)]">
           rolled <b className="text-[var(--text)]">{state.roll}</b>
+        </span>
+        <span className="text-[var(--muted)]">
+          threat <b className={state.threat > 0 ? "text-[var(--danger)]" : "text-[var(--text)]"}>{state.threat}</b>
         </span>
         <span className="text-[var(--muted)]">
           seed <b className="text-[var(--text)]">{seed}</b>
@@ -135,7 +191,7 @@ export function App() {
       <aside className="rounded border border-[var(--line)] bg-[var(--panel)] p-3">
         <h2 className="mb-2 text-xs uppercase tracking-widest text-[var(--muted)]">Players</h2>
         <ul className="space-y-2 text-sm">
-          {Object.values(state.players).map((player) => {
+          {playersIn(state.players).map((player) => {
             const isActive = player.seat === state.seat;
             return (
               <li
@@ -150,8 +206,16 @@ export function App() {
                   <b>{player.seat.toUpperCase()}</b>
                   <span className="text-[var(--muted)]">int {player.integrity}</span>
                   <span className="text-[var(--muted)]">fate {player.fate}</span>
+                  {player.downed && <span className="font-semibold text-[var(--danger)]">DOWN</span>}
                 </div>
-                <div className="mt-1 text-xs text-[var(--muted)]">{getNode(player.node).name.en}</div>
+                <div className="mt-1 text-xs text-[var(--muted)]">
+                  {getNode(player.node).name.en}
+                  <div className="mt-0.5 text-[11px]">
+                    C{player.stats.combat} I{player.stats.intellect} · rec {player.records} · clr{" "}
+                    {player.clearance} · ev {player.evidence.accident}/{player.evidence.intent}
+                    {player.tags.length > 0 && <> · {player.tags.join(", ")}</>}
+                  </div>
+                </div>
               </li>
             );
           })}
@@ -186,7 +250,16 @@ export function App() {
       </aside>
 
       {/* Controls */}
-      <footer className="col-span-3 flex items-center gap-3 rounded border border-[var(--line)] bg-[var(--panel)] px-4 py-3">
+      <footer className="col-span-3 flex flex-col gap-2 rounded border border-[var(--line)] bg-[var(--panel)] px-4 py-3">
+        {state.phase === "space" && state.encounter && (
+          <EncounterPanel
+            cardId={state.encounter.card}
+            combat={active.stats.combat}
+            intellect={active.stats.intellect}
+            onChoose={(choice) => dispatch({ type: "resolveAnomaly", choice })}
+          />
+        )}
+        <div className="flex items-center gap-3">
         <button
           onClick={() => dispatch({ type: "rollMovement" })}
           disabled={state.phase !== "roll"}
@@ -201,6 +274,16 @@ export function App() {
         >
           End turn
         </button>
+
+        {active.downed && (
+          <button
+            onClick={() => dispatch({ type: "respawn" })}
+            disabled={state.phase !== "roll"}
+            className="rounded border border-[var(--danger)] px-4 py-2 text-sm text-[var(--danger)] disabled:opacity-30"
+          >
+            Respawn
+          </button>
+        )}
 
         {isDev && (
           <div className="flex items-center gap-2 rounded border border-dashed border-[var(--line)] px-2 py-1">
@@ -234,12 +317,18 @@ export function App() {
           )}
         </span>
 
-        {error && <span className="ml-auto text-sm text-[var(--danger)]">{error}</span>}
-        {!error && (
-          <span className="ml-auto text-xs text-[var(--muted)]">
-            M1 — no encounters yet (M2). Gates cross without a clearance check (M3).
+        {state.lastTest && !error && (
+          <span className="ml-auto font-mono text-[11px] text-[var(--muted)]">
+            last: {describeTest(state.lastTest)}
           </span>
         )}
+        {error && <span className="text-sm text-[var(--danger)]">{error}</span>}
+        {!error && !state.lastTest && (
+          <span className="ml-auto text-xs text-[var(--muted)]">
+            M2 — anomalies resolve; hunters and the threat track land in M3.
+          </span>
+        )}
+        </div>
       </footer>
     </div>
   );

@@ -15,6 +15,7 @@ import { reachableEndpoints } from "./movement";
 import { hashState } from "./hash";
 import { createGame, reduce } from "./reduce";
 import { nextInt } from "./rng";
+import { playerAt } from "./types";
 import type { Action, GameState } from "./types";
 
 function play(seed: number, actions: readonly Action[]): GameState {
@@ -29,13 +30,21 @@ function play(seed: number, actions: readonly Action[]): GameState {
 
 /** The legal moves in the current phase. Grows as rules land. */
 export function legalActions(state: GameState): Action[] {
-  const node = state.players[state.seat].node;
+  const player = playerAt(state.players, state.seat);
 
   switch (state.phase) {
     case "roll":
-      return [{ type: "rollMovement" }];
+      // A downed seat cannot roll; it may respawn or lose the turn (Q22).
+      return player.downed
+        ? [{ type: "respawn" }, { type: "endTurn" }]
+        : [{ type: "rollMovement" }];
     case "move":
-      return reachableEndpoints(node, state.roll).map((node) => ({ type: "moveTo", node }));
+      return reachableEndpoints(player.node, state.roll).map((node) => ({ type: "moveTo", node }));
+    case "space":
+      return [
+        { type: "resolveAnomaly", choice: "contain" },
+        { type: "resolveAnomaly", choice: "decline" },
+      ];
     case "action":
       return [{ type: "endTurn" }];
     default:
@@ -92,10 +101,25 @@ describe("replay determinism", () => {
     }
   });
 
-  it("keeps the rng cursor monotonic and bounded by the dice rolled", () => {
-    const state = play(5, randomLegalRun(5, 60));
+  it("consumes dice monotonically, and the same actions reproduce the same cursor", () => {
+    // The engine now draws for movement (1d6), tests (4dF, four positions) and
+    // card draws (1 index), so a fixed bound would be a guess. What must hold is
+    // that the cursor never goes backwards and that the stream is reproducible —
+    // which is exactly the promise a `?seed=` replay depends on.
+    const actions = randomLegalRun(5, 60);
+    let state = createGame(5);
+    let previous = state.rng.cursor;
+
+    for (const action of actions) {
+      const result = reduce(state, action);
+      if (!result.ok) throw new Error(`rejected a legal action: ${action.type}`);
+      state = result.value;
+      expect(state.rng.cursor).toBeGreaterThanOrEqual(previous);
+      previous = state.rng.cursor;
+    }
+
     expect(state.rng.cursor).toBeGreaterThan(0);
-    expect(state.rng.cursor).toBeLessThanOrEqual(60);
+    expect(play(5, actions).rng.cursor).toBe(state.rng.cursor);
   });
 });
 
@@ -154,6 +178,6 @@ describe("the log is public narration", () => {
     const state = play(1, randomLegalRun(1, 3));
     expect(state.log[0]).toContain("Round 1");
     expect(state.log.join("\n")).toMatch(/p1 rolled [1-6]/);
-    expect(state.log.join("\n")).toMatch(/p1 moved to /);
+    expect(state.log.join("\n")).toMatch(/p1 moved from /);
   });
 });

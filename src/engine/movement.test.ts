@@ -8,7 +8,7 @@ import { ARRIVAL_NODE } from "../content/board";
 import { distance } from "./board";
 import { reachableEndpoints } from "./movement";
 import { createGame, reduce } from "./reduce";
-import { seatsFor } from "./types";
+import { playerAt, seatsFor } from "./types";
 import type { Action, GameState } from "./types";
 
 function apply(state: GameState, action: Action): GameState {
@@ -57,18 +57,18 @@ describe("where you can land", () => {
 describe("moving", () => {
   it("lands on the chosen space and closes the move", () => {
     const state = rolled(2026);
-    const options = reachableEndpoints(state.players[state.seat].node, state.roll);
+    const options = reachableEndpoints(playerAt(state.players, state.seat).node, state.roll);
     const target = options[0] as string;
 
     const next = apply(state, { type: "moveTo", node: target });
 
-    expect(next.players[state.seat].node).toBe(target);
+    expect(playerAt(next.players, state.seat).node).toBe(target);
     expect(next.phase).toBe("action");
   });
 
   it("refuses a space that is not a legal landing with a stable code", () => {
     const state = rolled(2026);
-    const options = new Set(reachableEndpoints(state.players[state.seat].node, state.roll));
+    const options = new Set(reachableEndpoints(playerAt(state.players, state.seat).node, state.roll));
     const illegal = ["outer-00", "outer-01", "core-00", "inner-03"].find((node) => !options.has(node)) as string;
 
     const result = reduce(state, { type: "moveTo", node: illegal });
@@ -78,7 +78,7 @@ describe("moving", () => {
 
   it("cannot move twice in a turn", () => {
     const state = rolled(2026);
-    const first = reachableEndpoints(state.players[state.seat].node, state.roll)[0] as string;
+    const first = reachableEndpoints(playerAt(state.players, state.seat).node, state.roll)[0] as string;
     const landed = apply(state, { type: "moveTo", node: first });
 
     const second = reduce(landed, { type: "moveTo", node: first });
@@ -88,7 +88,7 @@ describe("moving", () => {
 
   it("does not let you double back to where you started", () => {
     const state = rolled(2026);
-    const result = reduce(state, { type: "moveTo", node: state.players[state.seat].node });
+    const result = reduce(state, { type: "moveTo", node: playerAt(state.players, state.seat).node });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("unreachable");
   });
@@ -96,7 +96,7 @@ describe("moving", () => {
   it("always offers at least one landing somewhere on the board", () => {
     for (let seed = 1; seed <= 30; seed += 1) {
       const state = rolled(seed);
-      const options = reachableEndpoints(state.players[state.seat].node, state.roll);
+      const options = reachableEndpoints(playerAt(state.players, state.seat).node, state.roll);
       expect(options.length).toBeGreaterThan(0);
     }
   });
@@ -113,8 +113,9 @@ describe("turn handover", () => {
     let state = createGame(9);
     for (let turn = 0; turn < 3; turn += 1) {
       state = apply(state, { type: "rollMovement" });
-      const options = reachableEndpoints(state.players[state.seat].node, state.roll);
+      const options = reachableEndpoints(playerAt(state.players, state.seat).node, state.roll);
       state = apply(state, { type: "moveTo", node: options[0] as string });
+      if (state.phase === "space") state = apply(state, { type: "resolveAnomaly", choice: "decline" });
       state = apply(state, { type: "endTurn" });
     }
     expect(state.seat).toBe("p1");
@@ -129,8 +130,9 @@ describe("turn handover", () => {
 
     for (let turn = 0; turn < 2; turn += 1) {
       state = apply(state, { type: "rollMovement" });
-      const options = reachableEndpoints(state.players[state.seat].node, state.roll);
+      const options = reachableEndpoints(playerAt(state.players, state.seat).node, state.roll);
       state = apply(state, { type: "moveTo", node: options[0] as string });
+      if (state.phase === "space") state = apply(state, { type: "resolveAnomaly", choice: "decline" });
       state = apply(state, { type: "endTurn" });
     }
 

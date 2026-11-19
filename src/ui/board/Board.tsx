@@ -6,6 +6,7 @@
 
 import { BOARD, type BoardNode } from "../../content/board";
 import { reachableEndpoints } from "../../engine/movement";
+import { playerAt } from "../../engine/types";
 import type { GameState, SeatId } from "../../engine/types";
 import { CENTER, VIEW, positionOf, ringRadius } from "./layout";
 
@@ -33,7 +34,7 @@ type Props = {
 };
 
 export function Board({ state, onMove }: Props) {
-  const active = state.players[state.seat];
+  const active = playerAt(state.players, state.seat);
   // Landing options, not adjacent steps: the die fixes the distance (§D5).
   const reachable =
     state.phase === "move" ? new Set(reachableEndpoints(active.node, state.roll)) : new Set<string>();

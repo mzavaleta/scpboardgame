@@ -9,7 +9,7 @@ import { anomalyById } from "../content/anomalies";
 import { BOARD } from "../content/board";
 import { getNode } from "../engine/board";
 import { reachableEndpoints } from "../engine/movement";
-import { describeTest } from "../engine/encounter";
+import { describeTest, drawAnomaly } from "../engine/encounter";
 import { hashState } from "../engine/hash";
 import { createGame, reduce } from "../engine/reduce";
 import { peekRolls } from "../engine/rng";
@@ -302,6 +302,17 @@ export function App() {
             <span className="text-[10px] text-[var(--muted)]">
               next {peekRolls(state.rng, 5).join(" ")}
             </span>
+            {state.phase === "move" && (
+              <span
+                className="text-[10px] text-[var(--muted)]"
+                title="Next card in each pile (safe·euclid·keter) at this cursor, assuming no gate check"
+              >
+                draw{" "}
+                {(["safe", "euclid", "keter"] as const)
+                  .map((deck) => drawAnomaly(state, deck).card?.replace("scp-", "") ?? "--")
+                  .join("·")}
+              </span>
+            )}
           </div>
         )}
 

@@ -88,6 +88,7 @@ boundary until the previous one has zero `OPEN` items.
 | --- | --- | --- |
 | **D1** | Win axis = **descend to the Command Center to recontain**. The "escape" feeling is delivered by pressure, not by a puzzle-escape victory. | `AGREED` |
 | **D5** | **Dice split: `1d6` for movement, `4dF` for tests** (combat, containment checks, achievements). | `AGREED` |
+| **D28** | **Containment is a collectible spent on stats** (Talisman shape): containing yields a trophy typed by tier, trophies are exchanged for stats at a facility, and some entries are usable objects that can be dropped onto a node and stay there. Cheap variant: `records` (already 1/2/3 by tier) *is* the tally. (§14i) `PROPOSED` |
 | **D27** | **Draws are weighted samples, not a pile that depletes** — rarity is a number on the card (what a physical deck calls *copies*), the draw consumes one die and mutates no state, and a deck can never run dry. Removes `decks` from `GameState` and makes the draw rate a free dial (§14h, `src/engine/encounter.ts`). | `AGREED` |
 | **D26** | **Movement is Talisman-exact**: the die fixes the distance, you choose the destination, and the move is **one irreversible decision**. The path must be **simple** (no revisiting a node, so no doubling back), and **only the landing space resolves** — passing through is free. (§S2, §C1.1, `src/engine/movement.ts`) | `AGREED` |
 | **D13** | Pressure model = **stagnation-driven escalation + roaming hunts**, not a fixed round timer. Preset-swappable per mode/expansion. | `AGREED` (shape) · tuning `OPEN` |
@@ -1077,8 +1078,8 @@ the rng state is byte-identical to what a real roll would have produced.
 roll that looked like a real one would make every subsequent replay note a lie.
 
 **Where it appears.** Only under `pnpm dev`, or when the URL carries `?dev` — never in a plain build. The strip
-also shows the **next five rolls** (`peekRolls`, a pure read: the cursor is untouched), so a session can be
-planned instead of gambled on.
+also shows the **next five rolls** (`peekRolls`, a pure read: the cursor is untouched) and, once the movement
+die is down, the **next card in each pile**, so a session can be planned instead of gambled on.
 
 **Debt, stated plainly.** `devRoll` is part of the `Action` union, so the domain knows about a testing aid.
 That is the honest price of keeping the stream intact; if it ever becomes a nuisance, the exit is a
@@ -1308,6 +1309,80 @@ one the pile produced, minus depletion — which is why this is behaviour-preser
 
 It makes §14g affordable. Draw count per node is now a free dial: one to three cards per landing costs a
 field on the node and **no new content**, which was the only objection worth making to the owner's proposal.
+
+### 14i. D28 — containment is a collectible, spent on stats (Talisman shape)
+
+Owner, verbatim (2026-11-19): *"clarifying the question, lets refine it latter but, containing, same as talisman
+you want to collect them to later interchange it for more stats, depending on what type the contained is. or,
+like panacea or other creatures that can be used they can turn into objects., can be discarded and remains on
+that node. but plain, like basic is collect and interchange later to upgrade yourself."*
+
+`PROPOSED` — this answers §14g.1 with reading **(b)**, plus a piece of **(c)** for items only.
+
+#### 14i.1 The shape
+
+1. **Containing produces a trophy**, typed by what you contained (at minimum by tier: Safe / Euclid / Keter).
+2. **Trophies are exchanged for stats** at a place — the Talisman move: kill it, carry it, trade it for
+   Strength or Craft.
+3. **Some entries are usable objects instead of trophies** (Panacea is the clear case): you carry them, use
+   them, and may **discard them onto a node, where they stay** for anyone who walks there.
+
+#### 14i.2 The discovery: the trophy tally already exists
+
+`reward.records` is **1 / 2 / 3 by tier** (§C2.1). That is already a tier-weighted trophy value. So the cheap
+version of this mechanic needs **no new state at all**:
+
+| Variant | New state | What it gives |
+| --- | --- | --- |
+| **A. Records *are* the tally** | none — spend the existing `records` for +1 stat | 90% of the intent, one new action and one facility |
+| **B. Typed trophies** | `trophies: Record<tier, number>` alongside `records` | "two Euclid and one Keter" recipes; a second currency to explain |
+
+**Recommendation: A first.** It uses the number already on the sheet, and if a differentiated recipe is wanted
+later, B is an addition rather than a rewrite.
+
+#### 14i.3 This is the missing lever for §14g and for the Keter trap
+
+Two findings from the last two days point here:
+
+- §14g.3: Keter is a trap, because difficulty 4–5 against a fixed stat of 3 fails or breaches **61.7–81.5%**
+  of the time, and even a specialist at 4 is 61.7% bad.
+- §14g.1: the game's length cannot come from the board; it has to come from clearance, the protocol track and
+  encounters.
+
+A stat economy fixes the first one by design instead of by tuning: **if a stat can be raised to 5 or 6, the
+inner ring stops being a wall and becomes a place you become able to enter.** That makes the descent a
+*preparation* game — gather, trade, then go deeper — which is exactly the Talisman loop the owner is
+describing, and it gives Records the sink they were missing (§14f note: Records currently accumulate and buy
+nothing).
+
+Balance guard to decide with it: the role band (`combat + intellect ∈ {5,6}`) becomes a **starting** value,
+not a ceiling, so the cap has to be set explicitly, or the Keter band stops meaning anything.
+
+#### 14i.4 What it needs that does not exist
+
+| Need | Where it lands |
+| --- | --- |
+| An **exchange action** (`exchangeTrophies(stat)`) and a node that offers it | M3/M4 — the terminal/checkpoint role, which §14b deferred |
+| `itemsOnNode`, for objects dropped on a node | M4 — also what gear-dropping needs |
+| A stat ceiling, or the role band stops binding | decided with D28 itself |
+
+Recorded, not scheduled: M3 is still clearance economy, threat track, hunters, protocol track, sim and the
+role draft.
+
+### 14i.5 Answered: "it always pops a Panacea"
+
+Not a bug — **determinism working**. A forced roll of 2 to Storage Vault 2 on a fixed seed performs exactly
+the same draws every time, so the same card must appear every time; that is the property `?seed=` exists for.
+Checked rather than assumed:
+
+- Seeds 1–10 at that same node give `914, 131, 131, 914, 131, 1025, 294, 1025, 005, 294` — five different
+  entries, so the deck is not stuck;
+- Over 600 seeds the six Safe cards appear at **14.0%–20.5%** each against an expected 16.7%, which is a flat
+  distribution and not a biased one.
+
+To see variety without a new seed, force a different roll and land on a different lab (`outer-07`, `outer-10`).
+The dev strip now also shows the **next card in each pile** while a landing is pending, so the draw can be
+chosen rather than discovered.
 
 ---
 
@@ -2549,6 +2624,7 @@ Three additions, all declared. The alternative — special-casing each card — 
 | 2026-11-18 | **C3 written — 6 roles, 6 aspects, 18 compels.** Corrected a leftover from D5: **roles have no Move stat**, because the owner's `1d6` made the original movement allowance redundant and keeping it would mean two movement systems arguing. Clearance starts at **1 for everyone**, or one role would skip the access economy that provides the game's pacing. Balance band `combat + intellect ∈ {5,6}` and Integrity 5–7, validator-enforced, because the draft only works if the options are genuinely comparable. **Framing recorded as legal and deliberate**: `By the Book` #1 and `Methodical` #3 let a player compel someone to place intent evidence under *their own* name — public, permanent, and unable to gift a saboteur a victory because the footprint check only reads a player's own tokens. It only costs the innocent their credibility. Rule added: **every aspect must carry at least one compel that takes something**, or it is a stat rather than a weakness. One vocabulary addition, `forceMove(node)`, with the line that keeps it safe: a forced move never performs a gate check, so compels cannot smuggle anyone past Clearance. |
 | 2026-11-18 | **C4 written — the 14 main directives, and the two mechanics they forced.** Ten containment / four breach. Containment directives carry **no** footprint (D18 is about suspicion; demanding evidence from honest players turns everyone into a suspect for the wrong reason) and the validator encodes that asymmetry. The four breach directives each demand a *different observable act* — Saboteur holds the core, Extractor wants the sample, Denial wants the gates, Abandonment wants someone bleeding — so "breach" is not one personality. **D22**: `Protocol Custodian` and a saboteur footprint cannot both exist without an answer to "who fired it", which produced the **three-step contested protocol track** — the last act becomes play (a public counter pushed up by three people and quietly down by one) instead of arithmetic. **D23**: `abandonedAlly` is placed when a player **moves away from a node holding a downed ally**, which loads the rescue mechanic politically. **Structural finding:** the win conditions could not be expressed in the S1 state model, so `Player` gained `counters` — found here instead of in M4. |
 | 2026-11-18 | **§14c added — the M1 playtest brief.** A playtest without questions produces anecdotes, so the document now states what M1 can and cannot tell you (no cards, no gate checks, no Spanish — do not report those), the five questions it exists to answer (distance to the core, `1d6` agency, adjacency legibility, token stacking, wall-clock lap time), and the two report formats that matter: the `?seed=` URL, and any case where the **board disagrees with the log** — which would mean the renderer and the reducer have diverged. Predictions recorded so they can be checked: the middle and inner rings will feel cramped at 10 and 8 slots, `1d6` will waste about one turn per lap, and even-slot-only labels will make odd nodes feel like filler. |
+| 2026-11-19 | **D28 — what containing is for (§14i), and the Panacea report answered.** Owner: *"same as talisman you want to collect them to later interchange it for more stats, depending on what type the contained is … some can turn into objects … can be discarded and remains on that node."* So containment is reading **(b)** with a Talisman exchange: trophies in, stats out. The useful discovery is that `reward.records` is already 1/2/3 by tier, i.e. **a tier-weighted trophy value**, so the cheap variant needs no new state — spend the existing Records at a facility. More importantly this is the **missing lever** for the Keter trap recorded in §5 and §14g: with a stat economy, difficulty 5 stops being a wall and becomes a place you *become able* to enter, which gives Records the sink they lacked. Two things it forces: an `exchangeTrophies` action on a facility node (deferred in §14b), and an explicit stat ceiling now that the role band is a starting value. Recorded, not scheduled. Separately: the "always a Panacea" report was checked, not assumed — determinism, not a bug. Ten seeds at the same node give five different cards, and 600 seeds distribute the six Safe cards at 14.0–20.5% against 16.7% expected, i.e. flat. The dev strip now previews the next card of each pile. |
 | 2026-11-19 | **D27 — the pile is gone.** Owner: *"for a physical game reshuffling is the way to go, but, do we really need that here? … based on probabilities … the greater the chance the more 'copies' of a card is represented. the pile is never run dry."* Implemented the same day, because it is behaviour-preserving at equal rarity and it **deletes state**: `decks` left `GameState`, a draw now consumes one die and mutates nothing, and rarity became a number on the card. The decisive argument was the one the owner did not make: this removes the 6–10× content bill that §14g.3 identified as the price of drawing 1–3 cards per landing — the draw rate is now free. What it loses is named rather than hidden: the pile was also a **clock** (six Safe cards capped Safe encounters at six per session) and repeats become possible (1 in 6 at equal rarity, no guard built). 89 tests, including a 1:3 weight ratio measured over 8,100 draws and 200 consecutive Keter draws that never run dry. |
 | 2026-11-19 | **Owner pushed on the word "contain", and proposed node-driven draws (§14g).** Two separate things. **(1) "Contain" currently means "resolve the encounter"** — Records move, the card leaves the pile, and nothing else. The fiction implies more: §C3 already declares `containments` / `containmentsByTier` counters that four Main Directives and the endgame protocol will read, and a third reading (an anomaly token on the node until somebody deals with it) does not exist at all. Recorded as three candidate meanings with a recommendation: build the counted act, not the token, until something consumes a token. **(2) A proposal to draw 1–3 cards per landing, by node and ring**, with facility tests at medical/supply, role-filtered equipment, and a challenge to enter the inner rings. Verdicts recorded: compatible with D26 (which fixed *when* a landing resolves, not *how much*), the inner-ring challenge is **already** the clearance system, and facility events re-open an explicit §14b deferral. The binding constraint is named with a number: **9 of 31 nodes draw today**, the proposal makes 31 of 31 draw, which is a 6–10× increase in volume and a 3–6× increase in content. Two cheap ways to keep the idea are recorded — reshuffle-on-empty with escalation, and treating draw count as a ring property. Nothing scheduled before M3. |
 | 2026-11-18 | **Two arithmetic findings, from one Panacea.** Owner forced a roll, drew SCP-500, and the card turned out to be the flabbiest in the deck. Checking it produced two corrections. **(1) §5 had a sign error:** it claimed `difficulty ≤ stat + 2` puts the expected shift near `+1`, but a higher difficulty *lowers* the shift, so `+2` is the harshest band (81.5% bad, 38.2% breach) and the "~76% non-bad" lives near `difficulty ≈ stat`. The engine was always right; the prose was not. Consequence named honestly: the Safe ring is gentle, and **Keter is currently a trap** for an average character. **(2) Four Safe cards have a benefit in the collateral column** (005 key, 131 Fate, 294 item, 500 heal), which inverts the tier table — worse rolls pay better. Content is not rewritten yet (M3's simulator is the right place to argue tuning); instead a **ratchet test** pins the offending list to those four cards so the error cannot spread, and `addTag("bound")` is recorded as a *cost* despite sharing an effect kind with `addTag("key")`. 84 tests. |

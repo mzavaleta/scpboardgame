@@ -143,8 +143,6 @@ export type GameState = {
   readonly threat: number;
   /** Hunters that exist but do not act yet (M3). Counted, not simulated. */
   readonly hunters: number;
-  /** The three anomaly piles, as remaining card ids (§C2.2: piles, never a filter). */
-  readonly decks: Readonly<Record<DeckId, readonly CardId[]>>;
   readonly encounter: Encounter | null;
   /** The last test anyone rolled, so the table can see the arithmetic. */
   readonly lastTest: TestResult | null;

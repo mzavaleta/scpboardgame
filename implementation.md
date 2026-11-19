@@ -25,7 +25,7 @@
 | | |
 | --- | --- |
 | **Last commit** | `907514c` — M2: encounters, the tier table, clearance at gates |
-| **Health** | `pnpm test` → **83 passing**, 6 files · `pnpm typecheck` clean · `pnpm build` clean |
+| **Health** | `pnpm test` → **89 passing**, 6 files · `pnpm typecheck` clean · `pnpm build` clean |
 | **Playable** | `pnpm dev` → localhost:5173 · **2 or 3 players** (2 by default) · roll (or **force a face**, §14e) → land → **an anomaly is drawn** → contain or decline → 4dF + stat vs difficulty → a tier → Records, Integrity, Threat · `?seed=&players=` reopens the exact table |
 | **Implemented** | seeded engine (`rng`, `hash`, `reduce`), board data + graph, movement with landing options, SVG board, log, turn handover, dev roll tool, **the closed effect interpreter, the 20 anomaly cards, the five tiers, clearance checks, the downed state** |
 | **Next** | **M3** — clearance economy (`setClearance` sources, `attemptClearance`), the threat track + warhead, hunters that move, the contested protocol track, `scripts/sim.ts`, the **role draft** (replacing the 3/3 placeholder) |
@@ -88,6 +88,7 @@ boundary until the previous one has zero `OPEN` items.
 | --- | --- | --- |
 | **D1** | Win axis = **descend to the Command Center to recontain**. The "escape" feeling is delivered by pressure, not by a puzzle-escape victory. | `AGREED` |
 | **D5** | **Dice split: `1d6` for movement, `4dF` for tests** (combat, containment checks, achievements). | `AGREED` |
+| **D27** | **Draws are weighted samples, not a pile that depletes** — rarity is a number on the card (what a physical deck calls *copies*), the draw consumes one die and mutates no state, and a deck can never run dry. Removes `decks` from `GameState` and makes the draw rate a free dial (§14h, `src/engine/encounter.ts`). | `AGREED` |
 | **D26** | **Movement is Talisman-exact**: the die fixes the distance, you choose the destination, and the move is **one irreversible decision**. The path must be **simple** (no revisiting a node, so no doubling back), and **only the landing space resolves** — passing through is free. (§S2, §C1.1, `src/engine/movement.ts`) | `AGREED` |
 | **D13** | Pressure model = **stagnation-driven escalation + roaming hunts**, not a fixed round timer. Preset-swappable per mode/expansion. | `AGREED` (shape) · tuning `OPEN` |
 | **D16** | Anti-camping counts **attempts, not outcomes**: a failed test is paid for and is not camping. Inaction becomes an escalating cost (free → threat → Hazard). | `AGREED` |
@@ -1251,6 +1252,62 @@ Nothing in this section is scheduled before M3 (clearance economy, threat track,
 role draft). Recording it here is deliberate: the proposal collides with the deck-size assumption that §C2.2
 and the M2 implementation are built on, and that assumption should be re-measured by the simulator before
 sixty cards get written.
+
+### 14h. D27 — weighted draws instead of a depleting pile
+
+Owner, verbatim (2026-11-19): *"not sure, for a physical game reshuffling is the way to go, but, do we really
+need that here? what if instead of draw and discard as the traditional way. what if its based on
+probabilities. every time you draw from a deck, you have a chance of draw somehing in specific, the greater
+the chance the more 'copies' of a card is represented. the pile is never run dry."*
+
+`AGREED` and **implemented**.
+
+#### 14h.1 "Copies" and "weight" are the same number
+
+Sampling with replacement, weighted by rarity, is exactly **a deck that reshuffles after every draw**. The
+proposal is not exotic: it moves the reshuffle from "when the pile is empty" to "always". What a physical
+game cannot do without fiddling — track fractional rarity — a digital one does for free.
+
+#### 14h.2 Why it wins here
+
+1. **Content, and this is decisive.** Twenty cards now serve an unlimited number of draws. It deletes the
+   6–10× content bill that §14g.3 named as the price of drawing 1–3 cards per landing: draw *rate* becomes
+   free, which is the thing that made the owner's proposal expensive.
+2. **State.** `decks` left `GameState` entirely. A draw consumes one cursor position and **mutates nothing**:
+   no pile copy, no empty-pile branch, no pile ordering inside the hash. For an engine whose whole bet is
+   "seed + actions reproduce exactly", less mutable state is strictly better — and it removes a class of
+   replay bug that had not happened yet.
+3. **Rarity is a number on the card, not a writing chore.** Three copies of SCP-173 is `rarity: 3`.
+
+#### 14h.3 What it loses, honestly
+
+- **The pile stops being a clock.** Six Safe cards used to cap Safe encounters at six per session; that cap
+  was real pacing and it is gone. If sessions start feeling samey, the replacement is a session-level counter
+  that shifts weights as pressure rises — not built, and not obviously needed.
+- **No thinning.** The mounting dread of a nearly-empty pile is a physical pleasure nobody can perceive
+  without counting twenty cards. It does not transfer, which is the owner's point.
+- **Repeats are now possible.** The same anomaly can appear twice in a row (1 in 6 at equal rarity). No guard
+  is built; if it reads badly, a single no-immediate-repeat redraw is the cheap fix and stays deterministic.
+
+#### 14h.4 What does not change
+
+The **tier** is still chosen by the landing node (§C2.2 draw bands: outer lab → Safe, middle lab → Euclid,
+cell → Keter); rarity only picks *within* the tier. At `rarity: 1` everywhere the distribution is the same
+one the pile produced, minus depletion — which is why this is behaviour-preserving rather than a rebalance.
+
+#### 14h.5 Implemented
+
+- `pickWeighted(rng, items, weightOf)` — an integer walk over cumulative weights, no floats, exactly one
+  cursor step, so two machines cannot drift apart.
+- `drawAnomaly(state, deck)` returns the card and an advanced `rng`, nothing else.
+- `GameState.decks` deleted; `AnomalyCard.rarity` added, defaulting to 1.
+- 89 tests: a 1:3 weight ratio measured over 8,100 draws, determinism across runs, and 200 consecutive Keter
+  draws that never run dry.
+
+#### 14h.6 What it does to §14g
+
+It makes §14g affordable. Draw count per node is now a free dial: one to three cards per landing costs a
+field on the node and **no new content**, which was the only objection worth making to the owner's proposal.
 
 ---
 
@@ -2492,6 +2549,7 @@ Three additions, all declared. The alternative — special-casing each card — 
 | 2026-11-18 | **C3 written — 6 roles, 6 aspects, 18 compels.** Corrected a leftover from D5: **roles have no Move stat**, because the owner's `1d6` made the original movement allowance redundant and keeping it would mean two movement systems arguing. Clearance starts at **1 for everyone**, or one role would skip the access economy that provides the game's pacing. Balance band `combat + intellect ∈ {5,6}` and Integrity 5–7, validator-enforced, because the draft only works if the options are genuinely comparable. **Framing recorded as legal and deliberate**: `By the Book` #1 and `Methodical` #3 let a player compel someone to place intent evidence under *their own* name — public, permanent, and unable to gift a saboteur a victory because the footprint check only reads a player's own tokens. It only costs the innocent their credibility. Rule added: **every aspect must carry at least one compel that takes something**, or it is a stat rather than a weakness. One vocabulary addition, `forceMove(node)`, with the line that keeps it safe: a forced move never performs a gate check, so compels cannot smuggle anyone past Clearance. |
 | 2026-11-18 | **C4 written — the 14 main directives, and the two mechanics they forced.** Ten containment / four breach. Containment directives carry **no** footprint (D18 is about suspicion; demanding evidence from honest players turns everyone into a suspect for the wrong reason) and the validator encodes that asymmetry. The four breach directives each demand a *different observable act* — Saboteur holds the core, Extractor wants the sample, Denial wants the gates, Abandonment wants someone bleeding — so "breach" is not one personality. **D22**: `Protocol Custodian` and a saboteur footprint cannot both exist without an answer to "who fired it", which produced the **three-step contested protocol track** — the last act becomes play (a public counter pushed up by three people and quietly down by one) instead of arithmetic. **D23**: `abandonedAlly` is placed when a player **moves away from a node holding a downed ally**, which loads the rescue mechanic politically. **Structural finding:** the win conditions could not be expressed in the S1 state model, so `Player` gained `counters` — found here instead of in M4. |
 | 2026-11-18 | **§14c added — the M1 playtest brief.** A playtest without questions produces anecdotes, so the document now states what M1 can and cannot tell you (no cards, no gate checks, no Spanish — do not report those), the five questions it exists to answer (distance to the core, `1d6` agency, adjacency legibility, token stacking, wall-clock lap time), and the two report formats that matter: the `?seed=` URL, and any case where the **board disagrees with the log** — which would mean the renderer and the reducer have diverged. Predictions recorded so they can be checked: the middle and inner rings will feel cramped at 10 and 8 slots, `1d6` will waste about one turn per lap, and even-slot-only labels will make odd nodes feel like filler. |
+| 2026-11-19 | **D27 — the pile is gone.** Owner: *"for a physical game reshuffling is the way to go, but, do we really need that here? … based on probabilities … the greater the chance the more 'copies' of a card is represented. the pile is never run dry."* Implemented the same day, because it is behaviour-preserving at equal rarity and it **deletes state**: `decks` left `GameState`, a draw now consumes one die and mutates nothing, and rarity became a number on the card. The decisive argument was the one the owner did not make: this removes the 6–10× content bill that §14g.3 identified as the price of drawing 1–3 cards per landing — the draw rate is now free. What it loses is named rather than hidden: the pile was also a **clock** (six Safe cards capped Safe encounters at six per session) and repeats become possible (1 in 6 at equal rarity, no guard built). 89 tests, including a 1:3 weight ratio measured over 8,100 draws and 200 consecutive Keter draws that never run dry. |
 | 2026-11-19 | **Owner pushed on the word "contain", and proposed node-driven draws (§14g).** Two separate things. **(1) "Contain" currently means "resolve the encounter"** — Records move, the card leaves the pile, and nothing else. The fiction implies more: §C3 already declares `containments` / `containmentsByTier` counters that four Main Directives and the endgame protocol will read, and a third reading (an anomaly token on the node until somebody deals with it) does not exist at all. Recorded as three candidate meanings with a recommendation: build the counted act, not the token, until something consumes a token. **(2) A proposal to draw 1–3 cards per landing, by node and ring**, with facility tests at medical/supply, role-filtered equipment, and a challenge to enter the inner rings. Verdicts recorded: compatible with D26 (which fixed *when* a landing resolves, not *how much*), the inner-ring challenge is **already** the clearance system, and facility events re-open an explicit §14b deferral. The binding constraint is named with a number: **9 of 31 nodes draw today**, the proposal makes 31 of 31 draw, which is a 6–10× increase in volume and a 3–6× increase in content. Two cheap ways to keep the idea are recorded — reshuffle-on-empty with escalation, and treating draw count as a ring property. Nothing scheduled before M3. |
 | 2026-11-18 | **Two arithmetic findings, from one Panacea.** Owner forced a roll, drew SCP-500, and the card turned out to be the flabbiest in the deck. Checking it produced two corrections. **(1) §5 had a sign error:** it claimed `difficulty ≤ stat + 2` puts the expected shift near `+1`, but a higher difficulty *lowers* the shift, so `+2` is the harshest band (81.5% bad, 38.2% breach) and the "~76% non-bad" lives near `difficulty ≈ stat`. The engine was always right; the prose was not. Consequence named honestly: the Safe ring is gentle, and **Keter is currently a trap** for an average character. **(2) Four Safe cards have a benefit in the collateral column** (005 key, 131 Fate, 294 item, 500 heal), which inverts the tier table — worse rolls pay better. Content is not rewritten yet (M3's simulator is the right place to argue tuning); instead a **ratchet test** pins the offending list to those four cards so the error cannot spread, and `addTag("bound")` is recorded as a *cost* despite sharing an effect kind with `addTag("key")`. 84 tests. |
 | 2026-11-18 | **M2 landed — the game has a turn in it.** The `space` phase draws from three piles (6 Safe / 8 Euclid / 6 Keter, §C2.2), the active seat contains or declines, `4dF + stat − difficulty` resolves against the §5 tier table, and Integrity / Records / Fate / Threat / evidence move through a closed effect interpreter. Three findings, all recorded in §14f. **(1) A real bug:** `gateBetween` only matched adjacent nodes, so since D26 every gate crossed mid-path was *undetectable*, not merely unchecked — replaced by `gatesAlong`, the intersection of gates over all simple paths of exactly N edges. **(2) A placeholder correction:** stats are 3/3, not 2/2, because Keter difficulty reaches 5 and §5 assumes `difficulty ≤ stat + 2`; at 2/2 every Keter card would have been a guaranteed breach and the playtest would have measured the placeholder. **(3) A content error caught by the validator:** SCP-914 sat at Int 2 inside the Safe band 0–1, so the card moved to 1 — the filter working as a type error instead of a playtest. Also decided: `declineCost` is free on Safe and `raiseThreat(1)` on Euclid/Keter (PROPOSED, §C2.1 left it to tuning), and gate checks now read pass/fail instead of borrowing tier names. 83 tests in 6 files; the replay fuzz now also drives encounters, gate checks and respawn. |

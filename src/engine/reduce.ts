@@ -18,14 +18,11 @@ import { applyEffects } from "./effects";
 import { canLandOn } from "./movement";
 import { rollD6 } from "./rng";
 import { ok, playerAt, playersIn, reject, SEAT_ORDER } from "./types";
-import type { Action, DeckId, Effect, GameState, Player, Result, SeatId } from "./types";
+import type { Action, Effect, GameState, Player, Result, SeatId } from "./types";
 
 /** M2 placeholder until the role draft (M3) deals real character sheets. */
 const PLACEHOLDER_STATS = { combat: 3, intellect: 3 } as const;
 const STARTING_INTEGRITY = 6;
-
-const deckOf = (tier: DeckId): readonly string[] =>
-  ANOMALIES.filter((anomaly) => anomaly.tier === tier).map((anomaly) => anomaly.id);
 
 const sign = (value: number): string => (value >= 0 ? `+${value}` : `${value}`);
 
@@ -60,7 +57,6 @@ export function createGame(seed: number, seats: readonly SeatId[] = SEAT_ORDER):
     players,
     threat: 0,
     hunters: 0,
-    decks: { safe: deckOf("safe"), euclid: deckOf("euclid"), keter: deckOf("keter") },
     encounter: null,
     lastTest: null,
     log: [`Round 1 — ${seats[0]} to act.`],

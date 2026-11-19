@@ -27,6 +27,12 @@ export type AnomalyCard = {
   readonly tier: DeckId;
   readonly test: { readonly stat: Stat; readonly difficulty: number };
   readonly reward: { readonly records: number };
+  /**
+   * How likely this entry is, as a weight. A physical deck expresses this as
+   * *copies*; a digital one has no reason to (D27) — the same number, without
+   * having to write the card twice or shuffle anything.
+   */
+  readonly rarity: number;
   /** shift == 0 — contained, but the site takes something. */
   readonly collateral: readonly Effect[];
   /** shift -1..-2 — no containment, and it costs. */
@@ -57,6 +63,7 @@ const card = (
   stat: Stat,
   difficulty: number,
   payloads: Pick<AnomalyCard, "collateral" | "failure" | "breach">,
+  rarity = 1,
 ): AnomalyCard => ({
   id: `scp-${String(number).padStart(3, "0")}`,
   name,
@@ -64,6 +71,7 @@ const card = (
   tier,
   test: { stat, difficulty },
   reward: { records: tier === "safe" ? 1 : tier === "euclid" ? 2 : 3 },
+  rarity,
   mayLeave: true,
   // Declining a real anomaly raises pressure; walking past a Safe one is free.
   // §C2.1 leaves `declineCost` to tuning, so this is a PROPOSED value (§14f).

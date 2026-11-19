@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 import { ANOMALIES, anomalyById } from "../content/anomalies";
 import { ARRIVAL_NODE } from "../content/board";
 import { gatesAlong, distance, getNode } from "./board";
-import { deckForNode, tierOf } from "./encounter";
+import { deckForNode, drawAnomaly, pickWeighted, tierOf } from "./encounter";
 import { createGame, reduce } from "./reduce";
 import { seatsFor } from "./types";
 import type { Action, GameState, Outcome } from "./types";
@@ -85,7 +85,8 @@ describe("landing on a space that has a card", () => {
 
     expect(landed.phase).toBe("space");
     expect(landed.encounter).not.toBeNull();
-    expect(landed.decks.safe).toHaveLength(ANOMALIES.filter((a) => a.tier === "safe").length - 1);
+    // D27: there is no pile to deplete, so the draw leaves no card-count state.
+    expect(landed.rng.cursor).toBeGreaterThan(0);
 
     const card = anomalyById(landed.encounter?.card as string);
     expect(card.tier).toBe("safe");
@@ -295,6 +296,69 @@ describe("gates", () => {
     }
 
     expect(sawFail && sawPass).toBe(true);
+  });
+});
+
+describe("weighted draws instead of a depleting pile (D27)", () => {
+  it("treats rarity as copies: weight 3 is drawn about three times as often", () => {
+    const items = [
+      { id: "common", weight: 1 },
+      { id: "rare", weight: 3 },
+    ];
+    const counts: Record<string, number> = { common: 0, rare: 0 };
+
+    let state = createGame(2026, seatsFor(2));
+    for (let draw = 0; draw < 8100; draw += 1) {
+      const picked = pickWeighted(state.rng, items, (item) => item.weight);
+      if (!picked.picked) throw new Error("expected a draw");
+      counts[picked.picked.id] = (counts[picked.picked.id] ?? 0) + 1;
+      state = { ...state, rng: picked.rng };
+    }
+
+    const ratio = (counts.rare as number) / (counts.common as number);
+    expect(ratio).toBeGreaterThan(2.6);
+    expect(ratio).toBeLessThan(3.4);
+  });
+
+  it("consumes exactly one die and mutates nothing else", () => {
+    const state = createGame(7, seatsFor(2));
+    const before = state;
+    const drawn = drawAnomaly(state, "safe");
+
+    expect(drawn.state.rng.cursor).toBe(before.rng.cursor + 1);
+    expect({ ...drawn.state, rng: before.rng }).toEqual(before);
+  });
+
+  it("never runs dry, however many times you draw", () => {
+    let state = createGame(11, seatsFor(2));
+    for (let draw = 0; draw < 200; draw += 1) {
+      const drawn = drawAnomaly(state, "keter");
+      expect(drawn.card).not.toBeNull();
+      expect(anomalyById(drawn.card as string).tier).toBe("keter");
+      state = drawn.state;
+    }
+  });
+
+  it("is deterministic for a seed", () => {
+    const run = (): string[] => {
+      let state = createGame(99, seatsFor(2));
+      const ids: string[] = [];
+      for (let draw = 0; draw < 20; draw += 1) {
+        const drawn = drawAnomaly(state, "euclid");
+        ids.push(drawn.card as string);
+        state = drawn.state;
+      }
+      return ids;
+    };
+
+    expect(run()).toEqual(run());
+  });
+
+  it("gives every card a positive integer rarity", () => {
+    for (const card of ANOMALIES) {
+      expect(Number.isInteger(card.rarity)).toBe(true);
+      expect(card.rarity).toBeGreaterThan(0);
+    }
   });
 });
 

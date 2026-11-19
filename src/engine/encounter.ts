@@ -6,11 +6,11 @@
  * seed-addressable RNG.
  */
 
-import { ANOMALY_BY_ID } from "../content/anomalies";
+import { ANOMALIES, ANOMALY_BY_ID } from "../content/anomalies";
 import { getNode } from "./board";
 import { nextInt, roll4dF } from "./rng";
 import { playerAt } from "./types";
-import type { DeckId, GameState, Outcome, SeatId, Stat, TestResult } from "./types";
+import type { DeckId, GameState, Outcome, RngState, SeatId, Stat, TestResult } from "./types";
 
 /**
  * §C2.2 draw bands. Three independent piles, never one filtered deck: filtering
@@ -34,30 +34,50 @@ export function tierOf(shift: number): Outcome {
 }
 
 /**
- * Draw the top card of a pile, chosen from the seed stream.
+ * Weighted sampling from a list (D27).
  *
- * The pile is stored as remaining ids, so the draw is a uniform index into what
- * is left and the whole thing stays a pure function of `(seed, cursor)`.
+ * `weightOf` is the card's rarity: what a physical deck would express as *copies*.
+ * The draw consumes exactly one cursor position, like any other die, and it
+ * **mutates nothing** — there is no pile to deplete, so the same 20 cards serve an
+ * unlimited number of draws and the state stays smaller.
+ *
+ * Deterministic and uniform: one integer in `[0, totalWeight)` walks the
+ * cumulative weights. No floats, so no floating-point drift between machines.
+ */
+export function pickWeighted<T>(
+  rng: RngState,
+  items: readonly T[],
+  weightOf: (item: T) => number,
+): { readonly picked: T | null; readonly rng: RngState } {
+  const total = items.reduce((sum, item) => sum + Math.max(0, Math.floor(weightOf(item))), 0);
+  if (items.length === 0 || total <= 0) return { picked: null, rng };
+
+  const [roll, next] = nextInt(rng, 0, total - 1);
+  let cursor = roll;
+  for (const item of items) {
+    cursor -= Math.max(0, Math.floor(weightOf(item)));
+    if (cursor < 0) return { picked: item, rng: next };
+  }
+  // Unreachable while the weights are non-negative; keeps the type honest.
+  return { picked: items[items.length - 1] as T, rng: next };
+}
+
+/**
+ * Draw the anomaly for a landing node (D27).
+ *
+ * The **tier** is decided by the node (§C2.2 draw bands); rarity only decides
+ * which entry inside that tier. At equal rarity this is the same distribution the
+ * depleting pile had, minus the pile.
  */
 export function drawAnomaly(
   state: GameState,
   deck: DeckId,
 ): { readonly state: GameState; readonly card: string | null } {
-  const pile = state.decks[deck];
-  if (pile.length === 0) return { state, card: null };
+  const candidates = ANOMALIES.filter((anomaly) => anomaly.tier === deck);
+  const { picked, rng } = pickWeighted(state.rng, candidates, (anomaly) => anomaly.rarity);
+  if (!picked) return { state, card: null };
 
-  const [index, rng] = nextInt(state.rng, 0, pile.length - 1);
-  const card = pile[index];
-  if (card === undefined) return { state, card: null };
-
-  return {
-    state: {
-      ...state,
-      rng,
-      decks: { ...state.decks, [deck]: pile.filter((_, at) => at !== index) },
-    },
-    card,
-  };
+  return { state: { ...state, rng }, card: picked.id };
 }
 
 /** `4dF + stat - difficulty`, recorded on the state so the table can see it. */

@@ -68,16 +68,18 @@ describe("what M3a is allowed to claim", () => {
     expect(aggressive?.recordsSpentPerGame).toBe(0);
   });
 
-  it("reports the terminal it can measure and names the one it cannot", () => {
+  it("reports both terminals and the political metrics", () => {
     const report = runSimulation(options);
     const markdown = toMarkdown(report);
 
-    // The warhead is the only ending that exists, so every terminal is a detonation.
     expect(report.rows.every((row) => row.roundsToTerminalP50 >= 0)).toBe(true);
     expect(markdown).toMatch(/Detonated/);
-    // Both terminals exist now; alignment-dependent metrics are what is missing.
-    expect(Object.keys(report.notMeasured)).toContain("winRateByAlignment");
     expect(markdown).toMatch(/Recontained/);
+    // Alignment is measured now, not promised.
+    expect(Object.keys(report.notMeasured)).not.toContain("winRateByAlignment");
+    expect(report.rows.every((row) => row.containmentWinRate >= 0 && row.breachWinRate >= 0)).toBe(true);
+    expect(markdown).toMatch(/Breach achievable/);
+    expect(markdown).toMatch(/Thresholds/);
   });
 
   it("stops a game when the warhead fires instead of playing to the cap", () => {

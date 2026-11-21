@@ -100,7 +100,7 @@ presence, board integrity, footprint satisfiability, role invariants, deck suffi
 | T5 | Escalation deck, stall hazard, Emergency Assembly vote | S6 | inline | **done** |
 | T6 | Hunters move + contact | S7 | inline | **done** |
 | T7 | Gear content, slots, modifiers, actions (rest/rescue/useItem/sealGate) | S8, S9 | inline | **done** |
-| T8 | Simulator: alignment, compels, breach-achievable, thresholds | S11 | inline | pending |
+| T8 | Simulator: alignment, compels, breach-achievable, thresholds | S11 | inline | **done** |
 | T9 | i18n dictionary + pseudo-locale + all chrome | S12 | inline | pending |
 | T10 | Screens: setup/draft, handoff, table, endgame, credits | S13 | inline | pending |
 | T11 | Content validator + contentVersion + attribution gate | S14 | inline | pending |
@@ -118,3 +118,17 @@ shipped uncommitted and is committed first.
 
 **L3 — route.** Inline, sequential. The units share `types.ts` and `reduce.ts`, so parallel writers would
 collide; content files are authored once the vocabulary is stable.
+
+**L4 — T1–T8 landed.** 184 tests. Evidence moved from a per-player counter to public tokens; directives are
+dealt from the seed (not the die stream) so setup consumes no dice; `createGame` without `draft` keeps the
+flat sheet for the engine fixture, and the setup screen + simulator use `draft: true` (debt D7). The
+simulator now measures containment/breach win rates, breach-achievable, compels, votes and hazards, and
+prints §S9.4 verdicts.
+
+**L5 — the instrument's first honest read (800 games, `--seed-base 42`).** Median rounds to terminal 4–15,
+but **44–82% of games hit the 40-round cap**: containment bots keep attempting (so the track never
+advances) while the protocol test is slow, and breach bots cannot arm the warhead without detonations.
+Compels 0.4–2.1 per game; breach-achievable 0–40%; role win spread 0–0.06. Every threshold fails except
+deaths ≤ 1.5. These are balance findings, not build failures: the political layer is *implemented* but the
+*economy* that makes it pay (D28, faster clocks, cheaper clearance) is still M6 work. Recorded, not tuned —
+the owner's instruction is to leave open questions as debt until the MVP is complete.

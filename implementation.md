@@ -31,7 +31,7 @@
 | **Next** | **M3** — the clearances/threat milestone: an economy that lets Records buy something (`setClearance` sources, `attemptClearance`, and **D28's stat exchange** — design them together, they answer the same question), the threat track + warhead, hunters that move, the contested protocol track, `scripts/sim.ts`, the **role draft** (replacing the 3/3 placeholder) |
 | **Known debt** | **Records have no sink and clearance can never be raised** — no card or action sets it, so every gate is a 4dF gamble (18.5% / 38.2% / 61.7% bad at G1-2 / G3-4 / G5-6) · hunters are counted but inert · Threat has no track or warhead · no protocol track or directives · `drawCard`/`removeGear`/`bound` are logged substitutions · respawn returns the same character · placeholder 3/3 stats · no Spanish in the UI · layout breaks below ~900 px · Q23 (land short for 1 Fate) not implemented · `i18n` keys absent · 20 authors are `PENDING` in attribution |
 
-**The one thing still owed on M2 is a playtest** — §14j is a five-minute, jargon-free version: five clicks, four questions, and my guesses on record.
+**The one thing still owed on M2 is a playtest** — §14j is five minutes with reportable IDs (`T1`–`T11`, `J1`–`J4`), so a finding is three characters plus a URL.
 
 **How to pick this back up:** read §14f, then `src/engine/reduce.ts` (the `space` phase), `src/engine/encounter.ts` (draw bands and the tier table), `src/engine/effects.ts` (the closed interpreter) and `src/content/anomalies.ts` (the deck). §14f.5 lists every substitution so nothing inert is mistaken for broken.
 
@@ -1386,44 +1386,93 @@ To see variety without a new seed, force a different roll and land on a differen
 The dev strip now also shows the **next card in each pile** while a landing is pending, so the draw can be
 chosen rather than discovered.
 
-### 14j. Playtest brief — M2
+### 14j. Playtest brief — M2, with reportable IDs
 
-**Written after the first version failed.** The first draft used this document's own vocabulary — decision
-numbers, gate ids, "shift" — and the person who has to read it does not live in this document. A brief the
-audience cannot read is not a brief. No jargon below, and every step is something you click.
+Five minutes, ten steps. Every step has an **ID**, so a finding can be reported as `T4` and nothing has to be
+described from scratch. No jargon: every step is something you click, and every expectation is something you
+can see.
 
-#### What you do — five minutes
+#### T1 · Start a game
+- **Do:** press **New game** (top right).
+- **Should see:** `round 1`, `phase roll`, a **seed** number, and every player standing on *Arrival Gate*.
+- **If not:** report `T1`.
 
-1. `pnpm dev`, open the page, press **New game** (top right).
-2. In the row marked **DEV** at the bottom, click a number from **1** to **6**. That is your dice roll.
-3. The board lights up the spaces you can land on. Click one.
-4. If a card appears at the bottom of the screen, press **Contain** or **Decline**.
-5. Press **End turn**. Do it again. Five or six times is enough.
+#### T2 · Roll the dice
+- **Do:** click any number **1–6** in the row marked **DEV** at the bottom.
+- **Should see:** the top bar says `rolled <that number>`, and some spaces on the board light up.
+- **If not:** report `T2`.
 
-That is the whole loop. Nothing else to memorise.
+#### T3 · Choose where to land
+- **Do:** click one of the lit spaces.
+- **Should see:** your token moves there, the lights go away, and new lines appear in the right-hand panel.
+- **If not:** report `T3`.
+- **Not a bug:** you pick one destination; you cannot walk space by space. That is the rule you asked for.
 
-#### What I actually want to know — four questions, answer from memory
+#### T4 · Read the log
+- **Do:** read the lines in the right-hand panel.
+- **Should see:** sentences with numbers that add up, e.g. `4dF −1 + 3 − 2 = 0 → collateral`.
+- **If not:** report `T4` and quote the line. This is the highest-value report there is.
 
-1. **Did any rule surprise you in a bad way?** Anything that made you think "wait, why did that happen".
-2. **When a card appeared, could you follow what happened?** The log on the right prints every number, like
-   `4dF −1 + 3 − 2 = 0 → collateral`. If it read as gibberish, that is a design bug, not your problem.
-3. **Was there a moment when you had a real choice?** Or did it feel like clicking whatever lit up?
-4. **Did you ever feel stuck**, with nothing you could do to improve your situation? If so, where.
+#### T5 · Meet a card
+- **Do:** land on a space named *Storage Vault*, *Containment Locker*, *Dormitory*, *Euclid Containment*,
+  *Biohazard Lab*, *Anomaly Cell* or *Keter Holding*.
+- **Should see:** a card appears at the bottom with a name, a type (`safe` / `euclid` / `keter`), and two
+  buttons: **Contain** and **Decline**.
+- **If not:** report `T5` plus the space's name.
 
-#### Ignore all of this — it is not built yet
+#### T6 · Contain it
+- **Do:** press **Contain**.
+- **Should see:** a log line with the dice, the numbers and an outcome word; Records (`rec`) in the left panel
+  may go up, Integrity (`int`) may go down.
+- **If not:** report `T6`.
 
-Hunters, the Threat number, roles, equipment, buying anything, winning, and any card you cannot reach.
+#### T7 · Decline one
+- **Do:** when a card of type `euclid` or `keter` appears, press **Decline**.
+- **Should see:** `threat` in the top bar goes up by 1, and you gain no Records.
+- **If not:** report `T7`.
 
-#### To report
+#### T8 · Try a bridge
+- **Do:** roll a **4** and pick *Requisition Cage* (middle ring, lower right) — it sits across a bridge.
+- **Should see:** a log line about a **clearance check**, then either you cross or you stay where you were.
+- **If not:** report `T8`. Both outcomes are expected; the question is the next one.
 
-**Copy the URL from the address bar.** It contains the seed, so the exact game can be replayed. If the board
-and the log ever disagree about where you are, that is the most valuable bug there is.
+#### T9 · Get hurt, then go down *(optional, only if it happens)*
+- **Do:** keep containing middle and inner cards until `int` reaches 0.
+- **Should see:** your name shows **DOWN**, and a **Respawn** button appears at the bottom.
+- **If not:** report `T9` (only if you did reach 0).
 
-#### My guesses, so you can prove me wrong
+#### T10 · Switch players
+- **Do:** press **End turn**.
+- **Should see:** the highlight moves to the next player; the round number stays or goes up by one.
+- **If not:** report `T10`.
 
-You will never press **Decline**. The middle ring will feel *impossible* rather than *dangerous*. The Records
-number will stop meaning anything to you by turn three. A locked bridge will feel like bad luck rather than a
-wall you should have prepared for. And a two-player game will reach the centre in about ten minutes.
+#### T11 · Reopen the same game
+- **Do:** copy the URL from the address bar and press reload.
+- **Should see:** the same **seed** as before.
+- **If not:** report `T11`.
+
+---
+
+#### The four judgement questions — answer from memory, not from the screen
+
+- **J1** Did any rule surprise you in a bad way?
+- **J2** Could you follow what happened after a card, from the log alone?
+- **J3** Was there a moment with a real choice, or did you click whatever lit up?
+- **J4** Did you ever feel stuck, with nothing you could do about it?
+
+#### Ignore — not built yet
+
+Hunters, the Threat number beyond `T7`, roles, equipment, buying anything, winning, and any card you cannot
+reach.
+
+#### How to report
+
+One line per finding, the ID first, then what you expected and what you saw:
+
+> `T7 — declined a keter card, threat stayed 0. URL: …`
+
+Always paste the URL: it carries the seed, so the exact game can be replayed. If the board and the log ever
+disagree about where you are, that is the most valuable bug of all.
 
 ---
 
@@ -2665,6 +2714,7 @@ Three additions, all declared. The alternative — special-casing each card — 
 | 2026-11-18 | **C3 written — 6 roles, 6 aspects, 18 compels.** Corrected a leftover from D5: **roles have no Move stat**, because the owner's `1d6` made the original movement allowance redundant and keeping it would mean two movement systems arguing. Clearance starts at **1 for everyone**, or one role would skip the access economy that provides the game's pacing. Balance band `combat + intellect ∈ {5,6}` and Integrity 5–7, validator-enforced, because the draft only works if the options are genuinely comparable. **Framing recorded as legal and deliberate**: `By the Book` #1 and `Methodical` #3 let a player compel someone to place intent evidence under *their own* name — public, permanent, and unable to gift a saboteur a victory because the footprint check only reads a player's own tokens. It only costs the innocent their credibility. Rule added: **every aspect must carry at least one compel that takes something**, or it is a stat rather than a weakness. One vocabulary addition, `forceMove(node)`, with the line that keeps it safe: a forced move never performs a gate check, so compels cannot smuggle anyone past Clearance. |
 | 2026-11-18 | **C4 written — the 14 main directives, and the two mechanics they forced.** Ten containment / four breach. Containment directives carry **no** footprint (D18 is about suspicion; demanding evidence from honest players turns everyone into a suspect for the wrong reason) and the validator encodes that asymmetry. The four breach directives each demand a *different observable act* — Saboteur holds the core, Extractor wants the sample, Denial wants the gates, Abandonment wants someone bleeding — so "breach" is not one personality. **D22**: `Protocol Custodian` and a saboteur footprint cannot both exist without an answer to "who fired it", which produced the **three-step contested protocol track** — the last act becomes play (a public counter pushed up by three people and quietly down by one) instead of arithmetic. **D23**: `abandonedAlly` is placed when a player **moves away from a node holding a downed ally**, which loads the rescue mechanic politically. **Structural finding:** the win conditions could not be expressed in the S1 state model, so `Player` gained `counters` — found here instead of in M4. |
 | 2026-11-18 | **§14c added — the M1 playtest brief.** A playtest without questions produces anecdotes, so the document now states what M1 can and cannot tell you (no cards, no gate checks, no Spanish — do not report those), the five questions it exists to answer (distance to the core, `1d6` agency, adjacency legibility, token stacking, wall-clock lap time), and the two report formats that matter: the `?seed=` URL, and any case where the **board disagrees with the log** — which would mean the renderer and the reducer have diverged. Predictions recorded so they can be checked: the middle and inner rings will feel cramped at 10 and 8 slots, `1d6` will waste about one turn per lap, and even-slot-only labels will make odd nodes feel like filler. |
+| 2026-11-20 | **§14j given reportable IDs.** Owner: *"i need this steps but with unique id so i can refer to you … so i can tell you my findings."* Every step is now `T1`–`T11` with a title, one action, one visible expectation and the ID to report if it fails; the four judgement questions are `J1`–`J4` so they never collide with the design register's `Q` ids. Report format fixed as one line per finding, ID first: `T7 — declined a keter card, threat stayed 0. URL: …`. This is the right shape for a playtest artefact: **the ID is the whole contract** — it is what turns "something weird happened" into a reproducible defect. |
 | 2026-11-20 | **§14j rewritten, because the first version was unreadable.** Owner: *"wtf? what D26? how the F i caculate that? … please give me something clear for humans i can reproduce."* Correct on every point: the brief was written in the document's own vocabulary — decision numbers, gate ids, "shift the curve" — for someone who does not read the document. Replaced with **five clicks** (New game → click a DEV number → click a lit space → Contain/Decline → End turn) and **four questions answerable from memory**. Two specific confusions worth recording: "calculate the arithmetic" was wrong instruction — the log already prints every number, and the only useful check is *do the three numbers add up*; and "improve your odds" assumed the reader knew clearance cannot be raised yet, when the real question was simply whether a locked bridge *feels* like luck. Rule for future briefs: **no decision numbers, no ids, no notation in anything a player has to read.** |
 | 2026-11-19 | **§14j added — the M2 playtest brief.** M2 is closed on code and **not yet played end to end**, so the remaining debt is a person, not a patch. The brief is fifteen minutes: force a roll and read the per-pile card preview first, contain once and check the arithmetic by hand, meet four different Safe entries, take a bridge at clearance 1, reach a Keter cell, decline once, and get downed. Five questions, and **five predictions on record** so they can be wrong: decline will never be chosen (one Threat against a 60% contain is not a trade), Keter will read as unfair rather than dangerous (81.5% bad and nothing changes it), Records become noise by turn three because nothing spends them, a gate test feels like a coin flip with no preparation, and two seats reach the core in about ten minutes because M2 added cost but no length. |
 | 2026-11-19 | **M2 closed.** The acceptance criterion for M2 (§14b) is "a full turn is unit-tested", and it was covered across several tests but never as **one continuous run** — so `encounter.test.ts` now walks `createGame → devRoll → moveTo → space opens → contain → tier decides Records/Integrity/evidence → log in order → endTurn` in a single test, asserting the payload from the tier rather than from the card. 90 tests, typecheck and build clean, working tree clean. **What is decided and built:** 20 cards, three weighted piles (D27), the five tiers, the closed effect interpreter, clearance at gates with the mid-path bug fixed (§14f.1), the downed state, two-seat tables, the dev strip with a per-pile card preview. **What is explicitly not in this milestone** and is the first job of M3: **Records have no sink and clearance can never be raised** — no card and no action sets it, so every gate is a pure 4dF gamble, which is why the middle ring currently feels locked rather than earned. Recorded, not scheduled: D28 (containment as a collectible spent on stats) and §14g (1–3 draws per node, facility tests), which the D27 weighted draw now makes cheap. |

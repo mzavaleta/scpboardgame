@@ -106,10 +106,20 @@ export function rollTest(
   return { state: { ...state, rng, lastTest: result }, result };
 }
 
-/** Human-readable arithmetic: `4dF +1 + 3 − 2 = +2`. */
+/**
+ * Human-readable arithmetic, with **every term labelled**.
+ *
+ * The first version printed `4dF -1 + 3 − 1 = +1`, and the playtester read
+ * "4dF −1" as "four dice minus one" — which it is not: −1 is what the four dice
+ * *summed to*. The numbers were right and the line was unreadable, so each term
+ * now carries its name (§14j T4).
+ */
 export function showTest(result: TestResult): string {
   const sign = (value: number): string => (value >= 0 ? `+${value}` : `${value}`);
-  return `4dF ${sign(result.dice)} + ${result.statValue} − ${result.difficulty} = ${sign(result.shift)}`;
+  return (
+    `4dF sum [${sign(result.dice)}] + ${result.stat} [${result.statValue}] ` +
+    `− difficulty [${result.difficulty}] = ${sign(result.shift)}`
+  );
 }
 
 /**

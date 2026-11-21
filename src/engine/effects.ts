@@ -70,8 +70,11 @@ export function applyEffects(
       }
 
       case "raiseThreat": {
-        next = { ...next, threat: Math.max(0, next.threat + effect.delta) };
-        notes.push(`Threat ${sign(effect.delta)} → ${Math.max(0, next.threat + effect.delta)}`);
+        // Compute once: deriving the note from `next.threat` *plus* the delta again
+        // printed one more than the counter actually showed (caught in a playtest).
+        const threat = Math.max(0, next.threat + effect.delta);
+        next = { ...next, threat };
+        notes.push(`Threat ${sign(effect.delta)} → ${threat}`);
         break;
       }
 

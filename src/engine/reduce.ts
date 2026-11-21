@@ -87,14 +87,14 @@ function tryCrossGate(
   }
 
   const { state: rolled, result } = rollTest(state, seat, gate.test.stat, gate.test.difficulty, "gate");
-  notes.push(`clearance check at ${gate.id} — ${describeTest(result)}`);
+  // Newest-first display: the detail is pushed before its own summary line.
+  const verdict = result.shift >= 0 ? `crossed ${gate.id}.` : `the gate holds.`;
+  notes.push(`  ${verdict}`, `clearance check at ${gate.id} — ${describeTest(result)}`);
 
   if (result.shift >= 0) {
-    notes.push(`  the gate opens.`);
     return { state: rolled, passed: true, notes };
   }
 
-  notes.push(`  the gate holds.`);
   // §C2.3: a failed gate is an *accident*, public noise that can never satisfy a
   // breach directive on its own.
   const marked = applyEffects(rolled, seat, [{ kind: "placeEvidence", evidence: "accident" }]);
@@ -201,6 +201,10 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
 
       const seat = state.seat;
       const notes: string[] = [];
+      // Consequences are collected separately and the outcome summary is pushed
+      // LAST, because the log is read newest-first: the headline must sit on top
+      // of its own detail, not underneath it (§14j J2).
+      const consequences: string[] = [];
       let next = state;
 
       if (action.choice === "decline") {
@@ -222,7 +226,7 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
         if (effects.length === 0) return;
         const applied = applyEffects(next, seat, effects);
         next = applied.state;
-        notes.push(`  ${applied.notes.join(", ")}`);
+        consequences.push(`  ${applied.notes.join(", ")}`);
       };
 
       switch (result.outcome) {
@@ -251,10 +255,15 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
 
       const after = playerAt(next.players, seat);
       if (after.downed) {
-        notes.push(`${seat} is down at ${getNode(after.node).name.en}.`);
+        consequences.push(`${seat} is down at ${getNode(after.node).name.en}.`);
       }
 
-      return ok({ ...next, phase: "action", encounter: null, log: [...next.log, ...notes] });
+      return ok({
+        ...next,
+        phase: "action",
+        encounter: null,
+        log: [...next.log, ...consequences, ...notes],
+      });
     }
 
     case "respawn": {
@@ -336,6 +345,43 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
         phase: "move",
         roll: action.value,
         log: [...state.log, `${state.seat} forced a roll of ${action.value} (dev tool).`],
+      });
+    }
+
+    case "devEncounter": {
+      // §14j T7: a playtest must be able to see any card on demand, not hunt for
+      // it. Same rule as devRoll — it announces itself and touches nothing else.
+      if (state.encounter) {
+        return reject("no-encounter", "An encounter is already open.");
+      }
+      const card = ANOMALIES.find((anomaly) => anomaly.id === action.card);
+      if (!card) return reject("invalid-value", `No such anomaly: ${action.card}`);
+
+      return ok({
+        ...state,
+        phase: "space",
+        encounter: { card: card.id, node: playerAt(state.players, state.seat).node },
+        log: [...state.log, `${state.seat} forced an encounter with ${card.name.en} (dev tool).`],
+      });
+    }
+
+    case "devHurt": {
+      // §14j T9: reaching 0 Integrity must be testable in seconds, not luck.
+      if (!Number.isInteger(action.amount) || action.amount < 1) {
+        return reject("invalid-value", `Damage must be a positive integer, not ${action.amount}.`);
+      }
+      const hurt = applyEffects(state, state.seat, [
+        { kind: "modifyIntegrity", delta: -action.amount },
+      ]);
+      const down = playerAt(hurt.state.players, state.seat).downed;
+
+      return ok({
+        ...hurt.state,
+        log: [
+          ...hurt.state.log,
+          ...(down ? [`${state.seat} is down at ${getNode(playerAt(hurt.state.players, state.seat).node).name.en}.`] : []),
+          `${state.seat} took ${action.amount} damage (dev tool).`,
+        ],
       });
     }
 

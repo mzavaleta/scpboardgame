@@ -162,7 +162,11 @@ export type Action =
    * roll, so it never desyncs the stream, and it announces itself in the log.
    * Never dispatched by production UI.
    */
-  | { readonly type: "devRoll"; readonly value: number };
+  | { readonly type: "devRoll"; readonly value: number }
+  /** Dev tool only (§14j T7): open an encounter with a chosen card. */
+  | { readonly type: "devEncounter"; readonly card: string }
+  /** Dev tool only (§14j T9): take damage without hunting for a bad roll. */
+  | { readonly type: "devHurt"; readonly amount: number };
 
 export type Rejection = {
   /** Machine-readable, stable. Tests assert on this, never on the message. */

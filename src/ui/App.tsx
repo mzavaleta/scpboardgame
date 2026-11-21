@@ -5,7 +5,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { anomalyById } from "../content/anomalies";
+import { ANOMALIES, anomalyById } from "../content/anomalies";
 import { BOARD } from "../content/board";
 import { getNode } from "../engine/board";
 import { reachableEndpoints } from "../engine/movement";
@@ -119,6 +119,7 @@ export function App() {
     seed: seedFromUrl() ?? randomSeed(),
     seats: initialSeatCount(),
   }));
+  const [devCard, setDevCard] = useState<string>(ANOMALIES[0]?.id ?? "scp-005");
   const [seed, setSeed] = useState(opening.seed);
   const [seatCount, setSeatCount] = useState<2 | 3>(opening.seats);
   const [state, setState] = useState<GameState>(() =>
@@ -309,33 +310,77 @@ export function App() {
         )}
 
         {isDev && (
-          <div className="flex items-center gap-2 rounded border border-dashed border-[var(--line)] px-2 py-1">
-            <span className="text-[10px] uppercase tracking-widest text-[var(--muted)]">dev</span>
-            {[1, 2, 3, 4, 5, 6].map((face) => (
-              <button
-                key={face}
-                onClick={() => dispatch({ type: "devRoll", value: face })}
-                disabled={state.phase !== "roll"}
-                title={`Force a roll of ${face}`}
-                className="w-6 rounded border border-[var(--line)] text-xs disabled:opacity-25"
-              >
-                {face}
-              </button>
-            ))}
-            <span className="text-[10px] text-[var(--muted)]">
-              next {peekRolls(state.rng, 5).join(" ")}
-            </span>
-            {state.phase === "move" && (
-              <span
-                className="text-[10px] text-[var(--muted)]"
-                title="Next card in each pile (safe·euclid·keter) at this cursor, assuming no gate check"
-              >
-                draw{" "}
-                {(["safe", "euclid", "keter"] as const)
-                  .map((deck) => drawAnomaly(state, deck).card?.replace("scp-", "") ?? "--")
-                  .join("·")}
+          <div className="flex flex-col gap-1 rounded border border-dashed border-[var(--line)] px-2 py-1">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase tracking-widest text-[var(--muted)]">dev</span>
+              {[1, 2, 3, 4, 5, 6].map((face) => (
+                <button
+                  key={face}
+                  onClick={() => dispatch({ type: "devRoll", value: face })}
+                  disabled={state.phase !== "roll"}
+                  title={`Force a roll of ${face}`}
+                  className="w-6 rounded border border-[var(--line)] text-xs disabled:opacity-25"
+                >
+                  {face}
+                </button>
+              ))}
+              <span className="text-[10px] text-[var(--muted)]">
+                next {peekRolls(state.rng, 5).join(" ")}
               </span>
-            )}
+              {state.phase === "move" && (
+                <span
+                  className="text-[10px] text-[var(--muted)]"
+                  title="Next card in each pile (safe·euclid·keter) at this cursor, assuming no gate check"
+                >
+                  draw{" "}
+                  {(["safe", "euclid", "keter"] as const)
+                    .map((deck) => drawAnomaly(state, deck).card?.replace("scp-", "") ?? "--")
+                    .join("·")}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-1 text-[10px] text-[var(--muted)]">
+              <span className="uppercase tracking-widest">card</span>
+              <select
+                value={devCard}
+                onChange={(event) => setDevCard(event.target.value)}
+                className="max-w-[15rem] rounded border border-[var(--line)] bg-transparent px-1 py-0.5 text-[10px] text-[var(--text)]"
+              >
+                {(["safe", "euclid", "keter"] as const).map((tier) => (
+                  <optgroup key={tier} label={tier}>
+                    {ANOMALIES.filter((card) => card.tier === tier).map((card) => (
+                      <option key={card.id} value={card.id} className="bg-[#0b141b]">
+                        {card.id.replace("scp-", "")} · {card.name.en} (d{card.test.difficulty})
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              <button
+                onClick={() => dispatch({ type: "devEncounter", card: devCard })}
+                disabled={state.encounter !== null}
+                title="Open an encounter with this card, wherever you are"
+                className="rounded border border-[var(--line)] px-2 disabled:opacity-25"
+              >
+                open
+              </button>
+              <span className="ml-2 uppercase tracking-widest">damage</span>
+              <button
+                onClick={() => dispatch({ type: "devHurt", amount: 3 })}
+                title="Take 3 Integrity damage"
+                className="rounded border border-[var(--line)] px-2"
+              >
+                3
+              </button>
+              <button
+                onClick={() => dispatch({ type: "devHurt", amount: 99 })}
+                title="Bring the active player to 0 Integrity"
+                className="rounded border border-[var(--line)] px-2"
+              >
+                down
+              </button>
+            </div>
           </div>
         )}
 

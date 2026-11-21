@@ -11,6 +11,7 @@
 import { describe, expect, it } from "vitest";
 import { peekRolls, rollD6 } from "./rng";
 import { createGame, reduce } from "./reduce";
+import { seatsFor } from "./types";
 import type { Action, GameState } from "./types";
 
 function apply(state: GameState, action: Action): GameState {
@@ -59,6 +60,50 @@ describe("devRoll", () => {
     const result = reduce(moved, { type: "devRoll", value: 2 });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("wrong-phase");
+  });
+});
+
+describe("devEncounter", () => {
+  it("opens the chosen card wherever the seat is standing", () => {
+    const state = apply(createGame(2026, seatsFor(2)), { type: "devEncounter", card: "scp-682" });
+
+    expect(state.phase).toBe("space");
+    expect(state.encounter?.card).toBe("scp-682");
+    expect(state.players.p1?.node).toBe(state.encounter?.node);
+    expect(state.log.some((line) => line.includes("forced an encounter"))).toBe(true);
+  });
+
+  it("refuses a card that does not exist", () => {
+    const result = reduce(createGame(1, seatsFor(2)), { type: "devEncounter", card: "scp-9999" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("invalid-value");
+  });
+
+  it("refuses to open a second encounter on top of one", () => {
+    const opened = apply(createGame(1, seatsFor(2)), { type: "devEncounter", card: "scp-005" });
+    const result = reduce(opened, { type: "devEncounter", card: "scp-173" });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error.code).toBe("no-encounter");
+  });
+});
+
+describe("devHurt", () => {
+  it("takes Integrity off the active seat and clamps at 0", () => {
+    const hurt = apply(createGame(9, seatsFor(2)), { type: "devHurt", amount: 3 });
+    expect(hurt.players.p1?.integrity).toBe(3);
+
+    const down = apply(hurt, { type: "devHurt", amount: 99 });
+    expect(down.players.p1?.integrity).toBe(0);
+    expect(down.players.p1?.downed).toBe(true);
+    expect(down.log.some((line) => line.includes("is down at"))).toBe(true);
+  });
+
+  it("refuses nonsense damage", () => {
+    for (const amount of [0, -1, 2.5]) {
+      const result = reduce(createGame(1, seatsFor(2)), { type: "devHurt", amount });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.error.code).toBe("invalid-value");
+    }
   });
 });
 

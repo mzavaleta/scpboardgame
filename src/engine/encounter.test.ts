@@ -172,6 +172,8 @@ describe("declining", () => {
 
     expect(after.threat).toBe(1);
     expect(after.players.p1?.records).toBe(0);
+    // The log must agree with the counter, not print one more than it (playtest).
+    expect(after.log.join("\n")).toMatch(/Threat \+1 → 1\./);
   });
 });
 
@@ -388,8 +390,18 @@ describe("a whole turn (M2's acceptance criterion)", () => {
     if (outcome === "failure" || outcome === "breach") expect(integrity).toBeLessThan(6);
     if (outcome === "breach") expect(resolved.players.p1?.evidence.accident).toBe(1);
 
-    // 4. the log reads in the order it happened
     const log = resolved.log.join("\n");
+
+    // 4. every term in the test line is labelled, so "4dF [-1]" cannot be read
+    // as "four dice minus one" (§14j T4).
+    expect(log).toMatch(/4dF sum \[[+-]?\d\] \+ (combat|intellect) \[\d\] − difficulty \[\d\] = [+-]?\d/);
+
+    // 4b. the outcome headline is the LAST line of the action, because the log is
+    // read newest-first — otherwise consequences sit above their own summary
+    // (§14j J2).
+    const lines = [...resolved.log];
+    const headline = lines.reverse().findIndex((line) => line.startsWith("contain "));
+    expect(headline).toBe(0);
     expect(log).toMatch(/p1 forced a roll of 2/);
     expect(log).toMatch(/p1 moved from Arrival Gate to Storage Vault 2/);
     expect(log).toMatch(new RegExp(`contain ${card.name.en}`));

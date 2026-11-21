@@ -439,6 +439,14 @@ export function App() {
                   {localized(getNode(player.node).name, lang)}
                 </div>
                 <div className="mt-0.5 text-[11px] text-[var(--muted)]">
+                  {t(lang, "aspect")}: {player.aspectId ? localized(aspectById(player.aspectId).name, lang) : t(lang, "none")}
+                </div>
+                {player.gear.length > 0 && (
+                  <div className="mt-0.5 text-[11px] text-[var(--muted)]">
+                    {t(lang, "gear")}: {player.gear.map((id) => localized(gearById(id).name, lang)).join(", ")}
+                  </div>
+                )}
+                <div className="mt-0.5 text-[11px] text-[var(--muted)]">
                   {t(lang, "evidence")}: {game.evidence.filter((token) => token.sourceSeat === player.seat && token.class === "accident").length}
                   {" / "}
                   {game.evidence.filter((token) => token.sourceSeat === player.seat && token.class === "intent").length}

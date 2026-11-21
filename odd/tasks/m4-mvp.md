@@ -104,7 +104,7 @@ presence, board integrity, footprint satisfiability, role invariants, deck suffi
 | T9 | i18n dictionary + pseudo-locale + all chrome | S12 | inline | **done** |
 | T10 | Screens: setup/draft, handoff, table, endgame, credits | S13 | inline | **done** |
 | T11 | Content validator + contentVersion + attribution gate | S14 | inline | **done** |
-| T12 | Close: docs, report, browser walk | all | inline | pending |
+| T12 | Close: docs, report, browser walk | all | inline | **done** |
 
 ## Log
 
@@ -132,3 +132,19 @@ Compels 0.4–2.1 per game; breach-achievable 0–40%; role win spread 0–0.06.
 deaths ≤ 1.5. These are balance findings, not build failures: the political layer is *implemented* but the
 *economy* that makes it pay (D28, faster clocks, cheaper clearance) is still M6 work. Recorded, not tuned —
 the owner's instruction is to leave open questions as debt until the MVP is complete.
+
+**L6 — T9–T11: the shell, the dictionary and the gate.** `src/i18n` is a typed EN/ES dictionary plus a
+**pseudo-locale** (`?lang=pseudo`) that brackets every chrome string; content stays inline `{en, es}`.
+`project()` feeds the private panel, with a structural test that another seat's directive id never appears
+in the projected bytes. `pnpm validate` runs §S8.3: 0 errors, 28 warnings (all attribution `PENDING`).
+Debt recorded: the engine log is English-only — bilingual narration needs structured events (D9).
+
+**L7 — the browser walk (the M4 exit criterion, as far as a session can carry it).** Playwright against
+`pnpm dev`: setup in EN/ES/pseudo → draft → handoff with hold-to-reveal (a Spanish directive revealed and
+hidden) → table → roll → cross a gate → Euclid encounter → contain → end turn → dev terminal → motive
+reveal (verdicts explain *why*) → credits. Zero console errors. Not covered: a full 12–18-round game to a
+natural terminal, and save/resume (M5).
+
+**L8 — close.** 194 tests (14 files), typecheck clean, build clean, `pnpm validate` 0 errors, 800 sim games
+in ~2 s. The feature document, `implementation.md`'s checkpoint and §S9.6b, and the README are updated.
+Open questions are recorded as debt in the Specs section and the checkpoint, not silently fixed by guessing.

@@ -18,22 +18,22 @@
 **Part V — Content v1** · [C1](#c1-the-board-v1) the board · [C2](#c2-the-anomaly-deck-20-cards) the anomaly deck · [C3](#c3-roles-aspects-and-compels) roles, aspects & compels · [C4](#c4-main-directives-14) main directives · [C5](#c5-escalation-14-and-equipment-10) escalation & equipment
 **Reference** · [15](#15-log-append-only) log (append-only, one line per exchange)
 
-**Where things stand:** business `CLOSED` · design `CLOSED` · implementation specification `CLOSED` (S1–S9) · MVP content `CLOSED` (C1–C5, 54 cards) · **M0 done** · **M1 done** · **M2 closed** — encounters, the tier table, Integrity, clearance at gates · **tuning surface live** (§S10) · **M3a done** — Records buy clearance at checkpoints, and `pnpm sim` reports what it can count. Next session starts at **M3b** (threat track, warhead, hunters, both terminal states).
+**Where things stand:** business `CLOSED` · design `CLOSED` · implementation specification `CLOSED` (S1–S10) · MVP content `CLOSED` (C1–C5) · **M0/M1/M2 done** · tuning surface live (§S10) · **M3a/b/c done** — economy, clock, protocol track, politics · **M4 done** — the MVP: roles, directives, compels, escalation, hunters, gear, EN/ES chrome, content gate. **Next session starts at M5** (experience) unless M6 balance comes first.
 
-### ⏸ Resume here — checkpoint 2026-11-18
+### ⏸ Resume here — checkpoint 2026-11-21 (end of M4)
 
 | | |
 | --- | --- |
-| **Last commit** | `d0d3c58` — M3b's clock. **M3c's protocol track is in the working tree, uncommitted** pending the owner's review. |
-| **Health** | `pnpm test` → **148 passing**, 11 files · `pnpm typecheck` clean · `pnpm build` clean · `pnpm sim` → 800 games in ~3 s |
-| **Playable** | `pnpm dev` → localhost:5173 · **2 or 3 players** (2 by default) · the address bar always carries `?seed=&players=` · roll (or **force a face**, §14e) → land → **an anomaly is drawn** → contain or decline → 4dF + stat vs difficulty → a tier → Records, Integrity, Threat · `?seed=&players=` reopens the exact table |
-| **Implemented** | seeded engine (`rng`, `hash`, `reduce`), board data + graph, movement with landing options, SVG board, log, turn handover, dev roll tool, **the closed effect interpreter, the 20 anomaly cards, the five tiers, clearance checks, the downed state**, **the tuning file (§S10) and the clearance purchase (§C1.4)**, **the simulator (`src/sim/run.ts` + `scripts/sim.ts`)**, **the clock: progress attempts, threat 0–5, warhead arming + countdown, the `detonated` terminal and the game-over lockout**, **the protocol track: three steps to recontain, sabotage with `tamperedProtocol` evidence, and the `recontained` terminal** |
-| **Next** | **M3c, second half** — Main Directives (alignment, the victory matrix, the D19 safety valve) and the **role draft** replacing the 3/3 placeholder, then compels. The immediate balance question the simulator raised is whether to raise the core gates' difficulty (6 turns → 12 with one number) or make clearance 4 the only way into the Command Center. Also still open from M3b: escalation cards at thresholds and moving hunters. **D28** waits for the middle ring's feel and is designed with the draft. |
-| **Known debt** | **a failed gate leaves you at the origin and the log says otherwise** — reported by the owner 2026-11-21, reproduced with seed 3: roll 4 from the Arrival Gate towards `middle-04`, G1 holds, the token stays on `outer-02` while the log announces *"p1 moved from Arrival Gate to Requisition Cage"*. Expected: stop at the gate mouth on your own side (`outer-05`), and never log the arrival. Not fixed yet by the owner's call · **a beeline recontains in 5–6 rounds** and never buys clearance — the balance finding in §S9.6, with the one-number experiment that doubles it · **entering the Command Center on clearance < 4 still needs a gamble to leave** · hunters are counted but inert · threat thresholds reveal no escalation card · no directives or alignments, so `winRateByAlignment` cannot be measured · compels, the role draft and the 3/3 placeholder stats all wait · `drawCard`/`removeGear`/`bound` are logged substitutions · respawn returns the same character · placeholder 3/3 stats · no Spanish in the UI · layout breaks below ~900 px · Q23 (land short for 1 Fate) not implemented · `i18n` keys absent · 20 authors are `PENDING` in attribution |
+| **Last commit** | `baccc73` — the bilingual MVP shell, handoff, endgame reveal and the content gate. |
+| **Health** | `pnpm test` → **194 passing**, 14 files · `pnpm typecheck` clean · `pnpm build` clean · `pnpm validate` → **0 errors**, 28 attribution warnings · `pnpm sim` → 800 games in ~2 s |
+| **Playable** | `pnpm dev` → localhost:5173 · **2 or 3 players** · setup → **role draft** → **private handoff** → table → **motive-reveal endgame** → credits · `?seed=&players=&lang=en\|es` reopens the table; `?lang=pseudo` is the hardcoded-string QA pass · dev tools: force a roll, open any card, damage/down, any escalation card, any directive, and force either terminal |
+| **Implemented** | the seeded pure engine; board + graph; Talisman movement; the closed effect interpreter; 20 anomalies; five tiers; clearance purchase; **pressure (threat, warhead, detonation)**; **the protocol track and recontainment**; **6 roles + 6 public aspects + 18 coded compels**; **the role draft at setup and respawn**; **12 Main Directives (9/3) with alignment, the §7c.3 matrix, D18 footprint enforcement and the D19 valve**; **the Fate economy**; **14 escalation cards, the stall hazard and the Emergency Assembly vote**; **hunters that move and bite**; **15 gear items, 3 slots, two lifetimes**; **public classed evidence tokens**; **`rest`/`rescue`/`useItem`/`sealGate`/`spendFateToReroll`/`compel`/`respondCompel`/`castVote`**; **projection with a structural privacy test**; **a typed EN/ES dictionary + pseudo-locale**; **the §S8.3 content gate**; **the simulator's political metrics and §S9.4 verdicts** |
+| **Next** | **M5** — save/resume, animation, sound, the accessibility floor (keyboard graph navigation), a refined reveal, then **M6** — balance against the thresholds, deploy, playtests. The instrument's first honest read is §S9.6: the politics is built but not yet paying. |
+| **Known debt** | **attribution authors are `PENDING`** for 20 anomalies and 4 items (D2; `pnpm validate --release` fails until the wiki pass) · **the engine log is English-only** — bilingual narration needs structured events · **the role draft defaults to the flat sheet** for engine tests and the simulator uses `draft: true` (D7) · **respawn deals a private directive without a handoff screen** · **a sample has no action** — `m-chain`/`b-extraction` read `tookSample` evidence · **hunter contact is fixed damage, not a test** · **a full rack discards the new draw** · **rest heals 1/2 without a once-per-visit flag** · **no keyboard board navigation yet** · layout breaks below ~900 px · Q23 (land short for 1 Fate) not implemented · side directives, facility events and allies are cut from the MVP (§14b) · **the simulator misses every threshold except deaths** (§S9.6): 44–82% of games hit the round cap, compels 0.4–2.1/game, breach-achievable 0–40%, role win spread 0–0.06 · D28 (containment as a trophy) remains designed-not-built · no CI and no committed Playwright path |
 
-**The one thing still owed on M2 is a playtest** — §14j is five minutes with reportable IDs (`T1`–`T11`, `J1`–`J4`), so a finding is three characters plus a URL.
+**The one thing still owed from M2 is a playtest** — §14j is five minutes with reportable IDs (`T1`–`T11`, `J1`–`J4`), so a finding is three characters plus a URL. The M4 browser walk in the feature document is not a substitute for someone who has never seen the game.
 
-**How to pick this back up:** read §14f, then `src/engine/reduce.ts` (the `space` phase), `src/engine/encounter.ts` (draw bands and the tier table), `src/engine/effects.ts` (the closed interpreter) and `src/content/anomalies.ts` (the deck). §14f.5 lists every substitution so nothing inert is mistaken for broken.
+**How to pick this back up:** read `odd/tasks/m4-mvp.md` (specs, debt, the simulator's first read), then `src/engine/reduce.ts` (the phase machine and every action), `src/engine/directives.ts` (the matrix), `src/content/roles.ts` + `directives.ts` (the politics), and `src/ui/App.tsx` (screens and the privacy model).
 
 ---
 
@@ -2136,6 +2136,38 @@ next question for the instrument, and D28 is designed in the same breath.
 
 **Still `null`:** `winRateByAlignment`, `breachAchievableRate`, `compelsPerGame` — all need Main Directives
 and alignment (§7c.3). `deckExhaustion` is not observable by design (D27 draws never deplete a pile).
+
+### S9.6b After M4 — the instrument reads the political layer
+
+The MVP made those three numbers real. 800 games, `--seed-base 42`, mixed policies, 40-round cap;
+`pnpm sim` writes `sim-report.{json,md}` with §S9.4 verdicts:
+
+| Players | Policy | Cap hit | Detonated | Recontained | Rounds to terminal | Reached core | Compels / game | Breach win | Breach achievable |
+| --: | --- | --: | --: | --: | --: | --: | --: | --: | --: |
+| 2 | cautious | 44% | 56% | 1% | 14 | 1% | 0.38 | 17% | 40% |
+| 2 | aggressive | 82% | 1% | 17% | 4 | 26% | 1.45 | 0% | 0% |
+| 3 | cautious | 80% | 20% | 1% | 14 | 1% | 0.86 | 8% | 9% |
+| 3 | aggressive | 75% | 0% | 25% | 15 | 28% | 2.07 | 0% | 0% |
+
+**Verdict: the politics is implemented, but the economy that makes it pay is not.** Four findings, kept
+rather than tuned away, because the owner's instruction is to leave open questions as debt until the MVP
+exists:
+
+1. **The clock can be held forever by trying.** Containment bots contain anomalies every round, which
+   counts as a progress attempt (D16), so the track never advances while they fail the protocol test.
+   44–82% of games hit the cap. The anti-camping rule works; the *endgame* it was supposed to force does
+   not arrive. The fix is a design decision (protocol stagnation, a hard round cap, or D28), not a knob.
+2. **A beeline still beats the economy.** Aggressive play reaches the core in 26–28% of games but buys
+   zero clearance; cautious play buys 0.8–1.35 levels and reaches the core in 1%. Records still do not
+   compete with gambling.
+3. **Compels are scarce.** 0.4–2.1 per game against §S9.4's ≥ 1 per player per 3 rounds. Fate is earned
+   too slowly for the invoker to spend 1, and many compel conditions need a table state the bots rarely
+   create. The political layer touches some seats, not every seat.
+4. **Breach wins are rare and role-dependent.** 0–17%, and breach-achievable 0–40%: the breach directives
+   need a terminal that rarely arrives (Saboteur) or an action no one performs (Extractor's sample).
+
+None of this is a build failure — the layer is playable, testable and measurable, which is exactly what M4
+had to deliver. It is the M6 work, and §S9.4 is how the fix will be judged.
 
 ## S10. The tuning surface — numbers are data, rules are code
 

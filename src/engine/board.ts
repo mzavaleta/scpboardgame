@@ -50,6 +50,11 @@ export function getNode(nodeId: string): BoardNode {
   return found;
 }
 
+/** 0 outer, 1 middle, 2 inner, 3 core. Used by the progress rule and the sim. */
+export function ringDepth(nodeId: string): number {
+  return { outer: 0, middle: 1, inner: 2, core: 3 }[getNode(nodeId).ring];
+}
+
 export function nodeName(nodeId: string): string {
   return getNode(nodeId).name.en;
 }

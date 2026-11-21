@@ -24,12 +24,12 @@
 
 | | |
 | --- | --- |
-| **Last commit** | `840970b` — the tuning-surface rule (§S10). **M3a is in the working tree, uncommitted** pending the owner's review. |
-| **Health** | `pnpm test` → **128 passing**, 9 files · `pnpm typecheck` clean · `pnpm build` clean · `pnpm sim` → 800 games in ~6 s |
+| **Last commit** | `872f61b` — M3a, the clearance purchase. **M3b's clock is in the working tree, uncommitted** pending the owner's review. |
+| **Health** | `pnpm test` → **137 passing**, 10 files · `pnpm typecheck` clean · `pnpm build` clean · `pnpm sim` → 800 games in ~3 s |
 | **Playable** | `pnpm dev` → localhost:5173 · **2 or 3 players** (2 by default) · the address bar always carries `?seed=&players=` · roll (or **force a face**, §14e) → land → **an anomaly is drawn** → contain or decline → 4dF + stat vs difficulty → a tier → Records, Integrity, Threat · `?seed=&players=` reopens the exact table |
-| **Implemented** | seeded engine (`rng`, `hash`, `reduce`), board data + graph, movement with landing options, SVG board, log, turn handover, dev roll tool, **the closed effect interpreter, the 20 anomaly cards, the five tiers, clearance checks, the downed state**, **the tuning file (§S10) and the clearance purchase (§C1.4)**, **the simulator skeleton (`src/sim/run.ts` + `scripts/sim.ts`)** |
-| **Next** | **M3b** — the pressure model: threat track 0–5 with threshold effects, the warhead arming, hunters that move and hunt, and **both terminal states with the victory-resolution matrix** (the missing piece that makes `roundsToTerminal` measurable). Then **M3c**: the contested protocol track, breach directives and the **role draft** replacing the 3/3 placeholder. **D28** (containment as a collectible spent on stats) waits for the middle ring's feel and is designed together with the draft. |
-| **Known debt** | **no terminal state** — a game never ends, so the simulator caps at 40 rounds and says so · **entering the Command Center on clearance < 4 traps the seat** (every exit is G5/G6), found by the simulator and recorded in §S9.6 · hunters are counted but inert · Threat has no track or warhead · no protocol track or directives · `drawCard`/`removeGear`/`bound` are logged substitutions · respawn returns the same character · placeholder 3/3 stats · no Spanish in the UI · layout breaks below ~900 px · Q23 (land short for 1 Fate) not implemented · `i18n` keys absent · 20 authors are `PENDING` in attribution |
+| **Implemented** | seeded engine (`rng`, `hash`, `reduce`), board data + graph, movement with landing options, SVG board, log, turn handover, dev roll tool, **the closed effect interpreter, the 20 anomaly cards, the five tiers, clearance checks, the downed state**, **the tuning file (§S10) and the clearance purchase (§C1.4)**, **the simulator (`src/sim/run.ts` + `scripts/sim.ts`)**, **the clock: progress attempts, threat 0–5, warhead arming + countdown, the `detonated` terminal and the game-over lockout** |
+| **Next** | **M3c** — the contested protocol track (D22: `advanceProtocol` on an Intellect test at the core, `sabotageProtocol` placing `tamperedProtocol`, 3 steps to recontain), because it is the **second terminal** and without it every game ends in a loss and the simulator cannot compare strategies. Then **breach directives + the role draft** (3/3 placeholder), then the remaining M3b items (escalation cards at thresholds, moving hunters). **D28** waits for the middle ring's feel and is designed with the draft. |
+| **Known debt** | **one terminal only** — the site can be lost, never recontained, so every finished game is a detonation until the protocol track lands (M3c) · **entering the Command Center on clearance < 4 traps the seat** (every exit is G5/G6), recorded in §S9.6 · hunters are counted but inert · threat thresholds reveal no escalation card · no protocol track or directives · `drawCard`/`removeGear`/`bound` are logged substitutions · respawn returns the same character · placeholder 3/3 stats · no Spanish in the UI · layout breaks below ~900 px · Q23 (land short for 1 Fate) not implemented · `i18n` keys absent · 20 authors are `PENDING` in attribution |
 
 **The one thing still owed on M2 is a playtest** — §14j is five minutes with reportable IDs (`T1`–`T11`, `J1`–`J4`), so a finding is three characters plus a URL.
 
@@ -913,7 +913,7 @@ art beyond a coherent placeholder pass.
 | **M0** | `git init`, Vite + TS + Tailwind, ESLint boundaries, licence files, `engine/rng.ts` + determinism test, content schema skeleton, CI script | Same seed + action list yields the same state hash |
 | **M1** | Board geometry, graph, `1d6` movement, SVG rings, tokens, replay log · **done, then revised after the first playtest** — movement reworked to Talisman-exact (D26): one roll, one destination, landing options highlighted including bridges, no doubling back. `src/content/board.ts` (31 nodes, 6 gates), polar layout derived from slot counts, public log, seed + state hash in the status strip | ✅ Two people move tokens around three rings through gates, with a replay log |
 | **M2** | `4dF` + tiers, one anomaly encounter end-to-end, Integrity loss and defeat · **done** — 20 cards across three weighted piles (D27), the five tiers, the closed effect interpreter, clearance at gates, downed + respawn. `src/engine/{encounter,effects}.ts`, `src/content/anomalies.ts` | ✅ A full turn (move → anomaly → test → tier → state change) is unit-tested, and now as **one continuous run** (`encounter.test.ts` → "a whole turn") |
-| **M3** | Split into three, because the milestone was four systems and one instrument and they answer different questions. **M3a — the economy + the instrument:** `attemptClearance` at a checkpoint pays Records for the next clearance level (`src/engine/clearance.test.ts`), and `pnpm sim` plays whole games with two bots and writes `sim-report.{json,md}`. ✅ **done** — 128 tests, 800 sim games in 6 s; verified in the browser: 3 Records bought clearance 1 → 2 at Checkpoint Alpha and the button then offered 3. **M3b — pressure:** threat track 0–5 with threshold effects, warhead arming, hunters that move and hunt, **both terminal states and the victory-resolution matrix** (this is where rounds-to-terminal becomes measurable). **M3c — the table:** contested protocol track, role draft replacing the flat 3/3 placeholder, breach directives, compels. | M3a: a gate is no longer a pure gamble (met). M3b/M3c: 10k sim games in under a minute; win rates **by table alignment**, rounds-to-win, stall frequency, how often a breach win was achievable |
+| **M3** | Split into three, because the milestone was four systems and one instrument and they answer different questions. **M3a — the economy + the instrument:** `attemptClearance` at a checkpoint pays Records for the next clearance level (`src/engine/clearance.test.ts`), and `pnpm sim` plays whole games with two bots and writes `sim-report.{json,md}`. ✅ **done** — 128 tests, 800 sim games in 6 s; verified in the browser: 3 Records bought clearance 1 → 2 at Checkpoint Alpha and the button then offered 3. **M3b — pressure:** ✅ **the clock** — progress attempts, threat 0–5, warhead arming + countdown, `detonated` terminal, action lockout, and `pnpm sim` reporting rounds-to-terminal (median 20–28). ⏳ **threshold escalation cards** (need `lockGate`/`forceMove`/the Assembly vote) and **hunters that move**. The `recontained` terminal and the victory-resolution matrix moved to **M3c**, because they need the protocol track (D22) and alignments (§7c.3). **M3c — the table:** contested protocol track, role draft replacing the flat 3/3 placeholder, breach directives, compels. | M3a: a gate is no longer a pure gamble (met). M3b/M3c: 10k sim games in under a minute; win rates **by table alignment**, rounds-to-win, stall frequency, how often a breach win was achievable |
 | **M4** | **MVP content** in both locales: 6 roles, 18 anomalies, 12 mains, 14 escalation, 10 equipment, 31 spaces; i18next chrome; pseudo-locale; credits + attribution gate | Full game playable in EN and ES, zero hardcoded strings, green attribution check |
 | **M5** | Handoff screen, card animation, sound one-shots, save/resume, **motive-reveal endgame** | A stranger plays without being taught, and the ending explains why everyone did what they did |
 | **M6** | Sim-driven balance pass, deploy, playtests, tuning | The Definition of Done holds |
@@ -2085,40 +2085,42 @@ The markdown report is what gets committed alongside a balance change, so every 
 history has the numbers that justified it. That is the same principle as the design log, applied to
 numbers: **a change without evidence is a guess, and this document does not keep guesses.**
 
-### S9.6 State of the instrument (after M3a)
+### S9.6 State of the instrument (after M3b's clock)
 
-`pnpm sim` exists. It plays whole games through the real reducer — no shortcuts, no private state, the
-bots call `reduce()` exactly like the UI — and writes `sim-report.json` plus a generated `sim-report.md`.
-Measured on `--games 200 --players 2,3 --seed-base 42 --max-rounds 40` (800 games, ~6 s):
+`pnpm sim` plays whole games through the real reducer and writes `sim-report.json` plus a generated
+`sim-report.md`. **Rounds-to-terminal is now measurable**, because the game can end. Measured on
+`--games 200 --players 2,3 --seed-base 42 --max-rounds 40` (800 games, ~3 s, `cfg 81378f81`):
 
-| Players | Policy | Cap hit | Reached inner | Reached core | Purchases / game | Records spent | Gate fail |
-| --: | --- | --: | --: | --: | --: | --: | --: |
-| 2 | cautious | 100% | 98% | 38% | 4.08 | 14.8 | 18% |
-| 2 | aggressive | 100% | 100% | 100% | 0 | 0 | 54% |
-| 3 | cautious | 100% | 98% | 54% | 6.14 | 22.4 | 38% |
-| 3 | aggressive | 100% | 100% | 100% | 0 | 0 | 54% |
+| Players | Policy | Cap hit | Detonated | Rounds to terminal | Reached inner | Reached core | Purchases / game | Gate fail |
+| --: | --- | --: | --: | --: | --: | --: | --: | --: |
+| 2 | cautious | 2% | 99% | 20 | 46% | 14% | 1.87 | 28% |
+| 2 | aggressive | 20% | 80% | 26 | 100% | 100% | 0 | 52% |
+| 3 | cautious | 29% | 71% | 27 | 85% | 46% | 5.05 | 41% |
+| 3 | aggressive | 56% | 44% | 28 | 100% | 100% | 0 | 52% |
 
-**Two policies, one difference on purpose:** `cautious` pays for clearance and only walks through gates it
-can open; `aggressive` never pays and takes every gate as a test. That is the question M3a created, so it
-is the first thing the instrument answers.
+**Two policies, one difference on purpose:** `cautious` pays for clearance and lands on spaces that draw;
+`aggressive` never pays and takes every gate as a test.
 
-**What the numbers already say, and what they do not.** Cap hit is 100% because there is no terminal state
-(M3b). Reaching the core is not winning — it is arrival at an empty room. The useful signal is the
-contrast: in 40 rounds, gambling at gates reaches the core more often than saving for clearance, because
-19 Records for clearance 4 costs roughly twenty containments while a lucky `4dF` costs nothing. Whether
-that is a balance problem or a pacing problem cannot be answered until the core *does* something.
+**What the numbers say, and the first balance signal:**
 
-**A board finding the simulator produced on its first run:** the Command Center is reachable only through
-G5/G6 (clearance 4), and **every way out of it is the same pair of gates**. A seat that enters on clearance
-3 — or on a one-shot key — is trapped: it can only leave by gambling `intellect` vs difficulty 4, every
-turn, until it dies or gets lucky. That is a real board fact, not a bot artifact, and it is the first
-concrete argument for D28 or for a second exit. The bot now refuses the core below clearance 4; the rule
-itself is untouched, because changing the board is not M3a's job.
+1. **Every game that ends, ends in detonation** — `recontained` does not exist yet (it needs D22's protocol
+   track). So the table is not "who wins", it is "how long the site lasts".
+2. **Median 20–28 rounds is above §S9.4's 12–18 band.** The band was written for four players, and the MVP
+   is 2–3, so this is a prompt to re-measure before tuning — but it is the first time the number exists.
+3. **Farming is now punished, which is D16 working**: a seat that only moves inside the outer ring produces
+   no progress attempt, so the track advances every round and the warhead fires in about eight. That is the
+   designed answer to "why can I not just sit in the Safe ring" — and it is also why the cautious bot must
+   land on anomalies to pay for clearance, which it now does.
+4. **Gambling still reaches the core more often than saving** (100% vs 46% / 14%). Not interpretable yet:
+   the core is an empty room until the protocol track lands.
 
-**Deliberately still `null` in the report**, each with the milestone that will fill it: `roundsToTerminal`,
-`winRateByAlignment`, `breachAchievableRate`, `compelsPerGame`, `deckExhaustion` (D27 draws never deplete a
-pile, so exhaustion is not observable by design). Faking a zero for any of them would make the report
-worse than no report.
+**Still `null`, each with the milestone that fills it:** `recontainedRate`, `winRateByAlignment`,
+`breachAchievableRate`, `compelsPerGame`. `deckExhaustion` is not observable by design (D27 draws never
+deplete a pile). A fabricated zero would be worse than the gap.
+
+**A board finding from M3a that still stands:** the Command Center's only edges are G5/G6 (clearance 4) in
+both directions, so entering below clearance 4 traps the seat. The cautious bot refuses the core until it
+can pay; the board itself is unchanged.
 
 ## S10. The tuning surface — numbers are data, rules are code
 
@@ -2878,3 +2880,4 @@ Three additions, all declared. The alternative — special-casing each card — 
 | 2026-11-18 | **MVP cut defined (§14b).** Owner: *"I mean im looking for an MVP and build on top."* Rule adopted: **an MVP removes breadth, never risk.** MVP keeps board, 6 roles + compels, 20 anomalies, 14 mains + protocol track, 10 escalation, 12 equipment (56 cards). Defers side directives (terminal draws equipment), facility events, allies + `recruit` node, strict privacy mode, 5–6 players. Two guard rules: every deferral is a **config value, not a code branch**, and every temporary substitution is logged as **debt** with the node kind it affects — a node kind that silently does nothing is how MVP shortcuts become shipped bugs. |
 | 2026-11-18 | **Owner: design before code.** *"I'd like to pause and refine all the implementation… start but not implementing, start design."* Opened **Part IV — Implementation design** and wrote its spine: **S1** state model (`GameState`/`Player`/`Outcome`, no derived data, log-as-state), **S2** turn and round loop with explicit ordering rules (hunters after all players; arming does not tick the warhead; 0 Integrity is *contained*, not eliminated), **S3** action vocabulary including the single off-turn action `respondCompel`, **S4** the closed effect/condition vocabulary that enforces B4's "no new mechanics" rule, **S5** projection table plus a *generated* privacy test, **S6** evidence tokens — "evidence shows an act, never an intent". S7–S9 queued. |
 | 2026-11-21 | **M3a — Records finally buy something, and the simulator can say so.** The defect M2 left behind was one sentence: *"Records have no sink and clearance can never be raised"*, so every gate was a pure `4dF` gamble (18.5% / 38.2% / 61.7% bad at G1-2 / G3-4 / G5-6) and the middle ring felt **locked rather than earned**. `attemptClearance` closes it: an action-phase action at a `checkpoint` node that pays `clearancePrice(level)` from the tuning file (3 / 4 / 5 Records) for **the next level only** — skipping a level is a rejection, not a shortcut — and refuses with a specific code for each way it can fail (`no-checkpoint`, `not-enough-records`, `clearance-order`, `wrong-phase`, `downed`). Chaining is legal if you can pay: 12 Records buys 1 → 4 in one visit, which the sim will argue about when the core means something. Verified in the browser: 3 Records at Checkpoint Alpha bought clearance 1 → 2, P1's strip moved to `clr 2`, and the button re-priced itself to "Buy clearance 3 · 4 Rec". **The instrument** (`pnpm sim`, §S9.1) is `src/sim/run.ts` (pure, tested) plus a thin `scripts/sim.ts`: two bots through the real reducer, `sim-report.json` and a generated `sim-report.md`. Two policies differ in exactly one decision — pay at the gate, or gamble — because that is the question this milestone created. **The honest limitation, recorded rather than papered over:** there is **no terminal state**, so `roundsToTerminal`, `winRateByAlignment`, `breachAchievableRate` and `compelsPerGame` are `null` with the milestone that will fill them in, and every game reports `capHit` at the 40-round cap. §S9.6 holds the first numbers. **The first finding it produced is a board fact:** the Command Center's only edges are G5/G6 (clearance 4) in *both* directions, so a seat that enters below clearance 4 is trapped and must gamble every turn to leave — the bot now refuses the core below 4, and the board itself is untouched because changing it is not this milestone's job. 128 tests (10 clearance, 9 simulator), typecheck and build clean. |
+| 2026-11-21 | **M3b, first half — the clock runs.** The board was a corridor with no ending: a game never finished, the simulator capped at 40 rounds, and "is this fun?" could not be answered because nothing was at stake. This lands the pressure model's first half. **Progress is an attempt, not an outcome** (§D16, §7): landing in a deeper ring, touching a gate, taking a containment test, or spending on clearance registers the seat for the round — walking around the same ring registers nothing, and a *failed* test counts in full, because it was already paid for in Integrity and turns. At the round boundary, a round in which nobody attempted advances the track; at the top the Alpha Warhead arms with `threat.warheadCountdown` and **does not tick the round it arms** (the order in §S2 is load-bearing); each later round spends one; at zero the outcome is `detonated` and every action is rejected with `game-over`. **No directives yet means no winners**: until M3c deals Main Directives every seat is containment-aligned, so a detonation is the shared loss §7c.3 describes, and the UI says exactly that instead of inventing a victor. Verified in the browser: two idle turns moved the strip to `threat 1/5` and the log read `no one advanced the site — threat 0 → 1`. **The simulator is now honest about endings**: `roundsToTerminal`, `capHitShare` and `detonatedShare` are real, `recontainedRate`, `winRateByAlignment`, `breachAchievableRate` and `compelsPerGame` are still `null` with the milestone that fills each. §S9.6 holds the numbers and the first balance signal — median 20–28 rounds to detonation against §S9.4's 12–18 band (written for four players), and gambling reaching the core far more often than saving for clearance. **The milestone's second half did not ship and is not pretended**: threat thresholds reveal no escalation card yet (three §C5 cards need `lockGate`, `forceMove` and the Assembly vote), hunters still do not move, and the `recontained` terminal plus the victory-resolution matrix moved to M3c because they need the protocol track and alignments. 137 tests (8 pressure, 10 simulator), typecheck and build clean. |

@@ -72,6 +72,17 @@ export const tuningSchema = z.object({
     stats: statsSchema,
   }),
   roles: z.array(roleSchema).min(1),
+  /**
+   * §7: the track that punishes a table which stops trying, and the countdown
+   * that turns the top of the track into an ending. Both are dials — the *rule*
+   * (attempts, not outcomes) stays in code.
+   */
+  threat: z.object({
+    /** Top of the track. Reaching it arms the warhead. */
+    max: z.number().int().min(1),
+    /** Rounds between arming and detonation. */
+    warheadCountdown: z.number().int().min(1),
+  }),
   /** Records paid for containing an anomaly of each tier (§C1.4). */
   rewards: z.object({
     safe: z.number().int().min(0),
@@ -119,6 +130,11 @@ export function gateRule(gateId: string): {
     clearance: rule.clearance as 1 | 2 | 3 | 4,
     test: { stat: "intellect", difficulty: rule.difficulty },
   };
+}
+
+/** §7: the track's ceiling and the warhead's fuse. */
+export function threatRule(): { readonly max: number; readonly countdown: number } {
+  return { max: TUNING.threat.max, countdown: TUNING.threat.warheadCountdown };
 }
 
 /** Records a containment pays, by tier. Content projects this onto each card. */

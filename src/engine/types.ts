@@ -131,6 +131,16 @@ export function playersIn(players: Players): readonly Player[] {
   return SEAT_ORDER.map((seat) => players[seat]).filter((player): player is Player => player !== undefined);
 }
 
+/**
+ * §S1/§7c.3: how the game ended. `winners` is resolved from alignment, and with
+ * no directives (until M3c) every seat is containment-aligned — so a detonation
+ * has no winners, which is the honest shared loss.
+ */
+export type Ending = {
+  readonly terminal: "recontained" | "detonated";
+  readonly winners: readonly SeatId[];
+};
+
 export type GameState = {
   readonly rng: RngState;
   readonly round: number;
@@ -139,8 +149,20 @@ export type GameState = {
   /** The movement roll for this turn. Distance is fixed; the destination is yours to choose. */
   readonly roll: number;
   readonly players: Players;
-  /** §D13: pressure, driven by stagnation and by breach outcomes. */
+  /** §D13: pressure, driven by stagnation and by breach outcomes. 0..`threat.max`. */
   readonly threat: number;
+  /**
+   * §7: the armed warhead and its fuse. `null` until the track reaches the top.
+   * Arming does not tick it; each later round end spends one round.
+   */
+  readonly warhead: { readonly remaining: number } | null;
+  /**
+   * §D16: seats that produced a progress *attempt* this round. The track reads
+   * this at the round boundary — one seat trying is enough to hold it.
+   */
+  readonly progressThisRound: readonly SeatId[];
+  /** §S1: set once, never overwritten. */
+  readonly outcome: Ending | null;
   /** Hunters that exist but do not act yet (M3). Counted, not simulated. */
   readonly hunters: number;
   /**
@@ -192,6 +214,7 @@ export type Rejection = {
     | "no-checkpoint"
     | "not-enough-records"
     | "clearance-order"
+    | "game-over"
     | "downed"
     | "not-downed"
     | "blocked-by-gate";

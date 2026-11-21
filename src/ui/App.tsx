@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ANOMALIES, anomalyById } from "../content/anomalies";
-import { clearancePrice } from "../config/tuning";
+import { TUNING, clearancePrice } from "../config/tuning";
 import { BOARD } from "../content/board";
 import { getNode } from "../engine/board";
 import { reachableEndpoints } from "../engine/movement";
@@ -181,9 +181,20 @@ export function App() {
         <span className="text-[var(--muted)]">
           rolled <b className="text-[var(--text)]">{state.roll}</b>
         </span>
-        <span className="text-[var(--muted)]">
-          threat <b className={state.threat > 0 ? "text-[var(--danger)]" : "text-[var(--text)]"}>{state.threat}</b>
+        <span className="text-[var(--muted)]" title="Threat track — a round where nobody attempts anything advances it">
+          threat{" "}
+          <b className={state.threat > 0 ? "text-[var(--danger)]" : "text-[var(--text)]"}>
+            {state.threat}/{TUNING.threat.max}
+          </b>
         </span>
+        {state.warhead && (
+          <span
+            className="text-[var(--danger)]"
+            title="The Alpha Warhead is armed. When this reaches 0 the site is lost."
+          >
+            warhead <b>{state.warhead.remaining}</b>
+          </span>
+        )}
         <span className="text-[var(--muted)]">
           seed <b className="text-[var(--text)]">{seed}</b>
         </span>
@@ -279,6 +290,18 @@ export function App() {
 
       {/* Controls */}
       <footer className="col-span-3 flex flex-col gap-2 rounded border border-[var(--line)] bg-[var(--panel)] px-4 py-3">
+        {state.outcome && (
+          <div className="rounded border border-[var(--danger)] px-3 py-2 text-sm">
+            <b className="uppercase tracking-widest text-[var(--danger)]">
+              {state.outcome.terminal === "detonated" ? "Site lost" : "Site recontained"}
+            </b>
+            <span className="ml-3 text-[var(--muted)]">
+              {state.outcome.winners.length === 0
+                ? "nobody wins — no directives yet, so every seat shares the loss"
+                : `winners: ${state.outcome.winners.join(", ")}`}
+            </span>
+          </div>
+        )}
         {state.phase === "space" && state.encounter && (
           <EncounterPanel
             cardId={state.encounter.card}
@@ -425,7 +448,7 @@ export function App() {
         {error && <span className="text-sm text-[var(--danger)]">{error}</span>}
         {!error && !state.lastTest && (
           <span className="ml-auto text-xs text-[var(--muted)]">
-            M2 — anomalies resolve; hunters and the threat track land in M3.
+            M3b — the threat track runs: a round where nobody attempts anything arms the warhead. Hunters and the protocol track are next.
           </span>
         )}
         </div>

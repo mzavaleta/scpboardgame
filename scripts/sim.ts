@@ -50,7 +50,8 @@ for (const row of report.rows) {
   console.log(
     `  ${row.players}p ${row.policy.padEnd(10)} cap ${String(Math.round(row.capHitShare * 100)).padStart(3)}% · ` +
       `purchases ${row.purchasesPerGame} · inner ${Math.round(row.reachedInnerShare * 100)}% · ` +
-      `core ${Math.round(row.reachedCoreShare * 100)}% · gate fail ${Math.round(row.gateFailureShare * 100)}%`,
+      `core ${Math.round(row.reachedCoreShare * 100)}% · gate fail ${Math.round(row.gateFailureShare * 100)}% · ` +
+      `detonated ${Math.round(row.detonatedShare * 100)}%`,
   );
 }
 console.log(`wrote ${out} and ${markdownPath}`);

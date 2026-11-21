@@ -68,15 +68,23 @@ describe("what M3a is allowed to claim", () => {
     expect(aggressive?.recordsSpentPerGame).toBe(0);
   });
 
-  it("never reports a metric it cannot measure yet", () => {
+  it("reports the terminal it can measure and names the one it cannot", () => {
     const report = runSimulation(options);
     const markdown = toMarkdown(report);
 
-    expect(Object.keys(report.notMeasured)).toContain("roundsToTerminal");
-    expect(markdown).toMatch(/Not measured yet/);
-    expect(markdown).toMatch(/roundsToTerminal/);
-    // No fabricated zero for a metric that needs a terminal state.
-    expect(JSON.stringify(report.rows)).not.toMatch(/roundsToTerminal/);
+    // The warhead is the only ending that exists, so every terminal is a detonation.
+    expect(report.rows.every((row) => row.roundsToTerminalP50 >= 0)).toBe(true);
+    expect(markdown).toMatch(/Detonated/);
+    // The recontained terminal needs the protocol track, so it is declared missing
+    // instead of reported as a zero.
+    expect(Object.keys(report.notMeasured)).toContain("recontainedRate");
+    expect(markdown).toMatch(/recontainedRate/);
+  });
+
+  it("stops a game when the warhead fires instead of playing to the cap", () => {
+    const report = runSimulation({ ...options, games: 6, maxRounds: 40 });
+    // With a working clock some games must end before the cap...
+    expect(report.rows.some((row) => row.capHitShare < 1)).toBe(true);
   });
 });
 

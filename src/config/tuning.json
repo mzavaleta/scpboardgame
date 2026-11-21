@@ -10,6 +10,10 @@
       "intellect": 3
     }
   },
+  "threat": {
+    "max": 5,
+    "warheadCountdown": 3
+  },
   "rewards": {
     "safe": 1,
     "euclid": 2,

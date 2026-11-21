@@ -21,11 +21,11 @@
  */
 
 import { CONFIG_FINGERPRINT, clearancePrice } from "../config/tuning";
-import { gatesAlong, getNode } from "../engine/board";
+import { gatesAlong, getNode, ringDepth } from "../engine/board";
+import { deckForNode } from "../engine/encounter";
 import { reachableEndpoints } from "../engine/movement";
 import { createGame, reduce } from "../engine/reduce";
 import { playerAt, seatsFor } from "../engine/types";
-import type { RingId } from "../content/board";
 import type { Action, GameState, SeatId } from "../engine/types";
 
 export type Policy = "cautious" | "aggressive";
@@ -50,6 +50,8 @@ export type GameSample = {
   readonly policy: Policy;
   readonly rounds: number;
   readonly capHit: boolean;
+  /** How the game ended, or `null` if it hit the cap without ending (M3b). */
+  readonly terminal: "recontained" | "detonated" | null;
   /** Deepest ring any seat reached: 0 outer, 1 middle, 2 inner, 3 core. */
   readonly maxDepth: number;
   readonly reachedInner: boolean;
@@ -67,6 +69,8 @@ export type SimRow = {
   readonly policy: Policy;
   readonly games: number;
   readonly capHitShare: number;
+  readonly detonatedShare: number;
+  readonly roundsToTerminalP50: number;
   readonly roundsP50: number;
   readonly roundsP90: number;
   readonly reachedInnerShare: number;
@@ -88,9 +92,7 @@ export type SimReport = {
   readonly notMeasured: Readonly<Record<string, string>>;
 };
 
-const DEPTH: Readonly<Record<RingId, number>> = { outer: 0, middle: 1, inner: 2, core: 3 };
-
-const depthOf = (nodeId: string): number => DEPTH[getNode(nodeId).ring];
+const depthOf = ringDepth;
 
 /** Would crossing `gate` cost a test, under this seat's clearance and tags? */
 function gateIsPassable(state: GameState, seat: SeatId, gate: { readonly clearance: number }): boolean {
@@ -115,8 +117,12 @@ function pickDestination(state: GameState, policy: Policy): string {
   const passable = (node: string): boolean =>
     gatesAlong(player.node, node, state.roll).every((gate) => gateIsPassable(state, state.seat, gate));
 
+  // Deeper first, then a space that actually draws — a player looking for Records
+  // lands on anomalies, not on empty corridors.
+  const rank = (node: string): number =>
+    depthOf(node) * 10 + (deckForNode(node) === null ? 0 : 1);
   const deepest = (nodes: readonly string[]): string =>
-    [...nodes].sort((a, b) => depthOf(b) - depthOf(a) || (a < b ? -1 : a > b ? 1 : 0))[0]!;
+    [...nodes].sort((a, b) => rank(b) - rank(a) || (a < b ? -1 : a > b ? 1 : 0))[0]!;
 
   if (policy === "aggressive") return deepest(options);
 
@@ -192,7 +198,7 @@ export function playGame(policy: Policy, players: 2 | 3, seed: number, maxRounds
   // generous but finite: a bug that loops forever fails loudly instead of hanging.
   const actionBudget = maxRounds * players * 40;
 
-  for (let step = 0; step < actionBudget && state.round <= maxRounds; step += 1) {
+  for (let step = 0; step < actionBudget && state.round <= maxRounds && !state.outcome; step += 1) {
     const before = state;
     const action = chooseAction(state, policy);
     if (!action) break;
@@ -228,7 +234,8 @@ export function playGame(policy: Policy, players: 2 | 3, seed: number, maxRounds
     players,
     policy,
     rounds: Math.min(state.round, maxRounds),
-    capHit: state.round > maxRounds,
+    capHit: state.outcome === null,
+    terminal: state.outcome?.terminal ?? null,
     maxDepth,
     reachedInner,
     reachedCore,
@@ -258,6 +265,10 @@ const round3 = (value: number): number => Math.round(value * 1000) / 1000;
 function summarize(samples: readonly GameSample[]): SimRow {
   const first = samples[0]!;
   const rounds = samples.map((sample) => sample.rounds).sort((a, b) => a - b);
+  const ended = samples
+    .filter((sample) => sample.terminal !== null)
+    .map((sample) => sample.rounds)
+    .sort((a, b) => a - b);
   const attempts = samples.reduce((sum, sample) => sum + sample.gateAttempts, 0);
   const failures = samples.reduce((sum, sample) => sum + sample.gateFailures, 0);
 
@@ -266,6 +277,8 @@ function summarize(samples: readonly GameSample[]): SimRow {
     policy: first.policy,
     games: samples.length,
     capHitShare: round3(share(samples.map((sample) => sample.capHit))),
+    detonatedShare: round3(share(samples.map((sample) => sample.terminal === "detonated"))),
+    roundsToTerminalP50: ended.length === 0 ? 0 : quantile(ended, 0.5),
     roundsP50: quantile(rounds, 0.5),
     roundsP90: quantile(rounds, 0.9),
     reachedInnerShare: round3(share(samples.map((sample) => sample.reachedInner))),
@@ -291,11 +304,12 @@ export function toMarkdown(report: SimReport): string {
     `Command: \`pnpm ${report.command}\``,
     `Tuning fingerprint: \`cfg ${report.config}\` · ${report.games} games · cap ${report.maxRounds} rounds`,
     "",
-    "| Players | Policy | Games | Cap hit | Rounds p50 | Rounds p90 | Reached inner | Reached core | Purchases / game | Records spent | Gate fail | Deaths / game | Draws / game |",
-    "| --: | --- | --: | --: | --: | --: | --: | --: | --: | --: | --: | --: | --: |",
+    "| Players | Policy | Games | Cap hit | Detonated | Rounds to terminal | Rounds p50 | Rounds p90 | Reached inner | Reached core | Purchases / game | Records spent | Gate fail | Deaths / game | Draws / game |",
+    "| --: | --- | --: | --: | --: | --: | --: | --: | --: | --: | --: | --: | --: | --: | --: |",
     ...report.rows.map(
       (row) =>
         `| ${row.players} | ${row.policy} | ${row.games} | ${Math.round(row.capHitShare * 100)}% | ` +
+        `${Math.round(row.detonatedShare * 100)}% | ${row.roundsToTerminalP50} | ` +
         `${row.roundsP50} | ${row.roundsP90} | ${Math.round(row.reachedInnerShare * 100)}% | ` +
         `${Math.round(row.reachedCoreShare * 100)}% | ${row.purchasesPerGame} | ` +
         `${row.recordsSpentPerGame} | ${Math.round(row.gateFailureShare * 100)}% | ` +
@@ -345,11 +359,11 @@ export function runSimulation(options: SimOptions): SimReport {
     maxRounds: options.maxRounds,
     rows,
     notMeasured: {
-      roundsToTerminal: "M3b — needs a terminal state",
-      winRateByAlignment: "M3b/M3c — needs alignments and both terminal states",
+      recontainedRate: "M3c — the recontained terminal needs the protocol track (D22)",
+      winRateByAlignment: "M3c — needs Main Directives and alignment (§7c.3)",
       breachAchievableRate: "M3c — needs breach directives",
       compelsPerGame: "M3c — needs the protocol track",
-      deckExhaustion: "M3b — needs a depleted pile to be observable (D27 draws never deplete)",
+      deckExhaustion: "not observable by design — D27 draws never deplete a pile",
     },
   };
 }

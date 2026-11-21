@@ -10,10 +10,10 @@
  * also enforces clearance at gates, which used to be undetectable (§14f).
  */
 
-import { CONFIG_FINGERPRINT, TUNING, clearancePrice } from "../config/tuning";
+import { CONFIG_FINGERPRINT, TUNING, clearancePrice, threatRule } from "../config/tuning";
 import { ANOMALIES } from "../content/anomalies";
 import { ARRIVAL_NODE } from "../content/board";
-import { gatesAlong, getNode } from "./board";
+import { gatesAlong, getNode, ringDepth } from "./board";
 import { anomalyName, deckForNode, describeTest, drawAnomaly, rollTest } from "./encounter";
 import { applyEffects } from "./effects";
 import { canLandOn } from "./movement";
@@ -58,12 +58,59 @@ export function createGame(seed: number, seats: readonly SeatId[] = SEAT_ORDER):
     roll: 0,
     players,
     threat: 0,
+    warhead: null,
+    progressThisRound: [],
+    outcome: null,
     hunters: 0,
     config: CONFIG_FINGERPRINT,
     encounter: null,
     lastTest: null,
     log: [`Round 1 — ${seats[0]} to act.`],
   };
+}
+
+/**
+ * §D16: a progress *attempt*, not an outcome. One seat trying is enough to hold
+ * the track, which is the whole point — a bad roll is not camping.
+ */
+function markProgress(state: GameState, seat: SeatId): GameState {
+  if (state.progressThisRound.includes(seat)) return state;
+  return { ...state, progressThisRound: [...state.progressThisRound, seat] };
+}
+
+/**
+ * §S2 round boundary, in the order the document fixes: the track reads the
+ * round's attempts, the top arms the warhead, and an already-armed warhead spends
+ * one round. Arming never ticks the same round.
+ */
+function endRound(state: GameState): GameState {
+  const { max, countdown } = threatRule();
+  const notes: string[] = [];
+  let threat = state.threat;
+  let warhead = state.warhead;
+  let outcome = state.outcome;
+
+  if (state.progressThisRound.length === 0) {
+    threat = Math.min(max, threat + 1);
+    notes.push(`no one advanced the site — threat ${state.threat} → ${threat}.`);
+    if (threat >= max && warhead === null) {
+      warhead = { remaining: countdown };
+      notes.push(`the Alpha Warhead is armed — ${countdown} rounds to detonation.`);
+    }
+  }
+
+  if (state.warhead !== null) {
+    const remaining = state.warhead.remaining - 1;
+    warhead = { remaining };
+    if (remaining <= 0) {
+      outcome = { terminal: "detonated", winners: [] };
+      notes.push("the Alpha Warhead detonated. The site is lost, and nobody wins.");
+    } else {
+      notes.push(`the warhead counts down — ${remaining} round${remaining === 1 ? "" : "s"} left.`);
+    }
+  }
+
+  return { ...state, threat, warhead, outcome, progressThisRound: [], log: [...state.log, ...notes] };
 }
 
 /** Clearance level first, then the key tag, then the gate's Intellect test. */
@@ -74,6 +121,8 @@ function tryCrossGate(
 ): { readonly state: GameState; readonly passed: boolean; readonly notes: readonly string[] } {
   const player = playerAt(state.players, seat);
   const notes: string[] = [];
+  // Touching a gate is an attempt whatever it costs (§7's progress list).
+  state = markProgress(state, seat);
 
   if (player.clearance >= gate.clearance) {
     notes.push(`crossed ${gate.id} on clearance ${player.clearance}.`);
@@ -105,6 +154,15 @@ function tryCrossGate(
 }
 
 export function reduce(state: GameState, action: Action): Result<GameState> {
+  if (state.outcome) {
+    return reject(
+      "game-over",
+      state.outcome.terminal === "detonated"
+        ? "The warhead already fired. Start a new game."
+        : "The site was already recontained. Start a new game.",
+    );
+  }
+
   switch (action.type) {
     case "rollMovement": {
       if (state.phase !== "roll") {
@@ -161,6 +219,8 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
       }
 
       const mover = playerAt(next.players, state.seat);
+      // Entering a deeper ring is an attempt even without a gate (§7).
+      if (ringDepth(action.node) > ringDepth(player.node)) next = markProgress(next, state.seat);
       next = {
         ...next,
         players: { ...next.players, [state.seat]: { ...mover, node: action.node } },
@@ -221,6 +281,8 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
         return ok({ ...next, phase: "action", encounter: null, log: [...next.log, ...notes] });
       }
 
+      // Taking the test is the attempt; the tier decides the consequence (§D16).
+      next = markProgress(next, seat);
       const { state: rolled, result } = rollTest(next, seat, card.test.stat, card.test.difficulty, "anomaly");
       next = rolled;
       notes.push(`contain ${card.name.en} — ${describeTest(result)}`);
@@ -304,7 +366,7 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
       }
 
       return ok({
-        ...state,
+        ...markProgress(state, state.seat),
         players: {
           ...state.players,
           [state.seat]: {
@@ -361,12 +423,19 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
       const order = playersIn(state.players).map((player) => player.seat);
       const index = order.indexOf(state.seat);
       const wrapped = index === order.length - 1;
+      // The round boundary resolves before the next round starts (§S2).
+      const settled = wrapped ? endRound(state) : state;
+
+      if (settled.outcome) {
+        return ok({ ...settled, phase: "end", roll: 0, encounter: null, lastTest: null });
+      }
+
       const nextSeat = order[(index + 1) % order.length] as SeatId;
-      const round = wrapped ? state.round + 1 : state.round;
-      const nextPlayer = playerAt(state.players, nextSeat);
+      const round = wrapped ? settled.round + 1 : settled.round;
+      const nextPlayer = playerAt(settled.players, nextSeat);
 
       return ok({
-        ...state,
+        ...settled,
         seat: nextSeat,
         round,
         phase: "roll",
@@ -374,7 +443,7 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
         encounter: null,
         lastTest: null,
         log: [
-          ...state.log,
+          ...settled.log,
           ...(nextPlayer.downed ? [`— ${nextSeat} is down (respawn or skip).`] : []),
           `— ${nextSeat} to act (round ${round}).`,
         ],

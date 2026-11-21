@@ -90,6 +90,9 @@ boundary until the previous one has zero `OPEN` items.
 | --- | --- | --- |
 | **D1** | Win axis = **descend to the Command Center to recontain**. The "escape" feeling is delivered by pressure, not by a puzzle-escape victory. | `AGREED` |
 | **D5** | **Dice split: `1d6` for movement, `4dF` for tests** (combat, containment checks, achievements). | `AGREED` |
+| **D29** | **A bridge has a gatekeeper, not a check** — a door (clearance/hacking), a creature (a fight), an officer (clearance/social), instead of a bare 4dF test. The current check fails only 18.5% of the time, so entry is cheap while the room behind is lethal. (§14k.2, §14k.3) `PROPOSED` |
+| **D30** | **Declining costs something, scaled by tier** — priced in Fate, or an escape check that can fail, instead of the flat `+1 Threat` of §14f.3. (§14k.3) `PROPOSED` |
+| **D31** | **Every landing produces something** — a table per node kind, so medical/supply/alarm/terminal do something instead of nothing. Same design as §14g seen from the other end; do them once. D27 makes the content free, so the cost is turn length. (§14k.3) `PROPOSED` |
 | **D28** | **Containment is a collectible spent on stats** (Talisman shape): containing yields a trophy typed by tier, trophies are exchanged for stats at a facility, and some entries are usable objects that can be dropped onto a node and stay there. Cheap variant: `records` (already 1/2/3 by tier) *is* the tally. (§14i) `PROPOSED` |
 | **D27** | **Draws are weighted samples, not a pile that depletes** — rarity is a number on the card (what a physical deck calls *copies*), the draw consumes one die and mutates no state, and a deck can never run dry. Removes `decks` from `GameState` and makes the draw rate a free dial (§14h, `src/engine/encounter.ts`). | `AGREED` |
 | **D26** | **Movement is Talisman-exact**: the die fixes the distance, you choose the destination, and the move is **one irreversible decision**. The path must be **simple** (no revisiting a node, so no doubling back), and **only the landing space resolves** — passing through is free. (§S2, §C1.1, `src/engine/movement.ts`) | `AGREED` |
@@ -1427,8 +1430,10 @@ can see.
 - **If not:** report `T6`.
 
 #### T7 · Decline one
-- **Do:** when a card of type `euclid` or `keter` appears, press **Decline**.
-- **Should see:** `threat` in the top bar goes up by 1, and you gain no Records.
+- **Do:** in the **CARD** list in the DEV row pick one labelled `euclid` or `keter`, press **open**, then press
+  **Decline**.
+- **Should see:** `threat` in the top bar goes up by 1, and the log line says `Threat +1 → n` with the *same*
+  `n` as the counter.
 - **If not:** report `T7`.
 
 #### T8 · Try a bridge
@@ -1436,10 +1441,11 @@ can see.
 - **Should see:** a log line about a **clearance check**, then either you cross or you stay where you were.
 - **If not:** report `T8`. Both outcomes are expected; the question is the next one.
 
-#### T9 · Get hurt, then go down *(optional, only if it happens)*
-- **Do:** keep containing middle and inner cards until `int` reaches 0.
-- **Should see:** your name shows **DOWN**, and a **Respawn** button appears at the bottom.
-- **If not:** report `T9` (only if you did reach 0).
+#### T9 · Go down and come back
+- **Do:** press **down** in the DEV row (under `DAMAGE`).
+- **Should see:** `int` drops to 0, your name shows **DOWN**, and a **Respawn** button appears next to
+  **Roll movement**. Press it: you return to *Arrival Gate* with full Integrity.
+- **If not:** report `T9`.
 
 #### T10 · Switch players
 - **Do:** press **End turn**.
@@ -1473,6 +1479,70 @@ One line per finding, the ID first, then what you expected and what you saw:
 
 Always paste the URL: it carries the seed, so the exact game can be replayed. If the board and the log ever
 disagree about where you are, that is the most valuable bug of all.
+
+### 14k. M2 playtest findings (2026-11-20)
+
+First real pass over the whole surface. Result: **three defects, all presentation, all fixed**; two steps that
+were untestable until tools existed; and one design observation that is worth more than the defects.
+
+#### 14k.1 What was broken
+
+| ID | What the owner saw | What it was | Fixed by |
+| --- | --- | --- | --- |
+| `T4` | *"4dF -1 + 3 − 1 = +1 … how is that possible: fudge dices are only +1 -1 0, values above 1 is unreal"* | The arithmetic was correct; the line was unreadable. `4dF -1` meant "the four dice **summed** to −1". Nothing labelled the terms. | Every term is named: `4dF sum [−1] + intellect [3] − difficulty [1] = +1` |
+| `J2` | *"barely: '+1 Record' appears above 'contain Encyclopedia of Common Diseases …'"* | The log renders newest-first, and the summary line was pushed **first**, so each outcome sat underneath its own consequences. | The headline is pushed **last**, so it reads on top of its detail. Same fix for gate checks. |
+| — | `threat 1` in the top bar next to a log line saying `Threat +1 → 2` | The note recomputed the value from the already-updated state. Found in a screenshot while checking `T7`, not by a test. | Compute once, print that. |
+
+Two steps could not be performed at all — `T7` (decline a `euclid`/`keter` card) and `T9` (reach 0 Integrity)
+required luck. Both now have dev controls: a **card picker** that opens any anomaly wherever you stand, and
+**damage 3 / down** buttons. Both announce themselves in the log, like the forced roll.
+
+**The lesson, recorded because it will recur:** the numbers were right three times out of three and the
+*documentation of the numbers* was wrong twice. A playtest finds presentation defects faster than any review,
+because the player has no idea what was intended.
+
+#### 14k.2 The design observation that matters
+
+`T8` passed: `clearance check at G1 — 4dF sum [+0] + intellect [3] − difficulty [2] = +1 → passes`. The
+owner's reaction was the important part: *"be able to go to inner rings easy, should be difficult."*
+
+He is right, and the numbers agree with him. At clearance 1 against G1, the check fails only **18.5%** of the
+time — so the bridge is an **81.5% door, not a barrier**. Meanwhile the room behind it (Keter, difficulty 4–5)
+is 61.7–81.5% bad. So the current shape is:
+
+> **Entry is cheap. The room is lethal.** A coin flip is not a gatekeeper — it is a delay.
+
+That inverts the intended fiction. A gate should be something you *prepare for* and *fail to* only when you
+chose badly, and it should be a **place with a face**, not a number. Which is exactly what the owner proposed
+next.
+
+#### 14k.3 Three proposals, recorded (`PROPOSED`, unscheduled)
+
+**D29 — a bridge has a gatekeeper, not a check.** Owner: *"we need to know what or who will be gatekeepers of
+those bridges, like a door that needs to be hacked, a monster/creature, an officer?"* Four shapes already fit
+the vocabulary: a **door** (clearance or a hacking test), a **creature** (a fight, which is an anomaly
+encounter at a gate), an **officer** (a clearance or social test with a consequence for refusal), or the
+current bare check. This is the fix for 14k.2: a gate with a face can be prepared for, priced, bribed or
+avoided, and passing it becomes an achievement instead of a die roll. **No collision** — §C1.6 already
+declares each gate with a clearance level and a test; a gatekeeper gives the test a body.
+
+**D30 — declining costs something scaled by tier.** Owner: *"when skipping / running / not containing, should
+have a cost (fate point) or good fudge roll, depending on the level of the creature or thing."* Today it is
+free on Safe and `+1 Threat` on Euclid/Keter (§14f.3). §14j predicted nobody would ever decline, and `T7` was
+reported before that could be tested. Two ways to make running a decision: price it in **Fate** (which is the
+"agency currency" per §7b, so it is thematically right), or make escaping a **check** that can fail. Note the
+second one has a cost of its own: if both contain and decline are checks, every encounter becomes two rolls
+and the turn gets longer.
+
+**D31 — every landing produces something.** Owner: *"each node you land shoudl draw something, good or bad, but
+something."* This is §14g seen from the other end: §14g proposed *how many* cards per node, D31 says the
+*minimum is one everywhere*. **D27 makes it free in content terms** — a weighted draw needs no new cards — so
+the only missing piece is a table per node kind: medical heals or hurts, supply issues equipment, alarm raises
+pressure, terminal leaks information. That is §14g.2's facility tests, so **D31 and §14g should be designed
+once**, not twice. The real cost is not content but **time**: a 35-landing session becomes 35 encounters.
+
+**What to do with all three:** nothing yet. They are the shape of M4, and M3 (the economy) has to exist first —
+you cannot price a gatekeeper before Records buy something.
 
 ---
 
@@ -2714,6 +2784,7 @@ Three additions, all declared. The alternative — special-casing each card — 
 | 2026-11-18 | **C3 written — 6 roles, 6 aspects, 18 compels.** Corrected a leftover from D5: **roles have no Move stat**, because the owner's `1d6` made the original movement allowance redundant and keeping it would mean two movement systems arguing. Clearance starts at **1 for everyone**, or one role would skip the access economy that provides the game's pacing. Balance band `combat + intellect ∈ {5,6}` and Integrity 5–7, validator-enforced, because the draft only works if the options are genuinely comparable. **Framing recorded as legal and deliberate**: `By the Book` #1 and `Methodical` #3 let a player compel someone to place intent evidence under *their own* name — public, permanent, and unable to gift a saboteur a victory because the footprint check only reads a player's own tokens. It only costs the innocent their credibility. Rule added: **every aspect must carry at least one compel that takes something**, or it is a stat rather than a weakness. One vocabulary addition, `forceMove(node)`, with the line that keeps it safe: a forced move never performs a gate check, so compels cannot smuggle anyone past Clearance. |
 | 2026-11-18 | **C4 written — the 14 main directives, and the two mechanics they forced.** Ten containment / four breach. Containment directives carry **no** footprint (D18 is about suspicion; demanding evidence from honest players turns everyone into a suspect for the wrong reason) and the validator encodes that asymmetry. The four breach directives each demand a *different observable act* — Saboteur holds the core, Extractor wants the sample, Denial wants the gates, Abandonment wants someone bleeding — so "breach" is not one personality. **D22**: `Protocol Custodian` and a saboteur footprint cannot both exist without an answer to "who fired it", which produced the **three-step contested protocol track** — the last act becomes play (a public counter pushed up by three people and quietly down by one) instead of arithmetic. **D23**: `abandonedAlly` is placed when a player **moves away from a node holding a downed ally**, which loads the rescue mechanic politically. **Structural finding:** the win conditions could not be expressed in the S1 state model, so `Player` gained `counters` — found here instead of in M4. |
 | 2026-11-18 | **§14c added — the M1 playtest brief.** A playtest without questions produces anecdotes, so the document now states what M1 can and cannot tell you (no cards, no gate checks, no Spanish — do not report those), the five questions it exists to answer (distance to the core, `1d6` agency, adjacency legibility, token stacking, wall-clock lap time), and the two report formats that matter: the `?seed=` URL, and any case where the **board disagrees with the log** — which would mean the renderer and the reducer have diverged. Predictions recorded so they can be checked: the middle and inner rings will feel cramped at 10 and 8 slots, `1d6` will waste about one turn per lap, and even-slot-only labels will make odd nodes feel like filler. |
+| 2026-11-20 | **Playtest round 1 — three presentation defects, one design insight (§14k).** Owner ran `T1`–`T10` in one pass. **Three defects, all presentation, all fixed:** `T4` the test line printed `4dF -1 + 3 − 1` and he read "four dice minus one" — correct arithmetic, unreadable line, now `4dF sum [−1] + intellect [3] − difficulty [1]`; `J2` consequences appeared *above* their own summary because the log is newest-first and the summary was pushed first; and the Threat note printed `→ 2` beside a counter showing `1`, noticed only in a screenshot. Two steps were impossible without luck (`T7` decline a euclid/keter card, `T9` reach 0), so dev controls were added: a **card picker** that opens any anomaly, and **damage 3 / down**. **The insight:** `T8` passed, and the owner said *"be able to go to inner rings easy, should be difficult"* — he is right, because at clearance 1 the gate fails only 18.5% of the time. **Entry is cheap and the room is lethal**, which is the opposite of the intended fiction; a coin flip is a delay, not a gatekeeper. That produced three recorded proposals: **D29** gatekeepers with a face, **D30** declining priced in Fate or an escape check, **D31** every landing produces something (which is §14g from the other end — design once). None scheduled: M3 is still the economy. |
 | 2026-11-20 | **§14j given reportable IDs.** Owner: *"i need this steps but with unique id so i can refer to you … so i can tell you my findings."* Every step is now `T1`–`T11` with a title, one action, one visible expectation and the ID to report if it fails; the four judgement questions are `J1`–`J4` so they never collide with the design register's `Q` ids. Report format fixed as one line per finding, ID first: `T7 — declined a keter card, threat stayed 0. URL: …`. This is the right shape for a playtest artefact: **the ID is the whole contract** — it is what turns "something weird happened" into a reproducible defect. |
 | 2026-11-20 | **§14j rewritten, because the first version was unreadable.** Owner: *"wtf? what D26? how the F i caculate that? … please give me something clear for humans i can reproduce."* Correct on every point: the brief was written in the document's own vocabulary — decision numbers, gate ids, "shift the curve" — for someone who does not read the document. Replaced with **five clicks** (New game → click a DEV number → click a lit space → Contain/Decline → End turn) and **four questions answerable from memory**. Two specific confusions worth recording: "calculate the arithmetic" was wrong instruction — the log already prints every number, and the only useful check is *do the three numbers add up*; and "improve your odds" assumed the reader knew clearance cannot be raised yet, when the real question was simply whether a locked bridge *feels* like luck. Rule for future briefs: **no decision numbers, no ids, no notation in anything a player has to read.** |
 | 2026-11-19 | **§14j added — the M2 playtest brief.** M2 is closed on code and **not yet played end to end**, so the remaining debt is a person, not a patch. The brief is fifteen minutes: force a roll and read the per-pile card preview first, contain once and check the arithmetic by hand, meet four different Safe entries, take a bridge at clearance 1, reach a Keter cell, decline once, and get downed. Five questions, and **five predictions on record** so they can be wrong: decline will never be chosen (one Threat against a 60% contain is not a trade), Keter will read as unfair rather than dangerous (81.5% bad and nothing changes it), Records become noise by turn three because nothing spends them, a gate test feels like a coin flip with no preparation, and two seats reach the core in about ten minutes because M2 added cost but no length. |

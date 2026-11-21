@@ -1,47 +1,50 @@
 /**
- * M1 shell: a functional table, not a polished one. The point of this build is
- * to sit around a table and find out what is wrong with the *rules*, so the UI
- * shows state honestly and hides nothing behind decoration.
+ * The MVP shell (§S7): setup, draft, handoff, table, endgame, credits.
+ *
+ * Two rules keep the privacy honest:
+ * 1. The table screen never renders another seat's directive.
+ * 2. Every private value shown is read through `project(state, claimedSeat)` or
+ *    the handoff for the seat currently holding the device.
+ *
+ * All chrome comes from `src/i18n`; content comes from `{ en, es }` objects.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ANOMALIES, anomalyById } from "../content/anomalies";
-import { TUNING, clearancePrice } from "../config/tuning";
 import { BOARD } from "../content/board";
-import { getNode } from "../engine/board";
-import { reachableEndpoints } from "../engine/movement";
-import { describeTest, drawAnomaly } from "../engine/encounter";
+import { MAIN_DIRECTIVES, directiveById } from "../content/directives";
+import { ESCALATION } from "../content/escalation";
+import { EQUIPMENT, gearById, hasModifier } from "../content/gear";
+import { aspectById, roleById, ROLES } from "../content/roles";
+import { TUNING, clearancePrice } from "../config/tuning";
+import { evalCondition } from "../engine/conditions";
+import { verdictFor } from "../engine/directives";
 import { hashState } from "../engine/hash";
+import { reachableEndpoints } from "../engine/movement";
+import { project } from "../engine/project";
 import { createGame, reduce } from "../engine/reduce";
+import { getNode } from "../engine/board";
 import { peekRolls } from "../engine/rng";
-import { playersIn, playerAt, seatsFor } from "../engine/types";
-import type { Action, GameState, SeatId } from "../engine/types";
+import { playerAt, playersIn, seatsFor } from "../engine/types";
+import type { Action, GameState, Phase, SeatId } from "../engine/types";
+import { detectLang, localized, rememberLang, t, type Lang, type Key } from "../i18n";
 import { Board } from "./board/Board";
 
 const SEAT_COLOR: Record<SeatId, string> = { p1: "#7fd1ff", p2: "#6ee7a0", p3: "#ffb454" };
 
-const KIND_CODE: Record<(typeof BOARD.nodes)[number]["kind"], string> = {
-  entry: "IN",
-  medical: "MD",
-  checkpoint: "CP",
-  supply: "SU",
-  terminal: "TM",
-  lab: "LB",
-  cell: "CL",
-  alarm: "AL",
-  core: "CC",
+const PHASE_KEY: Record<Phase, Key> = {
+  turnStart: "phaseTurnStart",
+  roll: "phaseRoll",
+  move: "phaseMove",
+  space: "phaseSpace",
+  action: "phaseAction",
+  end: "phaseEnd",
 };
 
 function param(name: string): string | null {
   return new URLSearchParams(window.location.search).get(name);
 }
 
-/**
- * `?seed=` is an instruction for the **first** game of the session, not a setting.
- *
- * Reading it every time `New game` runs made the button a no-op whenever the URL
- * carried a seed — which is every playtest URL, so it was a no-op always.
- */
 function seedFromUrl(): number | null {
   const raw = param("seed");
   return raw !== null && Number.isFinite(Number(raw)) ? Number(raw) : null;
@@ -51,91 +54,47 @@ function randomSeed(): number {
   return Math.floor(Math.random() * 1_000_000_000);
 }
 
-/** §D10: two or three. Two is the default because a playtest is half as long. */
 function initialSeatCount(): 2 | 3 {
   return param("players") === "3" ? 3 : 2;
 }
 
-/** Seed *and* table in the URL, so a playtest reopens exactly as it was dealt. */
 function remember(seed: number, seats: 2 | 3): void {
-  window.history.replaceState(null, "", `?seed=${seed}&players=${seats}`);
+  window.history.replaceState(null, "", `?seed=${seed}&players=${seats}&lang=${detectLang()}`);
 }
 
-type EncounterProps = {
-  cardId: string;
-  combat: number;
-  intellect: number;
-  onChoose: (choice: "contain" | "decline") => void;
-};
-
-function EncounterPanel({ cardId, combat, intellect, onChoose }: EncounterProps) {
-  const card = anomalyById(cardId);
-  const stat = card.test.stat === "combat" ? combat : intellect;
-  const need = card.test.difficulty - stat;
-
-  return (
-    <div className="flex items-center gap-4 rounded border border-[var(--accent)] bg-[#0d1a22] px-3 py-2">
-      <div className="min-w-0">
-        <div className="text-sm">
-          <b>{card.name.en}</b>
-          <span className="text-[var(--muted)]">
-            {" "}
-            · {card.tier} · {card.name.es}
-          </span>
-        </div>
-        <div className="truncate text-xs text-[var(--muted)]">{card.text.en}</div>
-      </div>
-
-      <div className="ml-auto whitespace-nowrap text-right text-xs text-[var(--muted)]">
-        <div>
-          {card.test.stat} <b className="text-[var(--text)]">{stat}</b> vs difficulty{" "}
-          <b className="text-[var(--text)]">{card.test.difficulty}</b>
-        </div>
-        <div>
-          4dF needs {need > 0 ? `+${need}` : need} or better to reach 0 shift
-        </div>
-      </div>
-
-      <button
-        onClick={() => onChoose("contain")}
-        className="rounded bg-[var(--accent)] px-3 py-1.5 text-sm font-semibold text-[#04121b]"
-      >
-        Contain · {card.reward.records} Rec
-      </button>
-      <button
-        onClick={() => onChoose("decline")}
-        className="rounded border border-[var(--line)] px-3 py-1.5 text-sm"
-      >
-        {card.declineCost.length > 0 ? "Decline · +1 Threat" : "Decline · free"}
-      </button>
-    </div>
-  );
+function phaseLabel(lang: Lang, phase: Phase): string {
+  return t(lang, PHASE_KEY[phase]);
 }
+
+type Screen = "setup" | "table" | "endgame" | "credits";
 
 export function App() {
-  // Resolve the opening table exactly once. Calling a random generator per
-  // `useState` also meant a fresh visit could show one seed in the strip while
-  // playing a different one — the two calls disagreed.
-  const [opening] = useState(() => ({
-    seed: seedFromUrl() ?? randomSeed(),
-    seats: initialSeatCount(),
-  }));
-  const [devCard, setDevCard] = useState<string>(ANOMALIES[0]?.id ?? "scp-005");
-  const [seed, setSeed] = useState(opening.seed);
+  const [lang, setLang] = useState<Lang>(() => detectLang());
+  const [opening] = useState(() => ({ seed: seedFromUrl() ?? randomSeed(), seats: initialSeatCount() }));
+  const [game, setGame] = useState<GameState | null>(null);
   const [seatCount, setSeatCount] = useState<2 | 3>(opening.seats);
-  const [state, setState] = useState<GameState>(() =>
-    createGame(opening.seed, seatsFor(opening.seats)),
-  );
-  const [error, setError] = useState<string>("");
+  const [screen, setScreen] = useState<Screen>("setup");
+  const [error, setError] = useState("");
+  const [claimedSeat, setClaimedSeat] = useState<SeatId>("p1");
+  const [holdSeat, setHoldSeat] = useState<SeatId | null>(null);
+  const [handoff, setHandoff] = useState<{ seats: SeatId[]; index: number } | null>(null);
+  const [handoffDone, setHandoffDone] = useState(false);
+  const [devCard, setDevCard] = useState(ANOMALIES[0]?.id ?? "scp-005");
+  const [revealed, setRevealed] = useState(false);
+  const handoffSeatRef = useRef<SeatId | null>(null);
 
-  // The address bar is the playtest record: it always matches the table on screen,
-  // including on first load, so a bug can be reopened from the URL alone.
   useEffect(() => {
-    remember(seed, seatCount);
-  }, [seed, seatCount]);
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  const changeLang = useCallback((next: Lang) => {
+    setLang(next);
+    rememberLang(next);
+  }, []);
 
   const dispatch = useCallback((action: Action) => {
-    setState((current) => {
+    setGame((current) => {
+      if (!current) return current;
       const result = reduce(current, action);
       if (!result.ok) {
         setError(result.error.message);
@@ -146,342 +105,873 @@ export function App() {
     });
   }, []);
 
+  const firstStart = useRef(true);
+
   const start = useCallback((seats: 2 | 3) => {
-    const next = randomSeed();
-    setSeed(next);
+    const fromUrl = seedFromUrl();
+    const seed = firstStart.current && fromUrl !== null ? fromUrl : randomSeed();
+    firstStart.current = false;
     setSeatCount(seats);
-    setState(createGame(next, seatsFor(seats)));
+    setGame(createGame(seed, seatsFor(seats), { draft: true }));
+    setScreen("table");
     setError("");
+    setHandoff(null);
+    setHandoffDone(false);
+    setClaimedSeat("p1");
+    setRevealed(false);
+    remember(seed, seats);
   }, []);
 
-  const restart = useCallback(() => start(seatCount), [start, seatCount]);
+  // After the last role is chosen, deal motives privately, one seat at a time.
+  useEffect(() => {
+    if (!game || game.draft || handoffDone || handoff || game.outcome) return;
+    if (game.round === 1 && game.phase === "roll" && game.log.some((line) => line.includes("draft is complete"))) {
+      setHandoff({ seats: playersIn(game.players).map((player) => player.seat), index: 0 });
+    }
+  }, [game, handoff, handoffDone]);
 
-  // Dev tool (§14e): present in `pnpm dev`, or when the URL says so. It never
-  // ships to a plain build, because it is a testing aid, not a rule.
+  // The endgame is a screen, not a toast (§7c.6).
+  useEffect(() => {
+    if (game?.outcome && screen === "table" && !handoff) setScreen("endgame");
+  }, [game, screen, handoff]);
+
+  // A new handoff seat closes any revealed panel.
+  useEffect(() => {
+    setRevealed(false);
+  }, [handoff?.index]);
+
+  const active = game ? playerAt(game.players, game.seat) : null;
+  const activeNode = active ? getNode(active.node) : null;
+  const seats = game ? playersIn(game.players).map((player) => player.seat) : [];
+  const stateHash = useMemo(() => (game ? hashState(game) : ""), [game]);
   const isDev = import.meta.env.DEV || new URLSearchParams(window.location.search).has("dev");
+  const phase = game?.phase;
 
-  const active = playerAt(state.players, state.seat);
-  const activeNode = getNode(active.node);
-  // §C1.4: only the next level is ever purchasable, so the button has one face.
-  const nextClearance = active.clearance < 4 ? active.clearance + 1 : null;
-  const nextClearancePrice = nextClearance ? clearancePrice(nextClearance as 2 | 3 | 4) : 0;
-  const stateHash = useMemo(() => hashState(state), [state]);
+  /* ---------------------------------------------------------------- setup -- */
+
+  if (screen === "setup") {
+    return (
+      <div className="grid h-full place-items-center p-6">
+        <div className="w-full max-w-2xl rounded border border-[var(--line)] bg-[var(--panel)] p-8">
+          <div className="mb-1 text-xs uppercase tracking-[0.3em] text-[var(--accent)]">
+            {t(lang, "appTitle")}
+          </div>
+          <h1 className="mb-3 text-2xl font-semibold">{t(lang, "setupTitle")}</h1>
+          <p className="mb-6 text-sm text-[var(--muted)]">{t(lang, "setupLead")}</p>
+
+          <div className="mb-6 flex items-center gap-3 text-sm">
+            <span className="text-[var(--muted)]">{t(lang, "tableSize")}</span>
+            {([2, 3] as const).map((count) => (
+              <button
+                key={count}
+                onClick={() => setSeatCount(count)}
+                className={`rounded border px-3 py-1.5 ${
+                  count === seatCount
+                    ? "border-[var(--accent)] text-[var(--text)]"
+                    : "border-[var(--line)] text-[var(--muted)]"
+                }`}
+              >
+                {t(lang, count === 2 ? "twoPlayers" : "threePlayers")}
+              </button>
+            ))}
+          </div>
+
+          <div className="mb-8 flex items-center gap-3 text-sm">
+            <span className="text-[var(--muted)]">{t(lang, "language")}</span>
+            {(["en", "es"] as const).map((option) => (
+              <button
+                key={option}
+                onClick={() => changeLang(option)}
+                className={`rounded border px-3 py-1.5 ${
+                  option === lang
+                    ? "border-[var(--accent)] text-[var(--text)]"
+                    : "border-[var(--line)] text-[var(--muted)]"
+                }`}
+              >
+                {t(lang, option === "en" ? "english" : "spanish")}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => start(seatCount)}
+            className="rounded bg-[var(--accent)] px-6 py-2.5 font-semibold text-[#04121b]"
+          >
+            {t(lang, "start")}
+          </button>
+          <button
+            onClick={() => setScreen("credits")}
+            className="ml-3 rounded border border-[var(--line)] px-4 py-2 text-sm text-[var(--muted)]"
+          >
+            {t(lang, "credits")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* -------------------------------------------------------------- credits -- */
+
+  if (screen === "credits") {
+    const rows = [
+      ...ANOMALIES.map((card) => ({
+        id: card.id,
+        name: localized(card.name, lang),
+        licence: card.attribution.licence,
+        author: card.attribution.author,
+        slug: card.attribution.slug,
+      })),
+      ...EQUIPMENT.map((item) => ({
+        id: item.id,
+        name: localized(item.name, lang),
+        licence: item.attribution.licence,
+        author: item.attribution.author ?? (item.attribution.licence === "original" ? t(lang, "original") : ""),
+        slug: item.attribution.slug ?? "",
+      })),
+    ];
+
+    return (
+      <div className="mx-auto h-full max-w-4xl overflow-y-auto p-8">
+        <h1 className="mb-2 text-2xl font-semibold">{t(lang, "creditsTitle")}</h1>
+        <p className="mb-6 text-sm text-[var(--muted)]">{t(lang, "creditsLead")}</p>
+        <table className="w-full text-left text-xs">
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.id} className="border-t border-[var(--line)]">
+                <td className="py-1.5 pr-3 text-[var(--text)]">{row.name}</td>
+                <td className="py-1.5 pr-3 text-[var(--muted)]">{row.licence}</td>
+                <td className="py-1.5 pr-3 text-[var(--muted)]">
+                  {row.author === "PENDING" ? t(lang, "pendingAttribution") : row.author}
+                </td>
+                <td className="py-1.5 font-mono text-[var(--muted)]">{row.slug}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <button
+          onClick={() => setScreen(game ? "table" : "setup")}
+          className="mt-6 rounded border border-[var(--line)] px-4 py-2 text-sm"
+        >
+          {t(lang, "back")}
+        </button>
+      </div>
+    );
+  }
+
+  /* ------------------------------------------------------------- endgame -- */
+
+  if (screen === "endgame" && game?.outcome) {
+    return (
+      <div className="mx-auto h-full max-w-4xl overflow-y-auto p-8">
+        <div className="mb-1 text-xs uppercase tracking-[0.3em] text-[var(--accent)]">
+          {game.outcome.terminal === "recontained" ? t(lang, "siteRecontained") : t(lang, "siteLost")}
+        </div>
+        <h1 className="mb-2 text-2xl font-semibold">{t(lang, "endgameTitle")}</h1>
+        <p className="mb-6 text-sm text-[var(--muted)]">{t(lang, "endgameLead")}</p>
+
+        <ol className="space-y-4">
+          {playersIn(game.players).map((player) => {
+            const revealedDirective = game.outcome?.revealed[player.seat];
+            const final = directiveById(player.mainDirectiveId);
+            const verdict = verdictFor(game, player.seat);
+            const why =
+              verdict.why === "won"
+                ? "whyWon"
+                : verdict.why === "alignment"
+                  ? "whyAlignment"
+                  : verdict.why === "footprint"
+                    ? "whyFootprint"
+                    : "whyCondition";
+
+            return (
+              <li key={player.seat} className="rounded border border-[var(--line)] p-4">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: SEAT_COLOR[player.seat] }} />
+                  <b>{player.seat.toUpperCase()}</b>
+                  <span className="text-[var(--muted)]">{localized(roleById(player.roleId).name, lang)}</span>
+                  <span className="text-[var(--muted)]">
+                    · {t(lang, final.alignment === "containment" ? "containmentAligned" : "breachAligned")}
+                  </span>
+                  <b className={`ml-auto ${verdict.won ? "text-[var(--accent)]" : "text-[var(--danger)]"}`}>
+                    {t(lang, verdict.won ? "won" : "lost")} — {t(lang, why)}
+                  </b>
+                </div>
+                <div className="text-sm">{localized(final.name, lang)}</div>
+                <div className="text-xs text-[var(--muted)]">{localized(final.text, lang)}</div>
+                {revealedDirective?.previousDirectiveId && (
+                  <div className="mt-2 text-xs text-[var(--muted)]">
+                    {t(lang, "previousDirective")}: {localized(directiveById(revealedDirective.previousDirectiveId).name, lang)}
+                  </div>
+                )}
+                <div className="mt-2 text-xs text-[var(--muted)]">
+                  {t(lang, "evidenceTrail")}:{" "}
+                  {game.evidence.filter((token) => token.sourceSeat === player.seat).length} ·{" "}
+                  {t(lang, "accident")}{" "}
+                  {game.evidence.filter((token) => token.sourceSeat === player.seat && token.class === "accident").length} ·{" "}
+                  {t(lang, "intent")}{" "}
+                  {game.evidence.filter((token) => token.sourceSeat === player.seat && token.class === "intent").length}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+
+        <div className="mt-6 flex gap-3">
+          <button
+            onClick={() => {
+              setScreen("table");
+              start(seatCount);
+            }}
+            className="rounded bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[#04121b]"
+          >
+            {t(lang, "playAgain")}
+          </button>
+          <button
+            onClick={() => setScreen("credits")}
+            className="rounded border border-[var(--line)] px-4 py-2 text-sm"
+          >
+            {t(lang, "credits")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ----------------------------------------------------------------- table -- */
+
+  if (!game) return null;
+
+  const yes = game.pendingCompel
+    ? (() => {
+        const pending = game.pendingCompel!;
+        const aspect = aspectById(pending.aspectId);
+        const compel = aspect.compels[pending.compelIndex]!;
+        const target = playerAt(game.players, pending.target);
+        const waiver = target.gear.some((id) => gearById(id).modifiers.some((modifier) => modifier.kind === "refuseFree"));
+        return { pending, aspect, compel, target, waiver };
+      })()
+    : null;
+
+  const vote = game.vote;
+  // §S7.3: private UI is fed by the projection, never by the live state.
+  const privateView = project(game, claimedSeat).players[claimedSeat];
 
   return (
-    <div className="grid h-full grid-cols-[260px_1fr_320px] grid-rows-[auto_1fr_auto] gap-3 p-3">
-      {/* Status strip */}
-      <header className="col-span-3 flex items-center gap-6 rounded border border-[var(--line)] bg-[var(--panel)] px-4 py-2 text-sm">
-        <span className="font-semibold tracking-wide">PROTOCOL BREACH</span>
+    <div className="relative grid h-full grid-cols-[260px_1fr_320px] grid-rows-[auto_1fr_auto] gap-3 p-3">
+      {/* status strip */}
+      <header className="col-span-3 flex flex-wrap items-center gap-4 rounded border border-[var(--line)] bg-[var(--panel)] px-4 py-2 text-sm">
+        <span className="font-semibold tracking-wide">{t(lang, "appTitle")}</span>
         <span className="text-[var(--muted)]">
-          round <b className="text-[var(--text)]">{state.round}</b>
+          {t(lang, "round")} <b className="text-[var(--text)]">{game.round}</b>
         </span>
         <span className="text-[var(--muted)]">
-          phase <b className="text-[var(--text)]">{state.phase}</b>
+          {t(lang, "phase")} <b className="text-[var(--text)]">{phase ? phaseLabel(lang, phase) : ""}</b>
         </span>
         <span className="text-[var(--muted)]">
-          rolled <b className="text-[var(--text)]">{state.roll}</b>
-        </span>
-        <span className="text-[var(--muted)]" title="Threat track — a round where nobody attempts anything advances it">
-          threat{" "}
-          <b className={state.threat > 0 ? "text-[var(--danger)]" : "text-[var(--text)]"}>
-            {state.threat}/{TUNING.threat.max}
+          {t(lang, "threat")}{" "}
+          <b className={game.threat > 0 ? "text-[var(--danger)]" : "text-[var(--text)]"}>
+            {game.threat}/{TUNING.threat.max}
           </b>
         </span>
-        <span
-          className="text-[var(--muted)]"
-          title="Recontainment protocol — advanced or sabotaged at the Command Center"
-        >
-          protocol{" "}
-          <b className={state.protocolSteps > 0 ? "text-[var(--accent)]" : "text-[var(--text)]"}>
-            {state.protocolSteps}/{TUNING.protocol.steps}
+        <span className="text-[var(--muted)]">
+          {t(lang, "protocol")}{" "}
+          <b className="text-[var(--accent)]">
+            {game.protocolSteps}/{TUNING.protocol.steps}
           </b>
         </span>
-        {state.warhead && (
-          <span
-            className="text-[var(--danger)]"
-            title="The Alpha Warhead is armed. When this reaches 0 the site is lost."
-          >
-            warhead <b>{state.warhead.remaining}</b>
+        {game.warhead && (
+          <span className="text-[var(--danger)]">
+            {t(lang, "warhead")} <b>{game.warhead.remaining}</b>
           </span>
         )}
         <span className="text-[var(--muted)]">
-          seed <b className="text-[var(--text)]">{seed}</b>
+          {t(lang, "seed")} <b className="text-[var(--text)]">{game.rng.seed}</b>
         </span>
         <span className="text-[var(--muted)]">
-          hash <code className="text-[var(--accent)]">{stateHash}</code>
+          {t(lang, "hash")} <code className="text-[var(--accent)]">{stateHash}</code>
         </span>
-        <span className="ml-auto flex items-center gap-1 text-xs text-[var(--muted)]">
-          players
-          {([2, 3] as const).map((count) => (
+        <span className="ml-auto flex items-center gap-2">
+          {(["en", "es"] as const).map((option) => (
             <button
-              key={count}
-              onClick={() => start(count)}
-              title={`Start a ${count}-player game with a new seed`}
-              className={`w-6 rounded border px-1 ${
-                count === seatCount
-                  ? "border-[var(--accent)] text-[var(--text)]"
-                  : "border-[var(--line)] hover:text-[var(--text)]"
+              key={option}
+              onClick={() => changeLang(option)}
+              className={`rounded border px-2 py-0.5 text-xs ${
+                option === lang ? "border-[var(--accent)]" : "border-[var(--line)] text-[var(--muted)]"
               }`}
             >
-              {count}
+              {option.toUpperCase()}
             </button>
           ))}
+          <button
+            onClick={() => start(seatCount)}
+            className="rounded border border-[var(--line)] px-3 py-1 text-xs text-[var(--muted)]"
+          >
+            {t(lang, "newGame")}
+          </button>
         </span>
-        <button
-          onClick={restart}
-          className="rounded border border-[var(--line)] px-3 py-1 text-xs text-[var(--muted)] hover:text-[var(--text)]"
-        >
-          New game
-        </button>
       </header>
 
-      {/* Players */}
-      <aside className="rounded border border-[var(--line)] bg-[var(--panel)] p-3">
-        <h2 className="mb-2 text-xs uppercase tracking-widest text-[var(--muted)]">Players</h2>
+      {/* players + private panel */}
+      <aside className="min-h-0 overflow-y-auto rounded border border-[var(--line)] bg-[var(--panel)] p-3">
+        <h2 className="mb-2 text-xs uppercase tracking-widest text-[var(--muted)]">{t(lang, "players")}</h2>
         <ul className="space-y-2 text-sm">
-          {playersIn(state.players).map((player) => {
-            const isActive = player.seat === state.seat;
+          {playersIn(game.players).map((player) => {
+            const isActive = player.seat === game.seat;
             return (
               <li
                 key={player.seat}
-                className={`rounded border px-2 py-2 ${
-                  isActive ? "border-[var(--accent)]" : "border-transparent"
-                }`}
+                className={`rounded border px-2 py-2 ${isActive ? "border-[var(--accent)]" : "border-transparent"}`}
                 style={{ background: isActive ? "rgba(127,209,255,0.06)" : "transparent" }}
               >
                 <div className="flex items-center gap-2">
                   <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: SEAT_COLOR[player.seat] }} />
                   <b>{player.seat.toUpperCase()}</b>
-                  <span className="text-[var(--muted)]">int {player.integrity}</span>
-                  <span className="text-[var(--muted)]">fate {player.fate}</span>
-                  {player.downed && <span className="font-semibold text-[var(--danger)]">DOWN</span>}
+                  <span className="truncate text-xs text-[var(--muted)]">
+                    {player.roleId ? localized(roleById(player.roleId).name, lang) : t(lang, "none")}
+                  </span>
+                  {player.downed && <span className="font-semibold text-[var(--danger)]">{t(lang, "downed")}</span>}
                 </div>
                 <div className="mt-1 text-xs text-[var(--muted)]">
-                  {getNode(player.node).name.en}
-                  <div className="mt-0.5 text-[11px]">
-                    C{player.stats.combat} I{player.stats.intellect} · rec {player.records} · clr{" "}
-                    {player.clearance} · ev{" "}
-                    {state.evidence.filter((token) => token.sourceSeat === player.seat && token.class === "accident").length}/
-                    {state.evidence.filter((token) => token.sourceSeat === player.seat && token.class === "intent").length}
-                    {player.tags.length > 0 && <> · {player.tags.join(", ")}</>}
-                  </div>
+                  {t(lang, "integrity")} {player.integrity}/{player.maxIntegrity} · {t(lang, "fate")} {player.fate} ·{" "}
+                  {t(lang, "records")} {player.records} · {t(lang, "clearance")} {player.clearance}
+                </div>
+                <div className="mt-0.5 text-[11px] text-[var(--muted)]">
+                  {localized(getNode(player.node).name, lang)}
+                </div>
+                <div className="mt-0.5 text-[11px] text-[var(--muted)]">
+                  {t(lang, "evidence")}: {game.evidence.filter((token) => token.sourceSeat === player.seat && token.class === "accident").length}
+                  {" / "}
+                  {game.evidence.filter((token) => token.sourceSeat === player.seat && token.class === "intent").length}
+                  {player.tags.length > 0 && <> · {player.tags.join(", ")}</>}
                 </div>
               </li>
             );
           })}
         </ul>
 
-        <h2 className="mt-4 mb-2 text-xs uppercase tracking-widest text-[var(--muted)]">Legend</h2>
-        <ul className="grid grid-cols-2 gap-1 text-[11px] text-[var(--muted)]">
-          {/* Code plus name: colour is never the only channel carrying information. */}
-          {[...new Set(BOARD.nodes.map((node) => node.kind))].map((kind) => (
-            <li key={kind}>
-              <b className="text-[var(--text)]">{KIND_CODE[kind]}</b> {kind}
-            </li>
-          ))}
-        </ul>
+        <h2 className="mt-4 mb-2 text-xs uppercase tracking-widest text-[var(--muted)]">
+          {t(lang, "privatePanel")}
+        </h2>
+        <div className="rounded border border-[var(--line)] p-2 text-xs">
+          <div className="mb-1 flex items-center gap-1 text-[var(--muted)]">
+            {t(lang, "claimSeat")}
+            {seats.map((seat) => (
+              <button
+                key={seat}
+                onClick={() => setClaimedSeat(seat)}
+                className={`rounded border px-1.5 ${
+                  claimedSeat === seat ? "border-[var(--accent)] text-[var(--text)]" : "border-[var(--line)]"
+                }`}
+              >
+                {seat.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <div
+            className="cursor-pointer select-none rounded border border-dashed border-[var(--line)] p-2"
+            onPointerDown={() => setHoldSeat(claimedSeat)}
+            onPointerUp={() => setHoldSeat(null)}
+            onPointerLeave={() => setHoldSeat(null)}
+          >
+            {holdSeat === claimedSeat ? (
+              <div>
+                <div className="text-[var(--muted)]">{t(lang, "directive")}</div>
+                <div className="mb-1 text-[var(--text)]">
+                  {privateView?.mainDirectiveId
+                    ? localized(directiveById(privateView.mainDirectiveId).name, lang)
+                    : t(lang, "none")}
+                </div>
+                <div className="text-[var(--muted)]">{t(lang, "yourAspect")}</div>
+                <div className="text-[var(--text)]">
+                  {privateView?.aspectId
+                    ? localized(aspectById(privateView.aspectId).name, lang)
+                    : t(lang, "none")}
+                </div>
+              </div>
+            ) : (
+              <span className="text-[var(--muted)]">{t(lang, "holdToReveal")}</span>
+            )}
+          </div>
+        </div>
       </aside>
 
-      {/* Board */}
-      <main className="min-h-0 rounded border border-[var(--line)] bg-[var(--panel)] p-2">
-        <Board state={state} onMove={(node: string) => dispatch({ type: "moveTo", node })} />
+      {/* board */}
+      <main className="relative min-h-0 rounded border border-[var(--line)] bg-[var(--panel)] p-2">
+        <Board state={game} lang={lang} onMove={(node) => dispatch({ type: "moveTo", node })} />
+
+        {/* Draft */}
+        {game.draft && (
+          <div className="absolute inset-0 grid place-items-center bg-[#05080a]/90 p-4">
+            <div className="max-h-full w-full max-w-3xl overflow-y-auto rounded border border-[var(--accent)] bg-[var(--panel)] p-5">
+              <div className="text-xs uppercase tracking-[0.3em] text-[var(--accent)]">{t(lang, "draftTitle")}</div>
+              <p className="mt-1 mb-4 text-sm text-[var(--muted)]">
+                {game.draft.seat.toUpperCase()} — {t(lang, "draftLead")}
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {game.draft.options.map((roleId) => {
+                  const role = roleById(roleId);
+                  return (
+                    <button
+                      key={roleId}
+                      data-testid="draft-option"
+                      onClick={() => dispatch({ type: "chooseRole", roleId })}
+                      className="rounded border border-[var(--line)] p-3 text-left hover:border-[var(--accent)]"
+                    >
+                      <div className="font-semibold">{localized(role.name, lang)}</div>
+                      <div className="mt-1 text-xs text-[var(--muted)]">
+                        {t(lang, "combat")} {role.stats.combat} · {t(lang, "intellect")} {role.stats.intellect} ·{" "}
+                        {t(lang, "integrity")} {role.maxIntegrity}
+                      </div>
+                      <div className="mt-1 text-xs text-[var(--muted)]">
+                        {t(lang, "aspect")}: {localized(aspectById(role.aspectId).name, lang)}
+                      </div>
+                      <div className="mt-1 text-[11px] text-[var(--muted)]">
+                        {t(lang, "gear")}:{" "}
+                        {role.startingGear.length === 0
+                          ? t(lang, "none")
+                          : role.startingGear.map((id) => localized(gearById(id).name, lang)).join(", ")}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Handoff */}
+        {handoff && !game.draft && (
+          <div className="absolute inset-0 grid place-items-center bg-[#05080a]/95 p-4">
+            <div className="w-full max-w-md rounded border border-[var(--accent)] bg-[var(--panel)] p-6 text-center">
+              <div className="text-xs uppercase tracking-[0.3em] text-[var(--accent)]">{t(lang, "handoffTitle")}</div>
+              <h2 className="mt-2 text-xl font-semibold">
+                {t(lang, "passTo", { seat: handoff.seats[handoff.index]!.toUpperCase() })}
+              </h2>
+              <p className="mt-1 mb-4 text-sm text-[var(--muted)]">{t(lang, "handoffLead")}</p>
+
+              <div
+                data-testid="handoff-reveal"
+                className="mb-4 cursor-pointer select-none rounded border border-dashed border-[var(--line)] p-4"
+                onPointerDown={() => {
+                  handoffSeatRef.current = handoff.seats[handoff.index]!;
+                  setRevealed(true);
+                }}
+                onPointerUp={() => setRevealed(false)}
+                onPointerLeave={() => setRevealed(false)}
+              >
+                {revealed && handoffSeatRef.current === handoff.seats[handoff.index] ? (
+                  <div>
+                    <div className="text-xs uppercase tracking-widest text-[var(--muted)]">{t(lang, "directive")}</div>
+                    <div className="mt-1 font-semibold">
+                      {localized(
+                        directiveById(playerAt(game.players, handoff.seats[handoff.index]!).mainDirectiveId).name,
+                        lang,
+                      )}
+                    </div>
+                    <div className="mt-1 text-xs text-[var(--muted)]">
+                      {localized(
+                        directiveById(playerAt(game.players, handoff.seats[handoff.index]!).mainDirectiveId).text,
+                        lang,
+                      )}
+                    </div>
+                    <div className="mt-3 text-xs uppercase tracking-widest text-[var(--muted)]">
+                      {t(lang, "yourAspect")}
+                    </div>
+                    <div className="text-sm">
+                      {localized(aspectById(playerAt(game.players, handoff.seats[handoff.index]!).aspectId).name, lang)}
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-sm text-[var(--muted)]">{t(lang, "reveal")}</span>
+                )}
+              </div>
+
+              <button
+                onClick={() => {
+                  if (handoff.index + 1 < handoff.seats.length) {
+                    setHandoff({ ...handoff, index: handoff.index + 1 });
+                  } else {
+                    setHandoff(null);
+                    setHandoffDone(true);
+                  }
+                }}
+                className="rounded bg-[var(--accent)] px-5 py-2 text-sm font-semibold text-[#04121b]"
+              >
+                {handoff.index + 1 < handoff.seats.length ? t(lang, "seatDone") : t(lang, "beginTable")}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Compel */}
+        {yes && (
+          <div className="absolute inset-0 grid place-items-center bg-[#05080a]/95 p-4">
+            <div className="w-full max-w-md rounded border border-[var(--accent)] bg-[var(--panel)] p-6">
+              <div className="text-xs uppercase tracking-[0.3em] text-[var(--accent)]">
+                {t(lang, "compelTitle", { invoker: yes.pending.invoker.toUpperCase(), target: yes.pending.target.toUpperCase() })}
+              </div>
+              <p className="mt-3 text-sm">{localized(yes.compel.text, lang)}</p>
+              <p className="mt-2 text-xs text-[var(--muted)]">{t(lang, "compelLead")}</p>
+              <p className="mt-2 text-xs text-[var(--muted)]">
+                {localized(yes.aspect.name, lang)} · {t(lang, "fate")} {yes.target.fate}
+              </p>
+              <div className="mt-4 flex gap-3">
+                <button
+                  onClick={() => dispatch({ type: "respondCompel", accept: true })}
+                  className="rounded bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[#04121b]"
+                >
+                  {t(lang, "accept")}
+                </button>
+                <button
+                  onClick={() => dispatch({ type: "respondCompel", accept: false })}
+                  disabled={!yes.waiver && yes.target.fate < 1}
+                  className="rounded border border-[var(--line)] px-4 py-2 text-sm disabled:opacity-30"
+                >
+                  {yes.waiver ? t(lang, "refuseFree") : t(lang, "refuse")}
+                </button>
+              </div>
+              {!yes.waiver && yes.target.fate < 1 && (
+                <p className="mt-2 text-xs text-[var(--danger)]">{t(lang, "cannotRefuse")}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Assembly */}
+        {vote && (
+          <div className="absolute inset-0 grid place-items-center bg-[#05080a]/95 p-4">
+            <div className="w-full max-w-md rounded border border-[var(--accent)] bg-[var(--panel)] p-6">
+              <div className="text-xs uppercase tracking-[0.3em] text-[var(--accent)]">{t(lang, "assemblyTitle")}</div>
+              <p className="mt-2 text-sm text-[var(--muted)]">{t(lang, "assemblyLead")}</p>
+              <p className="mt-2 text-xs text-[var(--muted)]">
+                {t(lang, "votesCast", { done: Object.keys(vote.votes).length, total: seats.length })} ·{" "}
+                {t(lang, "waitingFor", { seat: game.seat.toUpperCase() })}
+              </p>
+              <div className="mt-4 flex gap-3">
+                <button
+                  onClick={() => dispatch({ type: "castVote", choice: "seal" })}
+                  className="rounded bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[#04121b]"
+                >
+                  {t(lang, "sealBulkhead")}
+                </button>
+                <button
+                  onClick={() => dispatch({ type: "castVote", choice: "hold" })}
+                  className="rounded border border-[var(--danger)] px-4 py-2 text-sm text-[var(--danger)]"
+                >
+                  {t(lang, "holdItOpen")}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
-      {/* Log */}
+      {/* log */}
       <aside className="min-h-0 rounded border border-[var(--line)] bg-[var(--panel)] p-3">
-        <h2 className="mb-2 text-xs uppercase tracking-widest text-[var(--muted)]">Log</h2>
-        <ol className="h-[calc(100%-2rem)] space-y-1 overflow-y-auto pr-1 text-xs leading-relaxed">
-          {[...state.log].reverse().map((line, index) => (
-            <li key={state.log.length - index} className="text-[var(--muted)]">
+        <h2 className="mb-2 text-xs uppercase tracking-widest text-[var(--muted)]">{t(lang, "log")}</h2>
+        <ol className="h-[calc(100%-2rem)] space-y-1 overflow-y-auto pr-1 text-xs leading-relaxed" aria-live="polite">
+          {[...game.log].reverse().map((line, index) => (
+            <li key={game.log.length - index} className="text-[var(--muted)]">
               {line}
             </li>
           ))}
         </ol>
       </aside>
 
-      {/* Controls */}
+      {/* controls */}
       <footer className="col-span-3 flex flex-col gap-2 rounded border border-[var(--line)] bg-[var(--panel)] px-4 py-3">
-        {state.outcome && (
-          <div className="rounded border border-[var(--danger)] px-3 py-2 text-sm">
-            <b className="uppercase tracking-widest text-[var(--danger)]">
-              {state.outcome.terminal === "detonated" ? "Site lost" : "Site recontained"}
-            </b>
-            <span className="ml-3 text-[var(--muted)]">
-              {state.outcome.winners.length === 0
-                ? "nobody wins — no directives yet, so every seat shares the loss"
-                : `winners: ${state.outcome.winners.join(", ")}`}
-            </span>
-          </div>
-        )}
-        {state.phase === "space" && state.encounter && (
-          <EncounterPanel
-            cardId={state.encounter.card}
-            combat={active.stats.combat}
-            intellect={active.stats.intellect}
-            onChoose={(choice) => dispatch({ type: "resolveAnomaly", choice })}
-          />
-        )}
-        <div className="flex items-center gap-3">
-        <button
-          onClick={() => dispatch({ type: "rollMovement" })}
-          disabled={state.phase !== "roll"}
-          className="rounded bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[#04121b] disabled:opacity-30"
-        >
-          Roll movement
-        </button>
-        <button
-          onClick={() => dispatch({ type: "endTurn" })}
-          disabled={state.phase !== "action"}
-          className="rounded border border-[var(--line)] px-4 py-2 text-sm disabled:opacity-30"
-        >
-          End turn
-        </button>
+        {game.phase === "space" && game.encounter && active && (() => {
+          const card = anomalyById(game.encounter!.card);
+          const statValue = card.test.stat === "combat" ? active.stats.combat : active.stats.intellect;
+          const threatCost = card.declineCost.length > 0 ? 1 : 0;
+          return (
+            <div className="flex items-center gap-4 rounded border border-[var(--accent)] bg-[#0d1a22] px-3 py-2">
+              <div className="min-w-0">
+                <div className="text-sm">
+                  <b>{localized(card.name, lang)}</b>
+                  <span className="text-[var(--muted)]"> · {card.tier}</span>
+                </div>
+                <div className="truncate text-xs text-[var(--muted)]">{localized(card.text, lang)}</div>
+              </div>
+              <div className="ml-auto whitespace-nowrap text-right text-xs text-[var(--muted)]">
+                {t(lang, "testLine", {
+                  stat: t(lang, card.test.stat === "combat" ? "combat" : "intellect"),
+                  value: statValue,
+                  difficulty: card.test.difficulty,
+                })}
+              </div>
+              <button
+                onClick={() => dispatch({ type: "resolveAnomaly", choice: "contain" })}
+                className="rounded bg-[var(--accent)] px-3 py-1.5 text-sm font-semibold text-[#04121b]"
+              >
+                {t(lang, "contain", { records: card.reward.records })}
+              </button>
+              <button
+                onClick={() => dispatch({ type: "resolveAnomaly", choice: "decline" })}
+                className="rounded border border-[var(--line)] px-3 py-1.5 text-sm"
+              >
+                {threatCost > 0 ? t(lang, "walkAwayCost", { threat: threatCost }) : t(lang, "walkAwayFree")}
+              </button>
+            </div>
+          );
+        })()}
 
-        {state.phase === "action" && activeNode.kind === "core" && state.protocolSteps < TUNING.protocol.steps && (
-          <>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => dispatch({ type: "rollMovement" })}
+            disabled={game.phase !== "roll" || active?.downed}
+            className="rounded bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-[#04121b] disabled:opacity-30"
+          >
+            {t(lang, "rollMovement")}
+          </button>
+          <button
+            onClick={() => dispatch({ type: "endTurn" })}
+            disabled={!(game.phase === "action" || (game.phase === "roll" && active?.downed))}
+            className="rounded border border-[var(--line)] px-4 py-2 text-sm disabled:opacity-30"
+          >
+            {t(lang, "endTurn")}
+          </button>
+
+          {game.phase === "move" && (
             <button
-              onClick={() => dispatch({ type: "advanceProtocol" })}
-              title={`Intellect test at difficulty ${TUNING.protocol.difficulty} — three steps recontain the site`}
-              className="rounded border border-[var(--accent)] px-4 py-2 text-sm text-[var(--accent)]"
+              onClick={() => dispatch({ type: "spendFateToReroll" })}
+              disabled={(active?.fate ?? 0) < TUNING.fate.reroll}
+              className="rounded border border-[var(--line)] px-3 py-2 text-xs disabled:opacity-30"
             >
-              Advance protocol · I{TUNING.protocol.difficulty}
+              {t(lang, "fate")} · {TUNING.fate.reroll}
             </button>
+          )}
+
+          {game.draft === null && active?.downed && game.phase === "roll" && (
             <button
-              onClick={() => dispatch({ type: "sabotageProtocol" })}
-              title="Push the protocol down one step. Leaves tamperedProtocol evidence on you."
+              onClick={() => dispatch({ type: "respawn" })}
               className="rounded border border-[var(--danger)] px-4 py-2 text-sm text-[var(--danger)]"
             >
-              Sabotage protocol
+              {t(lang, "respawn")}
             </button>
-          </>
-        )}
+          )}
 
-        {state.phase === "action" && activeNode.kind === "checkpoint" && nextClearance !== null && (
-          <button
-            onClick={() => dispatch({ type: "attemptClearance", level: nextClearance })}
-            disabled={active.records < nextClearancePrice}
-            title={`${activeNode.name.en} — access desk. ${active.records} Records held.`}
-            className="rounded border border-[var(--accent)] px-4 py-2 text-sm text-[var(--accent)] disabled:opacity-30"
-          >
-            Buy clearance {nextClearance} · {nextClearancePrice} Rec
-          </button>
-        )}
+          {game.phase === "action" && active && !active.downed && !active.tags.includes("held") && !active.tags.includes("distracted") && (
+            <>
+              {activeNode?.kind === "core" && (
+                <>
+                  <button
+                    onClick={() => dispatch({ type: "advanceProtocol" })}
+                    className="rounded border border-[var(--accent)] px-3 py-2 text-sm text-[var(--accent)]"
+                  >
+                    {t(lang, "advanceProtocol", { difficulty: TUNING.protocol.difficulty })}
+                  </button>
+                  <button
+                    onClick={() => dispatch({ type: "sabotageProtocol" })}
+                    className="rounded border border-[var(--danger)] px-3 py-2 text-sm text-[var(--danger)]"
+                  >
+                    {t(lang, "sabotageProtocol")}
+                  </button>
+                </>
+              )}
 
-        {active.downed && (
-          <button
-            onClick={() => dispatch({ type: "respawn" })}
-            disabled={state.phase !== "roll"}
-            className="rounded border border-[var(--danger)] px-4 py-2 text-sm text-[var(--danger)] disabled:opacity-30"
-          >
-            Respawn
-          </button>
-        )}
+              {activeNode?.kind === "checkpoint" && active.clearance < 4 && (
+                <button
+                  onClick={() => dispatch({ type: "attemptClearance", level: active.clearance + 1 })}
+                  disabled={active.records < clearancePrice((active.clearance + 1) as 2 | 3 | 4)}
+                  className="rounded border border-[var(--accent)] px-3 py-2 text-sm text-[var(--accent)] disabled:opacity-30"
+                >
+                  {t(lang, "buyClearance", {
+                    level: active.clearance + 1,
+                    price: clearancePrice((active.clearance + 1) as 2 | 3 | 4),
+                  })}
+                </button>
+              )}
+
+              <button
+                onClick={() => dispatch({ type: "rest" })}
+                className="rounded border border-[var(--line)] px-3 py-2 text-sm"
+              >
+                {t(lang, "rest")}
+              </button>
+
+              {playersIn(game.players)
+                .filter(
+                  (other) =>
+                    other.seat !== active.seat &&
+                    other.downed &&
+                    (other.node === active.node ||
+                      (hasModifier(active.gear, "rescueAdjacent") &&
+                        Math.abs(getNode(other.node).slot - getNode(active.node).slot) === 1 &&
+                        getNode(other.node).ring === getNode(active.node).ring)),
+                )
+                .map((other) => (
+                  <button
+                    key={`rescue-${other.seat}`}
+                    onClick={() => dispatch({ type: "rescue", target: other.seat })}
+                    className="rounded border border-[var(--accent)] px-3 py-2 text-sm text-[var(--accent)]"
+                  >
+                    {t(lang, "rescue", { seat: other.seat.toUpperCase() })}
+                  </button>
+                ))}
+
+              {BOARD.gates
+                .filter((gate) => gate.a === active.node || gate.b === active.node)
+                .filter((gate) => !(game.sealedGates[gate.id] !== undefined && game.sealedGates[gate.id]! > game.round))
+                .map((gate) => (
+                  <button
+                    key={`seal-${gate.id}`}
+                    onClick={() => dispatch({ type: "sealGate", gateId: gate.id })}
+                    className="rounded border border-[var(--line)] px-3 py-2 text-xs"
+                  >
+                    {t(lang, "sealGate", { gate: gate.id })}
+                  </button>
+                ))}
+
+              {active.gear
+                .filter((id) => gearById(id).lifetime === "consumed")
+                .map((id) => (
+                  <button
+                    key={`use-${id}`}
+                    onClick={() => dispatch({ type: "useItem", itemId: id })}
+                    className="rounded border border-[var(--line)] px-3 py-2 text-xs"
+                  >
+                    {t(lang, "useItem")} {localized(gearById(id).name, lang)}
+                  </button>
+                ))}
+
+              {playersIn(game.players)
+                .filter((other) => other.seat !== active.seat)
+                .flatMap((other) => {
+                  const aspect = aspectById(other.aspectId);
+                  return aspect.compels
+                    .map((compel, index) => ({ other, aspect, compel, index }))
+                    .filter(({ compel }) => evalCondition(game, other.seat, compel.condition))
+                    .map(({ other, aspect, compel, index }) => (
+                      <button
+                        key={`compel-${other.seat}-${index}`}
+                        onClick={() =>
+                          dispatch({
+                            type: "compel",
+                            target: other.seat,
+                            aspectId: aspect.id,
+                            compelIndex: index,
+                          })
+                        }
+                        disabled={active.fate < TUNING.fate.invokeCompel}
+                        title={localized(compel.text, lang)}
+                        className="rounded border border-[var(--line)] px-3 py-2 text-xs disabled:opacity-30"
+                      >
+                        {t(lang, "compel")} {other.seat.toUpperCase()}
+                      </button>
+                    ));
+                })}
+            </>
+          )}
+
+          <span className="ml-2 text-sm">
+            <b style={{ color: SEAT_COLOR[game.seat] }}>{game.seat.toUpperCase()}</b>
+            <span className="text-[var(--muted)]"> · </span>
+            <b>{active ? localized(getNode(active.node).name, lang) : ""}</b>
+            {game.phase === "move" && active && (
+              <span className="text-[var(--muted)]">
+                {" "}
+                · {t(lang, "chooseLanding", { count: reachableEndpoints(active.node, game.roll).length })}
+              </span>
+            )}
+          </span>
+
+          {error && <span className="ml-auto text-sm text-[var(--danger)]">{t(lang, "errorPrefix")}: {error}</span>}
+        </div>
 
         {isDev && (
-          <div className="flex flex-col gap-1 rounded border border-dashed border-[var(--line)] px-2 py-1">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase tracking-widest text-[var(--muted)]">dev</span>
-              {[1, 2, 3, 4, 5, 6].map((face) => (
-                <button
-                  key={face}
-                  onClick={() => dispatch({ type: "devRoll", value: face })}
-                  disabled={state.phase !== "roll"}
-                  title={`Force a roll of ${face}`}
-                  className="w-6 rounded border border-[var(--line)] text-xs disabled:opacity-25"
-                >
-                  {face}
-                </button>
+          <div className="flex flex-wrap items-center gap-2 rounded border border-dashed border-[var(--line)] px-2 py-1 text-[10px] text-[var(--muted)]">
+            <span className="uppercase tracking-widest">{t(lang, "devTools")}</span>
+            {[1, 2, 3, 4, 5, 6].map((face) => (
+              <button
+                key={face}
+                onClick={() => dispatch({ type: "devRoll", value: face })}
+                disabled={game.phase !== "roll"}
+                className="w-6 rounded border border-[var(--line)] disabled:opacity-25"
+              >
+                {face}
+              </button>
+            ))}
+            <span>
+              next {peekRolls(game.rng, 5).join(" ")} · {t(lang, "fingerprint")} {game.config}
+            </span>
+            <select
+              value={devCard}
+              onChange={(event) => setDevCard(event.target.value)}
+              className="max-w-[12rem] rounded border border-[var(--line)] bg-transparent px-1 py-0.5 text-[10px] text-[var(--text)]"
+            >
+              {ANOMALIES.map((card) => (
+                <option key={card.id} value={card.id} className="bg-[#0b141b]">
+                  {card.id.replace("scp-", "")} · {localized(card.name, lang)}
+                </option>
               ))}
-              <span className="text-[10px] text-[var(--muted)]">
-                next {peekRolls(state.rng, 5).join(" ")}
-              </span>
-              <span
-                className="text-[10px] text-[var(--muted)]"
-                title="Fingerprint of src/config/tuning.json — the numbers this game was created with"
-              >
-                cfg {state.config}
-              </span>
-              {state.phase === "move" && (
-                <span
-                  className="text-[10px] text-[var(--muted)]"
-                  title="Next card in each pile (safe·euclid·keter) at this cursor, assuming no gate check"
-                >
-                  draw{" "}
-                  {(["safe", "euclid", "keter"] as const)
-                    .map((deck) => drawAnomaly(state, deck).card?.replace("scp-", "") ?? "--")
-                    .join("·")}
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-center gap-1 text-[10px] text-[var(--muted)]">
-              <span className="uppercase tracking-widest">card</span>
-              <select
-                value={devCard}
-                onChange={(event) => setDevCard(event.target.value)}
-                className="max-w-[15rem] rounded border border-[var(--line)] bg-transparent px-1 py-0.5 text-[10px] text-[var(--text)]"
-              >
-                {(["safe", "euclid", "keter"] as const).map((tier) => (
-                  <optgroup key={tier} label={tier}>
-                    {ANOMALIES.filter((card) => card.tier === tier).map((card) => (
-                      <option key={card.id} value={card.id} className="bg-[#0b141b]">
-                        {card.id.replace("scp-", "")} · {card.name.en} (d{card.test.difficulty})
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
-              <button
-                onClick={() => dispatch({ type: "devEncounter", card: devCard })}
-                disabled={state.encounter !== null}
-                title="Open an encounter with this card, wherever you are"
-                className="rounded border border-[var(--line)] px-2 disabled:opacity-25"
-              >
-                open
-              </button>
-              <span className="ml-2 uppercase tracking-widest">damage</span>
-              <button
-                onClick={() => dispatch({ type: "devHurt", amount: 3 })}
-                title="Take 3 Integrity damage"
-                className="rounded border border-[var(--line)] px-2"
-              >
-                3
-              </button>
-              <button
-                onClick={() => dispatch({ type: "devHurt", amount: 99 })}
-                title="Bring the active player to 0 Integrity"
-                className="rounded border border-[var(--line)] px-2"
-              >
-                down
-              </button>
-            </div>
+            </select>
+            <button
+              onClick={() => dispatch({ type: "devEncounter", card: devCard })}
+              disabled={game.encounter !== null}
+              className="rounded border border-[var(--line)] px-2 disabled:opacity-25"
+            >
+              {t(lang, "forceCard")}
+            </button>
+            <button
+              onClick={() => dispatch({ type: "devHurt", amount: 3 })}
+              className="rounded border border-[var(--line)] px-2"
+            >
+              {t(lang, "damage")}
+            </button>
+            <button
+              onClick={() => dispatch({ type: "devHurt", amount: 99 })}
+              className="rounded border border-[var(--line)] px-2"
+            >
+              {t(lang, "down")}
+            </button>
+            <select
+              defaultValue=""
+              onChange={(event) => {
+                if (event.target.value) dispatch({ type: "devEscalation", card: event.target.value });
+                event.currentTarget.value = "";
+              }}
+              className="max-w-[11rem] rounded border border-[var(--line)] bg-transparent px-1 py-0.5 text-[10px] text-[var(--text)]"
+            >
+              <option value="" className="bg-[#0b141b]">{t(lang, "forceEscalation")}</option>
+              {ESCALATION.map((card) => (
+                <option key={card.id} value={card.id} className="bg-[#0b141b]">
+                  {localized(card.name, lang)}
+                </option>
+              ))}
+            </select>
+            <select
+              defaultValue=""
+              onChange={(event) => {
+                if (event.target.value) {
+                  dispatch({ type: "devDirective", seat: game.seat, directiveId: event.target.value });
+                }
+                event.currentTarget.value = "";
+              }}
+              className="max-w-[11rem] rounded border border-[var(--line)] bg-transparent px-1 py-0.5 text-[10px] text-[var(--text)]"
+            >
+              <option value="" className="bg-[#0b141b]">{t(lang, "forceDirective")}</option>
+              {MAIN_DIRECTIVES.map((directive) => (
+                <option key={directive.id} value={directive.id} className="bg-[#0b141b]">
+                  {localized(directive.name, lang)}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => dispatch({ type: "devOutcome", terminal: "recontained" })}
+              className="rounded border border-[var(--line)] px-2"
+            >
+              {t(lang, "siteRecontained")}
+            </button>
+            <button
+              onClick={() => dispatch({ type: "devOutcome", terminal: "detonated" })}
+              className="rounded border border-[var(--line)] px-2"
+            >
+              {t(lang, "siteLost")}
+            </button>
+            <span>{ROLES.length} roles</span>
           </div>
         )}
-
-        <span className="ml-4 text-sm">
-          <b style={{ color: SEAT_COLOR[state.seat] }}>{state.seat.toUpperCase()}</b>
-          <span className="text-[var(--muted)]"> to act · at </span>
-          <b>{activeNode.name.en}</b>
-          {state.phase === "move" && (
-            <span className="text-[var(--muted)]">
-              {" "}
-              · choose where to land ({reachableEndpoints(active.node, state.roll).length} options)
-            </span>
-          )}
-        </span>
-
-        {state.lastTest && !error && (
-          <span className="ml-auto font-mono text-[11px] text-[var(--muted)]">
-            last: {describeTest(state.lastTest)}
-          </span>
-        )}
-        {error && <span className="text-sm text-[var(--danger)]">{error}</span>}
-        {!error && !state.lastTest && (
-          <span className="ml-auto text-xs text-[var(--muted)]">
-            M3c — the Command Center now holds the protocol: three steps recontain the site, sabotage pushes it back. Hunters and directives are next.
-          </span>
-        )}
-        </div>
       </footer>
     </div>
   );

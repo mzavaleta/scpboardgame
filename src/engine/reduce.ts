@@ -25,6 +25,7 @@ import { MAIN_DIRECTIVES, directiveById } from "../content/directives";
 import { ESCALATION_BY_ID } from "../content/escalation";
 import { gearById, gearHealBonus, gearMaxIntegrity, hasModifier } from "../content/gear";
 import { ROLES, aspectById, roleById } from "../content/roles";
+import { CONTENT_VERSION } from "../content/version";
 import { distance, gatesAlong, getNode, ringDepth } from "./board";
 import { evalCondition } from "./conditions";
 import { dealDirectives, directivesSeed, resolveOutcome } from "./directives";
@@ -171,6 +172,7 @@ export function createGame(
     vote: null,
     draft: null,
     sealedGates: {},
+    contentVersion: CONTENT_VERSION,
     log: [`Round 1 — ${seats[0]} to act.`],
   };
 
@@ -1116,6 +1118,23 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
       if (!player) return reject("invalid-target", "No such seat.");
       if (!directiveById(action.directiveId)) return reject("invalid-value", "No such directive.");
       return ok(replacePlayer(state, { ...player, mainDirectiveId: action.directiveId }));
+    }
+
+    case "devOutcome": {
+      return ok({
+        ...state,
+        outcome: resolveOutcome(state, action.terminal),
+        phase: "end",
+        roll: 0,
+        encounter: null,
+        lastTest: null,
+        log: [
+          ...state.log,
+          action.terminal === "detonated"
+            ? "the Alpha Warhead detonated (dev tool)."
+            : "the site is recontained (dev tool).",
+        ],
+      });
     }
 
     default:

@@ -18,6 +18,7 @@ import { reachableEndpoints } from "./movement";
 import { containmentRecords, acquireItem } from "./effects";
 import { resolveOutcome } from "./directives";
 import { moveHunters } from "./hunters";
+import { project } from "./project";
 import { createGame, reduce } from "./reduce";
 import { seatsFor } from "./types";
 import type { Action, GameState, SeatId } from "./types";
@@ -338,6 +339,21 @@ describe("escalation and the Emergency Assembly (§C5)", () => {
 
     const tied = apply(apply(voting, { type: "castVote", choice: "seal" }), { type: "castVote", choice: "hold" });
     expect(tied.threat).toBe(1);
+  });
+});
+
+describe("projection keeps the motive private (§S5, §S7.3)", () => {
+  it("gives a viewer their own directive and no other seat's", () => {
+    const state = createGame(1, seatsFor(3));
+    const view = project(state, "p1");
+
+    expect(view.players.p1?.mainDirectiveId).toBe(state.players.p1?.mainDirectiveId);
+    expect(view.players.p2?.mainDirectiveId).toBeNull();
+    expect(view.players.p3?.previousDirectiveId).toBeNull();
+
+    const bytes = JSON.stringify(view);
+    expect(bytes.includes(state.players.p2!.mainDirectiveId)).toBe(false);
+    expect(bytes.includes(state.players.p3!.mainDirectiveId)).toBe(false);
   });
 });
 

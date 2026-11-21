@@ -101,9 +101,9 @@ presence, board integrity, footprint satisfiability, role invariants, deck suffi
 | T6 | Hunters move + contact | S7 | inline | **done** |
 | T7 | Gear content, slots, modifiers, actions (rest/rescue/useItem/sealGate) | S8, S9 | inline | **done** |
 | T8 | Simulator: alignment, compels, breach-achievable, thresholds | S11 | inline | **done** |
-| T9 | i18n dictionary + pseudo-locale + all chrome | S12 | inline | pending |
-| T10 | Screens: setup/draft, handoff, table, endgame, credits | S13 | inline | pending |
-| T11 | Content validator + contentVersion + attribution gate | S14 | inline | pending |
+| T9 | i18n dictionary + pseudo-locale + all chrome | S12 | inline | **done** |
+| T10 | Screens: setup/draft, handoff, table, endgame, credits | S13 | inline | **done** |
+| T11 | Content validator + contentVersion + attribution gate | S14 | inline | **done** |
 | T12 | Close: docs, report, browser walk | all | inline | pending |
 
 ## Log

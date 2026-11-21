@@ -377,6 +377,8 @@ export type GameState = {
   readonly draft: Draft | null;
   /** Gates sealed by `sealGate` / Lockdown: gate id → round it reopens. */
   readonly sealedGates: Readonly<Record<string, number>>;
+  /** §S8.3 check 11: a replay can refuse content it was not recorded with. */
+  readonly contentVersion: string;
   /** Public narration. Every entry here is public by definition (§S5). */
   readonly log: readonly string[];
 };
@@ -424,7 +426,9 @@ export type Action =
   /** Dev tool only: open a chosen escalation card, so the 14 can be exercised. */
   | { readonly type: "devEscalation"; readonly card: string }
   /** Dev tool only: deal a chosen directive, to test the victory matrix. */
-  | { readonly type: "devDirective"; readonly seat: SeatId; readonly directiveId: MainDirectiveId };
+  | { readonly type: "devDirective"; readonly seat: SeatId; readonly directiveId: MainDirectiveId }
+  /** Dev tool only: end the game now, so the reveal screen is reachable in seconds. */
+  | { readonly type: "devOutcome"; readonly terminal: "recontained" | "detonated" };
 
 export type RejectionCode =
   | "wrong-phase"

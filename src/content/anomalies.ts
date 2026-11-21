@@ -11,7 +11,7 @@
  * here instead of hidden in a spreadsheet.
  */
 
-import { deckCopies } from "../config/tuning";
+import { deckCopies, declineThreat, tierReward } from "../config/tuning";
 import type { DeckId, Effect, Stat } from "../engine/types";
 import type { Localized } from "./board";
 
@@ -71,12 +71,12 @@ const card = (
   text,
   tier,
   test: { stat, difficulty },
-  reward: { records: tier === "safe" ? 1 : tier === "euclid" ? 2 : 3 },
+  reward: { records: tierReward(tier) },
   rarity: deckCopies(tier, `scp-${String(number).padStart(3, "0")}`),
   mayLeave: true,
   // Declining a real anomaly raises pressure; walking past a Safe one is free.
-  // §C2.1 leaves `declineCost` to tuning, so this is a PROPOSED value (§14f).
-  declineCost: tier === "safe" ? [] : [threat(1)],
+  // The per-tier amount is tuning (§14f.3), not card text.
+  declineCost: declineThreat(tier) === 0 ? [] : [threat(declineThreat(tier))],
   attribution: {
     slug: `scp-${String(number).padStart(3, "0")}`,
     licence: "CC BY-SA 3.0",

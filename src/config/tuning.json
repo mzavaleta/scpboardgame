@@ -1,36 +1,60 @@
 {
   "_comment": "Tuning surface. Every number here is a dial, not a rule. Rules (the five tiers, the phase machine, the effect meanings) stay in code on purpose: a config that can invert the outcome ladder produces a game nobody can reason about. Change a value, reload, play. The fingerprint of this file goes into every game state, so a changed number cannot silently break ?seed= reproduction.",
-
   "start": {
     "integrity": 6,
     "maxIntegrity": 6,
     "fate": 0,
     "clearance": 1,
-    "stats": { "combat": 3, "intellect": 3 }
+    "stats": {
+      "combat": 3,
+      "intellect": 3
+    }
   },
-
+  "rewards": {
+    "safe": 1,
+    "euclid": 2,
+    "keter": 3
+  },
+  "declineThreat": {
+    "safe": 0,
+    "euclid": 1,
+    "keter": 1
+  },
   "roles": [
     {
       "id": "mtf-field-agent",
-      "name": { "en": "MTF Field Agent", "es": "Agente de la FTM" },
+      "name": {
+        "en": "MTF Field Agent",
+        "es": "Agente de la FTM"
+      },
       "combat": 4,
       "intellect": 2,
       "maxIntegrity": 7,
-      "startingGear": ["sidearm"],
+      "startingGear": [
+        "sidearm"
+      ],
       "aspect": "reckless"
     },
     {
       "id": "senior-researcher",
-      "name": { "en": "Senior Researcher", "es": "Investigador Sénior" },
+      "name": {
+        "en": "Senior Researcher",
+        "es": "Investigador Sénior"
+      },
       "combat": 2,
       "intellect": 4,
       "maxIntegrity": 5,
-      "startingGear": ["clearance-badge"],
+      "startingGear": [
+        "clearance-badge"
+      ],
       "aspect": "curious"
     },
     {
       "id": "d-class",
-      "name": { "en": "D-Class Personnel", "es": "Personal de Clase D" },
+      "name": {
+        "en": "D-Class Personnel",
+        "es": "Personal de Clase D"
+      },
       "combat": 3,
       "intellect": 2,
       "maxIntegrity": 6,
@@ -39,44 +63,78 @@
     },
     {
       "id": "containment-specialist",
-      "name": { "en": "Containment Specialist", "es": "Especialista en Contención" },
+      "name": {
+        "en": "Containment Specialist",
+        "es": "Especialista en Contención"
+      },
       "combat": 2,
       "intellect": 4,
       "maxIntegrity": 7,
-      "startingGear": ["containment-kit"],
+      "startingGear": [
+        "containment-kit"
+      ],
       "aspect": "methodical"
     },
     {
       "id": "medical-officer",
-      "name": { "en": "Medical Officer", "es": "Oficial Médico" },
+      "name": {
+        "en": "Medical Officer",
+        "es": "Oficial Médico"
+      },
       "combat": 2,
       "intellect": 3,
       "maxIntegrity": 6,
-      "startingGear": ["medkit"],
+      "startingGear": [
+        "medkit"
+      ],
       "aspect": "sworn-to-heal"
     },
     {
       "id": "ethics-aide",
-      "name": { "en": "Ethics Aide", "es": "Auxiliar del Comité de Ética" },
+      "name": {
+        "en": "Ethics Aide",
+        "es": "Auxiliar del Comité de Ética"
+      },
       "combat": 2,
       "intellect": 4,
       "maxIntegrity": 5,
-      "startingGear": ["ethics-waiver"],
+      "startingGear": [
+        "ethics-waiver"
+      ],
       "aspect": "by-the-book"
     }
   ],
-
   "gates": {
-    "G1": { "clearance": 2, "difficulty": 2 },
-    "G2": { "clearance": 2, "difficulty": 2 },
-    "G3": { "clearance": 3, "difficulty": 3 },
-    "G4": { "clearance": 3, "difficulty": 3 },
-    "G5": { "clearance": 4, "difficulty": 4 },
-    "G6": { "clearance": 4, "difficulty": 4 }
+    "G1": {
+      "clearance": 2,
+      "difficulty": 2
+    },
+    "G2": {
+      "clearance": 2,
+      "difficulty": 2
+    },
+    "G3": {
+      "clearance": 3,
+      "difficulty": 3
+    },
+    "G4": {
+      "clearance": 3,
+      "difficulty": 3
+    },
+    "G5": {
+      "clearance": 4,
+      "difficulty": 4
+    },
+    "G6": {
+      "clearance": 4,
+      "difficulty": 4
+    }
   },
-
-  "clearancePrices": { "2": 3, "3": 4, "4": 5 },
-
+  "clearancePrices": {
+    "2": 3,
+    "3": 4,
+    "4": 5
+  },
   "decks": {
     "safe": {
       "scp-005": 1,
@@ -104,5 +162,6 @@
       "scp-3000": 1,
       "scp-2935": 1
     }
-  }
+  },
+  "version": 1
 }

@@ -17,6 +17,8 @@ import {
   TUNING,
   clearancePrice,
   deckCopies,
+  declineThreat,
+  tierReward,
   gateRule,
   roleSheet,
   tuningSchema,
@@ -91,6 +93,15 @@ describe("config and content agree", () => {
       const rule = gateRule(gate.id);
       expect(gate.clearance).toBe(rule.clearance);
       expect(gate.test.difficulty).toBe(rule.test.difficulty);
+    }
+  });
+
+  it("projects rewards and decline costs from the tuning, not from the cards", () => {
+    for (const card of ANOMALIES) {
+      expect(card.reward.records).toBe(tierReward(card.tier));
+      const expected = declineThreat(card.tier);
+      if (expected === 0) expect(card.declineCost).toEqual([]);
+      else expect(card.declineCost).toEqual([{ kind: "raiseThreat", delta: expected }]);
     }
   });
 

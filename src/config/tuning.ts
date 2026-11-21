@@ -62,6 +62,8 @@ const deckSchema = z.record(z.string(), z.number().int().min(0));
 
 export const tuningSchema = z.object({
   _comment: z.string().optional(),
+  /** Bumped when the shape changes, so an old file can be told apart from a bad one. */
+  version: z.number().int().min(1),
   start: z.object({
     integrity: z.number().int().min(1),
     maxIntegrity: z.number().int().min(1),
@@ -70,6 +72,18 @@ export const tuningSchema = z.object({
     stats: statsSchema,
   }),
   roles: z.array(roleSchema).min(1),
+  /** Records paid for containing an anomaly of each tier (§C1.4). */
+  rewards: z.object({
+    safe: z.number().int().min(0),
+    euclid: z.number().int().min(0),
+    keter: z.number().int().min(0),
+  }),
+  /** Threat a reader pays for walking away, per tier (§14f.3, D30 territory). */
+  declineThreat: z.object({
+    safe: z.number().int().min(0),
+    euclid: z.number().int().min(0),
+    keter: z.number().int().min(0),
+  }),
   gates: z.record(z.string(), gateSchema),
   clearancePrices: z.record(z.string(), z.number().int().min(0)),
   decks: z.object({
@@ -105,6 +119,16 @@ export function gateRule(gateId: string): {
     clearance: rule.clearance as 1 | 2 | 3 | 4,
     test: { stat: "intellect", difficulty: rule.difficulty },
   };
+}
+
+/** Records a containment pays, by tier. Content projects this onto each card. */
+export function tierReward(deck: DeckId): number {
+  return TUNING.rewards[deck];
+}
+
+/** Threat paid for declining, by tier. Zero means walking away is free. */
+export function declineThreat(deck: DeckId): number {
+  return TUNING.declineThreat[deck];
 }
 
 /** Records needed to raise clearance to `level` (§C1.4; M3a spends these). */

@@ -10,7 +10,7 @@
  * also enforces clearance at gates, which used to be undetectable (§14f).
  */
 
-import { CONFIG_FINGERPRINT, TUNING } from "../config/tuning";
+import { CONFIG_FINGERPRINT, TUNING, clearancePrice } from "../config/tuning";
 import { ANOMALIES } from "../content/anomalies";
 import { ARRIVAL_NODE } from "../content/board";
 import { gatesAlong, getNode } from "./board";
@@ -266,6 +266,58 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
         phase: "action",
         encounter: null,
         log: [...next.log, ...consequences, ...notes],
+      });
+    }
+
+    case "attemptClearance": {
+      // §C1.4, M3a. The access economy's only sink: Records become clearance,
+      // and clearance is what turns the gates from a coin flip into a wall you
+      // paid to walk through. One level at a time — the ladder is the price.
+      if (state.phase !== "action") {
+        return reject("wrong-phase", `Cannot buy clearance during the ${state.phase} phase.`);
+      }
+
+      const buyer = playerAt(state.players, state.seat);
+      if (buyer.downed) {
+        return reject("downed", `${state.seat} is down — respawn before buying clearance.`);
+      }
+
+      const here = getNode(buyer.node);
+      if (here.kind !== "checkpoint") {
+        return reject("no-checkpoint", `${here.name.en} has no access desk.`);
+      }
+
+      const level = action.level;
+      if (level < 2 || level > 4 || level !== buyer.clearance + 1) {
+        return reject(
+          "clearance-order",
+          `Clearance ${level} is not the next level from ${buyer.clearance}.`,
+        );
+      }
+
+      const price = clearancePrice(level as 2 | 3 | 4);
+      if (buyer.records < price) {
+        return reject(
+          "not-enough-records",
+          `Clearance ${level} costs ${price} Records; ${state.seat} has ${buyer.records}.`,
+        );
+      }
+
+      return ok({
+        ...state,
+        players: {
+          ...state.players,
+          [state.seat]: {
+            ...buyer,
+            clearance: level,
+            records: buyer.records - price,
+          },
+        },
+        log: [
+          ...state.log,
+          `${state.seat} bought clearance ${buyer.clearance} → ${level} for ${price} Records ` +
+            `at ${here.name.en}.`,
+        ],
       });
     }
 

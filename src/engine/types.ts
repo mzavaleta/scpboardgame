@@ -160,6 +160,12 @@ export type Action =
   | { readonly type: "rollMovement" }
   | { readonly type: "moveTo"; readonly node: NodeId }
   | { readonly type: "resolveAnomaly"; readonly choice: "contain" | "decline" }
+  /**
+   * §C1.4, M3a: spend Records at a checkpoint to buy the *next* clearance level.
+   * Before this action existed, Records had no sink and every gate was a pure
+   * `4dF` gamble.
+   */
+  | { readonly type: "attemptClearance"; readonly level: number }
   | { readonly type: "respawn" }
   | { readonly type: "endTurn" }
   /**
@@ -183,6 +189,9 @@ export type Rejection = {
     | "unknown-node"
     | "invalid-value"
     | "no-encounter"
+    | "no-checkpoint"
+    | "not-enough-records"
+    | "clearance-order"
     | "downed"
     | "not-downed"
     | "blocked-by-gate";

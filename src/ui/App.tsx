@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ANOMALIES, anomalyById } from "../content/anomalies";
+import { clearancePrice } from "../config/tuning";
 import { BOARD } from "../content/board";
 import { getNode } from "../engine/board";
 import { reachableEndpoints } from "../engine/movement";
@@ -161,6 +162,9 @@ export function App() {
 
   const active = playerAt(state.players, state.seat);
   const activeNode = getNode(active.node);
+  // §C1.4: only the next level is ever purchasable, so the button has one face.
+  const nextClearance = active.clearance < 4 ? active.clearance + 1 : null;
+  const nextClearancePrice = nextClearance ? clearancePrice(nextClearance as 2 | 3 | 4) : 0;
   const stateHash = useMemo(() => hashState(state), [state]);
 
   return (
@@ -298,6 +302,17 @@ export function App() {
         >
           End turn
         </button>
+
+        {state.phase === "action" && activeNode.kind === "checkpoint" && nextClearance !== null && (
+          <button
+            onClick={() => dispatch({ type: "attemptClearance", level: nextClearance })}
+            disabled={active.records < nextClearancePrice}
+            title={`${activeNode.name.en} — access desk. ${active.records} Records held.`}
+            className="rounded border border-[var(--accent)] px-4 py-2 text-sm text-[var(--accent)] disabled:opacity-30"
+          >
+            Buy clearance {nextClearance} · {nextClearancePrice} Rec
+          </button>
+        )}
 
         {active.downed && (
           <button

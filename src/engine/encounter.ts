@@ -86,7 +86,7 @@ export function rollTest(
   seat: SeatId,
   stat: Stat,
   difficulty: number,
-  kind: "gate" | "anomaly",
+  kind: "gate" | "anomaly" | "protocol",
 ): { readonly state: GameState; readonly result: TestResult } {
   const [dice, rng] = roll4dF(state.rng);
   const statValue = playerAt(state.players, seat).stats[stat];

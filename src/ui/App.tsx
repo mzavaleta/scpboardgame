@@ -187,6 +187,15 @@ export function App() {
             {state.threat}/{TUNING.threat.max}
           </b>
         </span>
+        <span
+          className="text-[var(--muted)]"
+          title="Recontainment protocol — advanced or sabotaged at the Command Center"
+        >
+          protocol{" "}
+          <b className={state.protocolSteps > 0 ? "text-[var(--accent)]" : "text-[var(--text)]"}>
+            {state.protocolSteps}/{TUNING.protocol.steps}
+          </b>
+        </span>
         {state.warhead && (
           <span
             className="text-[var(--danger)]"
@@ -252,6 +261,9 @@ export function App() {
                   <div className="mt-0.5 text-[11px]">
                     C{player.stats.combat} I{player.stats.intellect} · rec {player.records} · clr{" "}
                     {player.clearance} · ev {player.evidence.accident}/{player.evidence.intent}
+                    {player.evidence.tamperedProtocol > 0 && (
+                      <span className="text-[var(--danger)]"> · tamper {player.evidence.tamperedProtocol}</span>
+                    )}
                     {player.tags.length > 0 && <> · {player.tags.join(", ")}</>}
                   </div>
                 </div>
@@ -325,6 +337,25 @@ export function App() {
         >
           End turn
         </button>
+
+        {state.phase === "action" && activeNode.kind === "core" && state.protocolSteps < TUNING.protocol.steps && (
+          <>
+            <button
+              onClick={() => dispatch({ type: "advanceProtocol" })}
+              title={`Intellect test at difficulty ${TUNING.protocol.difficulty} — three steps recontain the site`}
+              className="rounded border border-[var(--accent)] px-4 py-2 text-sm text-[var(--accent)]"
+            >
+              Advance protocol · I{TUNING.protocol.difficulty}
+            </button>
+            <button
+              onClick={() => dispatch({ type: "sabotageProtocol" })}
+              title="Push the protocol down one step. Leaves tamperedProtocol evidence on you."
+              className="rounded border border-[var(--danger)] px-4 py-2 text-sm text-[var(--danger)]"
+            >
+              Sabotage protocol
+            </button>
+          </>
+        )}
 
         {state.phase === "action" && activeNode.kind === "checkpoint" && nextClearance !== null && (
           <button
@@ -448,7 +479,7 @@ export function App() {
         {error && <span className="text-sm text-[var(--danger)]">{error}</span>}
         {!error && !state.lastTest && (
           <span className="ml-auto text-xs text-[var(--muted)]">
-            M3b — the threat track runs: a round where nobody attempts anything arms the warhead. Hunters and the protocol track are next.
+            M3c — the Command Center now holds the protocol: three steps recontain the site, sabotage pushes it back. Hunters and directives are next.
           </span>
         )}
         </div>

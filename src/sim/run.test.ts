@@ -75,10 +75,9 @@ describe("what M3a is allowed to claim", () => {
     // The warhead is the only ending that exists, so every terminal is a detonation.
     expect(report.rows.every((row) => row.roundsToTerminalP50 >= 0)).toBe(true);
     expect(markdown).toMatch(/Detonated/);
-    // The recontained terminal needs the protocol track, so it is declared missing
-    // instead of reported as a zero.
-    expect(Object.keys(report.notMeasured)).toContain("recontainedRate");
-    expect(markdown).toMatch(/recontainedRate/);
+    // Both terminals exist now; alignment-dependent metrics are what is missing.
+    expect(Object.keys(report.notMeasured)).toContain("winRateByAlignment");
+    expect(markdown).toMatch(/Recontained/);
   });
 
   it("stops a game when the warhead fires instead of playing to the cap", () => {

@@ -83,6 +83,14 @@ export const tuningSchema = z.object({
     /** Rounds between arming and detonation. */
     warheadCountdown: z.number().int().min(1),
   }),
+  /**
+   * §C4.4: the recontainment protocol at the Command Center — how many steps to
+   * fire it, and the Intellect difficulty of one step.
+   */
+  protocol: z.object({
+    steps: z.number().int().min(1),
+    difficulty: z.number().int().min(0).max(6),
+  }),
   /** Records paid for containing an anomaly of each tier (§C1.4). */
   rewards: z.object({
     safe: z.number().int().min(0),
@@ -135,6 +143,14 @@ export function gateRule(gateId: string): {
 /** §7: the track's ceiling and the warhead's fuse. */
 export function threatRule(): { readonly max: number; readonly countdown: number } {
   return { max: TUNING.threat.max, countdown: TUNING.threat.warheadCountdown };
+}
+
+/** §C4.4: the protocol's length and the difficulty of one step. */
+export function protocolRule(): {
+  readonly steps: number;
+  readonly difficulty: number;
+} {
+  return { steps: TUNING.protocol.steps, difficulty: TUNING.protocol.difficulty };
 }
 
 /** Records a containment pays, by tier. Content projects this onto each card. */

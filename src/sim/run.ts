@@ -20,7 +20,7 @@
  * seed, so the same options always produce the same report (§S9.1).
  */
 
-import { CONFIG_FINGERPRINT, clearancePrice } from "../config/tuning";
+import { CONFIG_FINGERPRINT, clearancePrice, protocolRule } from "../config/tuning";
 import { gatesAlong, getNode, ringDepth } from "../engine/board";
 import { deckForNode } from "../engine/encounter";
 import { reachableEndpoints } from "../engine/movement";
@@ -70,6 +70,7 @@ export type SimRow = {
   readonly games: number;
   readonly capHitShare: number;
   readonly detonatedShare: number;
+  readonly recontainedShare: number;
   readonly roundsToTerminalP50: number;
   readonly roundsP50: number;
   readonly roundsP90: number;
@@ -162,6 +163,11 @@ function chooseAction(state: GameState, policy: Policy): Action | null {
       // answering a question the game has not asked.
       return state.encounter ? { type: "resolveAnomaly", choice: "contain" } : null;
     case "action": {
+      // §C4.4: the Command Center is the room you hold. Both policies push the
+      // protocol, because neither has a directive telling it not to (M3c).
+      if (getNode(player.node).kind === "core" && state.protocolSteps < protocolRule().steps) {
+        return { type: "advanceProtocol" };
+      }
       if (policy === "cautious") {
         const level = player.clearance < 4 ? player.clearance + 1 : null;
         if (level && getNode(player.node).kind === "checkpoint") {
@@ -278,6 +284,7 @@ function summarize(samples: readonly GameSample[]): SimRow {
     games: samples.length,
     capHitShare: round3(share(samples.map((sample) => sample.capHit))),
     detonatedShare: round3(share(samples.map((sample) => sample.terminal === "detonated"))),
+    recontainedShare: round3(share(samples.map((sample) => sample.terminal === "recontained"))),
     roundsToTerminalP50: ended.length === 0 ? 0 : quantile(ended, 0.5),
     roundsP50: quantile(rounds, 0.5),
     roundsP90: quantile(rounds, 0.9),
@@ -304,12 +311,13 @@ export function toMarkdown(report: SimReport): string {
     `Command: \`pnpm ${report.command}\``,
     `Tuning fingerprint: \`cfg ${report.config}\` · ${report.games} games · cap ${report.maxRounds} rounds`,
     "",
-    "| Players | Policy | Games | Cap hit | Detonated | Rounds to terminal | Rounds p50 | Rounds p90 | Reached inner | Reached core | Purchases / game | Records spent | Gate fail | Deaths / game | Draws / game |",
-    "| --: | --- | --: | --: | --: | --: | --: | --: | --: | --: | --: | --: | --: | --: | --: |",
+    "| Players | Policy | Games | Cap hit | Detonated | Recontained | Rounds to terminal | Rounds p50 | Rounds p90 | Reached inner | Reached core | Purchases / game | Records spent | Gate fail | Deaths / game | Draws / game |",
+    "| --: | --- | --: | --: | --: | --: | --: | --: | --: | --: | --: | --: | --: | --: | --: | --: |",
     ...report.rows.map(
       (row) =>
         `| ${row.players} | ${row.policy} | ${row.games} | ${Math.round(row.capHitShare * 100)}% | ` +
-        `${Math.round(row.detonatedShare * 100)}% | ${row.roundsToTerminalP50} | ` +
+        `${Math.round(row.detonatedShare * 100)}% | ${Math.round(row.recontainedShare * 100)}% | ` +
+        `${row.roundsToTerminalP50} | ` +
         `${row.roundsP50} | ${row.roundsP90} | ${Math.round(row.reachedInnerShare * 100)}% | ` +
         `${Math.round(row.reachedCoreShare * 100)}% | ${row.purchasesPerGame} | ` +
         `${row.recordsSpentPerGame} | ${Math.round(row.gateFailureShare * 100)}% | ` +
@@ -359,7 +367,6 @@ export function runSimulation(options: SimOptions): SimReport {
     maxRounds: options.maxRounds,
     rows,
     notMeasured: {
-      recontainedRate: "M3c — the recontained terminal needs the protocol track (D22)",
       winRateByAlignment: "M3c — needs Main Directives and alignment (§7c.3)",
       breachAchievableRate: "M3c — needs breach directives",
       compelsPerGame: "M3c — needs the protocol track",

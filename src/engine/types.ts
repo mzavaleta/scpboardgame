@@ -45,7 +45,7 @@ export type Stats = { readonly combat: number; readonly intellect: number };
 export type DeckId = "safe" | "euclid" | "keter";
 
 /** §C2.3: accidents are what the site does to you; intent is what a person chose. */
-export type EvidenceClass = "accident" | "intent";
+export type EvidenceClass = "accident" | "intent" | "tamperedProtocol";
 
 export type CardId = string;
 
@@ -79,7 +79,7 @@ export type Outcome = "clean" | "success" | "collateral" | "failure" | "breach";
 
 export type TestResult = {
   /** Gates only ask "does it open"; encounters ask "which tier". */
-  readonly kind: "gate" | "anomaly";
+  readonly kind: "gate" | "anomaly" | "protocol";
   readonly seat: SeatId;
   readonly stat: Stat;
   readonly difficulty: number;
@@ -151,6 +151,8 @@ export type GameState = {
   readonly players: Players;
   /** §D13: pressure, driven by stagnation and by breach outcomes. 0..`threat.max`. */
   readonly threat: number;
+  /** §C4.4: 0..`protocol.steps`. At the ceiling the site is recontained. */
+  readonly protocolSteps: number;
   /**
    * §7: the armed warhead and its fuse. `null` until the track reaches the top.
    * Arming does not tick it; each later round end spends one round.
@@ -188,6 +190,16 @@ export type Action =
    * `4dF` gamble.
    */
   | { readonly type: "attemptClearance"; readonly level: number }
+  /**
+   * §C4.4, M3c: one step up the recontainment protocol. An action spent at the
+   * Command Center and an Intellect test; three steps end the game.
+   */
+  | { readonly type: "advanceProtocol" }
+  /**
+   * §C4.4: push the protocol down one step, no test, and leave the
+   * `tamperedProtocol` evidence. The move that makes the last act a contest.
+   */
+  | { readonly type: "sabotageProtocol" }
   | { readonly type: "respawn" }
   | { readonly type: "endTurn" }
   /**
@@ -214,6 +226,7 @@ export type Rejection = {
     | "no-checkpoint"
     | "not-enough-records"
     | "clearance-order"
+    | "no-core"
     | "game-over"
     | "downed"
     | "not-downed"

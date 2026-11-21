@@ -10,7 +10,7 @@
  * also enforces clearance at gates, which used to be undetectable (§14f).
  */
 
-import { CONFIG_FINGERPRINT, TUNING, clearancePrice, threatRule } from "../config/tuning";
+import { CONFIG_FINGERPRINT, TUNING, clearancePrice, protocolRule, threatRule } from "../config/tuning";
 import { ANOMALIES } from "../content/anomalies";
 import { ARRIVAL_NODE } from "../content/board";
 import { gatesAlong, getNode, ringDepth } from "./board";
@@ -43,7 +43,7 @@ export function createGame(seed: number, seats: readonly SeatId[] = SEAT_ORDER):
         stats: TUNING.start.stats,
         records: 0,
         clearance: TUNING.start.clearance,
-        evidence: { accident: 0, intent: 0 },
+        evidence: { accident: 0, intent: 0, tamperedProtocol: 0 },
         tags: [],
         downed: false,
       } satisfies Player,
@@ -58,6 +58,7 @@ export function createGame(seed: number, seats: readonly SeatId[] = SEAT_ORDER):
     roll: 0,
     players,
     threat: 0,
+    protocolSteps: 0,
     warhead: null,
     progressThisRound: [],
     outcome: null,
@@ -379,6 +380,85 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
           ...state.log,
           `${state.seat} bought clearance ${buyer.clearance} → ${level} for ${price} Records ` +
             `at ${here.name.en}.`,
+        ],
+      });
+    }
+
+    case "advanceProtocol": {
+      // §C4.4. The last act of the game is a contested counter, not a finish
+      // line: three steps up recontain the site, and everyone can watch it move.
+      if (state.phase !== "action") {
+        return reject("wrong-phase", `Cannot advance the protocol during the ${state.phase} phase.`);
+      }
+
+      const engineer = playerAt(state.players, state.seat);
+      if (engineer.downed) return reject("downed", `${state.seat} is down.`);
+      if (getNode(engineer.node).kind !== "core") {
+        return reject("no-core", "The protocol is worked from the Command Center.");
+      }
+
+      // The attempt counts whether or not the test lands (§D16, §7).
+      const attempted = markProgress(state, state.seat);
+      const { steps: ceiling, difficulty } = protocolRule();
+      const { state: rolled, result } = rollTest(attempted, state.seat, "intellect", difficulty, "protocol");
+
+      if (result.shift < 0) {
+        return ok({
+          ...rolled,
+          log: [...rolled.log, `  protocol holds — ${describeTest(result)}`],
+        });
+      }
+
+      const steps = Math.min(ceiling, rolled.protocolSteps + 1);
+      const fired = steps >= ceiling;
+      const winners = fired
+        ? playersIn(rolled.players)
+            .filter((player) => player.node === "core-00" && !player.downed)
+            .map((player) => player.seat)
+        : [];
+
+      return ok({
+        ...rolled,
+        protocolSteps: steps,
+        ...(fired
+          ? { outcome: { terminal: "recontained" as const, winners }, phase: "end" as const }
+          : {}),
+        log: [
+          ...rolled.log,
+          `  protocol ${rolled.protocolSteps} → ${steps} — ${describeTest(result)}`,
+          ...(fired
+            ? [`the site is recontained. ${winners.join(", ") || "nobody"} ${winners.length === 1 ? "wins" : "win"} at the centre.`]
+            : []),
+        ],
+      });
+    }
+
+    case "sabotageProtocol": {
+      if (state.phase !== "action") {
+        return reject("wrong-phase", `Cannot sabotage the protocol during the ${state.phase} phase.`);
+      }
+
+      const saboteur = playerAt(state.players, state.seat);
+      if (saboteur.downed) return reject("downed", `${state.seat} is down.`);
+      if (getNode(saboteur.node).kind !== "core") {
+        return reject("no-core", "The protocol is worked from the Command Center.");
+      }
+
+      const steps = Math.max(0, state.protocolSteps - 1);
+      // D18: hidden motive, visible evidence — the counter moves down and the
+      // token appears on the actor. No test, by design.
+      const marked = applyEffects(
+        { ...state, protocolSteps: steps },
+        state.seat,
+        [{ kind: "placeEvidence", evidence: "tamperedProtocol" }],
+      );
+
+      return ok({
+        ...marked.state,
+        log: [
+          ...marked.state.log,
+          `${state.seat} sabotaged the protocol ${state.protocolSteps} → ${steps}.`,
+          ...marked.notes.map((note) => `  ${note}`),
         ],
       });
     }

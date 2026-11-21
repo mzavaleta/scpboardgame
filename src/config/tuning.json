@@ -14,6 +14,10 @@
     "max": 5,
     "warheadCountdown": 3
   },
+  "protocol": {
+    "steps": 3,
+    "difficulty": 4
+  },
   "rewards": {
     "safe": 1,
     "euclid": 2,
@@ -127,11 +131,11 @@
     },
     "G5": {
       "clearance": 4,
-      "difficulty": 4
+      "difficulty": 6
     },
     "G6": {
       "clearance": 4,
-      "difficulty": 4
+      "difficulty": 6
     }
   },
   "clearancePrices": {

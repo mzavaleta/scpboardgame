@@ -11,6 +11,7 @@
  * here instead of hidden in a spreadsheet.
  */
 
+import { deckCopies } from "../config/tuning";
 import type { DeckId, Effect, Stat } from "../engine/types";
 import type { Localized } from "./board";
 
@@ -28,9 +29,10 @@ export type AnomalyCard = {
   readonly test: { readonly stat: Stat; readonly difficulty: number };
   readonly reward: { readonly records: number };
   /**
-   * How likely this entry is, as a weight. A physical deck expresses this as
-   * *copies*; a digital one has no reason to (D27) — the same number, without
-   * having to write the card twice or shuffle anything.
+   * How likely this entry is, as a weight, projected from the deck composition
+   * in `src/config/tuning.json` (D27). A physical deck expresses this as
+   * *copies*; a digital one has no reason to — but the number a designer edits
+   * is still "how many of this card exist".
    */
   readonly rarity: number;
   /** shift == 0 — contained, but the site takes something. */
@@ -63,7 +65,6 @@ const card = (
   stat: Stat,
   difficulty: number,
   payloads: Pick<AnomalyCard, "collateral" | "failure" | "breach">,
-  rarity = 1,
 ): AnomalyCard => ({
   id: `scp-${String(number).padStart(3, "0")}`,
   name,
@@ -71,7 +72,7 @@ const card = (
   tier,
   test: { stat, difficulty },
   reward: { records: tier === "safe" ? 1 : tier === "euclid" ? 2 : 3 },
-  rarity,
+  rarity: deckCopies(tier, `scp-${String(number).padStart(3, "0")}`),
   mayLeave: true,
   // Declining a real anomaly raises pressure; walking past a Safe one is free.
   // §C2.1 leaves `declineCost` to tuning, so this is a PROPOSED value (§14f).

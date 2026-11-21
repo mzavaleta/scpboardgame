@@ -143,6 +143,12 @@ export type GameState = {
   readonly threat: number;
   /** Hunters that exist but do not act yet (M3). Counted, not simulated. */
   readonly hunters: number;
+  /**
+   * Fingerprint of the tuning file this game was created with. A changed number
+   * is a different game, and the state says so instead of silently breaking
+   * `?seed=` reproduction.
+   */
+  readonly config: string;
   readonly encounter: Encounter | null;
   /** The last test anyone rolled, so the table can see the arithmetic. */
   readonly lastTest: TestResult | null;

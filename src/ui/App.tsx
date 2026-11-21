@@ -327,6 +327,12 @@ export function App() {
               <span className="text-[10px] text-[var(--muted)]">
                 next {peekRolls(state.rng, 5).join(" ")}
               </span>
+              <span
+                className="text-[10px] text-[var(--muted)]"
+                title="Fingerprint of src/config/tuning.json — the numbers this game was created with"
+              >
+                cfg {state.config}
+              </span>
               {state.phase === "move" && (
                 <span
                   className="text-[10px] text-[var(--muted)]"

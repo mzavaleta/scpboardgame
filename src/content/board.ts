@@ -8,6 +8,8 @@
  * only slots, rings, kinds and edges. The renderer derives geometry (§C1, §S7.4).
  */
 
+import { gateRule } from "../config/tuning";
+
 export type Localized = { readonly en: string; readonly es: string };
 
 export type RingId = "outer" | "middle" | "inner" | "core";
@@ -104,13 +106,15 @@ export const BOARD: BoardDef = {
     node("core", 0, "core", "Command Center", "Centro de Mando"),
   ],
   // Two gates per boundary, placed roughly antipodal (§C1.6 invariant 2).
+  // Topology is content; the clearance and difficulty behind each gate are
+  // tuning values and live in `src/config/tuning.json` (§21-11-21 extraction).
   gates: [
-    { id: "G1", a: "outer-05", b: "middle-04", clearance: 2, test: { stat: "intellect", difficulty: 2 } },
-    { id: "G2", a: "outer-10", b: "middle-08", clearance: 2, test: { stat: "intellect", difficulty: 2 } },
-    { id: "G3", a: "middle-02", b: "inner-02", clearance: 3, test: { stat: "intellect", difficulty: 3 } },
-    { id: "G4", a: "middle-07", b: "inner-06", clearance: 3, test: { stat: "intellect", difficulty: 3 } },
-    { id: "G5", a: "inner-01", b: "core-00", clearance: 4, test: { stat: "intellect", difficulty: 4 } },
-    { id: "G6", a: "inner-05", b: "core-00", clearance: 4, test: { stat: "intellect", difficulty: 4 } },
+    { id: "G1", a: "outer-05", b: "middle-04", ...gateRule("G1") },
+    { id: "G2", a: "outer-10", b: "middle-08", ...gateRule("G2") },
+    { id: "G3", a: "middle-02", b: "inner-02", ...gateRule("G3") },
+    { id: "G4", a: "middle-07", b: "inner-06", ...gateRule("G4") },
+    { id: "G5", a: "inner-01", b: "core-00", ...gateRule("G5") },
+    { id: "G6", a: "inner-05", b: "core-00", ...gateRule("G6") },
   ],
 };
 

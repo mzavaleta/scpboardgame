@@ -10,6 +10,7 @@
  * also enforces clearance at gates, which used to be undetectable (§14f).
  */
 
+import { CONFIG_FINGERPRINT, TUNING } from "../config/tuning";
 import { ANOMALIES } from "../content/anomalies";
 import { ARRIVAL_NODE } from "../content/board";
 import { gatesAlong, getNode } from "./board";
@@ -20,9 +21,10 @@ import { rollD6 } from "./rng";
 import { ok, playerAt, playersIn, reject, SEAT_ORDER } from "./types";
 import type { Action, Effect, GameState, Player, Result, SeatId } from "./types";
 
-/** M2 placeholder until the role draft (M3) deals real character sheets. */
-const PLACEHOLDER_STATS = { combat: 3, intellect: 3 } as const;
-const STARTING_INTEGRITY = 6;
+// Start values live in `src/config/tuning.json` (see `start`), so a designer can
+// change them without touching code. The role draft (M3c) will replace the flat
+// stats with a chosen sheet; until then both seats are identical on purpose.
+
 
 const sign = (value: number): string => (value >= 0 ? `+${value}` : `${value}`);
 
@@ -35,12 +37,12 @@ export function createGame(seed: number, seats: readonly SeatId[] = SEAT_ORDER):
       {
         seat,
         node: ARRIVAL_NODE,
-        integrity: STARTING_INTEGRITY,
-        maxIntegrity: STARTING_INTEGRITY,
-        fate: 0,
-        stats: PLACEHOLDER_STATS,
+        integrity: TUNING.start.integrity,
+        maxIntegrity: TUNING.start.maxIntegrity,
+        fate: TUNING.start.fate,
+        stats: TUNING.start.stats,
         records: 0,
-        clearance: 1,
+        clearance: TUNING.start.clearance,
         evidence: { accident: 0, intent: 0 },
         tags: [],
         downed: false,
@@ -57,6 +59,7 @@ export function createGame(seed: number, seats: readonly SeatId[] = SEAT_ORDER):
     players,
     threat: 0,
     hunters: 0,
+    config: CONFIG_FINGERPRINT,
     encounter: null,
     lastTest: null,
     log: [`Round 1 — ${seats[0]} to act.`],

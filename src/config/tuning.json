@@ -18,6 +18,35 @@
     "steps": 3,
     "difficulty": 4
   },
+  "fate": {
+    "cap": 3,
+    "acceptCompel": 2,
+    "refuseCompel": 1,
+    "invokeCompel": 1,
+    "reroll": 1,
+    "deepRing": 1,
+    "breach": 1,
+    "escalation": 1,
+    "invokeBonus": 2
+  },
+  "hunters": {
+    "max": 4,
+    "contactDamage": 1
+  },
+  "stall": {
+    "hazardAfter": 3
+  },
+  "equipment": {
+    "slots": 3
+  },
+  "vote": {
+    "holdThreat": 2,
+    "tieThreat": 1,
+    "lockRounds": 2
+  },
+  "draft": {
+    "maxOptions": 3
+  },
   "rewards": {
     "safe": 1,
     "euclid": 2,

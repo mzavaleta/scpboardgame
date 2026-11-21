@@ -93,13 +93,13 @@ presence, board integrity, footprint satisfiability, role invariants, deck suffi
 
 | ID | Task | Specs | Route | Status |
 | --- | --- | --- | --- | --- |
-| T1 | Types, evidence tokens, tuning additions, effect additions | S3, S9, S10 | inline | pending |
-| T2 | Roles, aspects, compels content + draft | S1, S2 | inline | pending |
-| T3 | Main directives, alignment, victory matrix, D19 valve | S4, S5 | inline | pending |
-| T4 | Fate economy + compel action + respondCompel | S3 | inline | pending |
-| T5 | Escalation deck, stall hazard, Emergency Assembly vote | S6 | inline | pending |
-| T6 | Hunters move + contact | S7 | inline | pending |
-| T7 | Gear content, slots, modifiers, actions (rest/rescue/useItem/sealGate) | S8, S9 | inline | pending |
+| T1 | Types, evidence tokens, tuning additions, effect additions | S3, S9, S10 | inline | **done** |
+| T2 | Roles, aspects, compels content + draft | S1, S2 | inline | **done** |
+| T3 | Main directives, alignment, victory matrix, D19 valve | S4, S5 | inline | **done** |
+| T4 | Fate economy + compel action + respondCompel | S3 | inline | **done** |
+| T5 | Escalation deck, stall hazard, Emergency Assembly vote | S6 | inline | **done** |
+| T6 | Hunters move + contact | S7 | inline | **done** |
+| T7 | Gear content, slots, modifiers, actions (rest/rescue/useItem/sealGate) | S8, S9 | inline | **done** |
 | T8 | Simulator: alignment, compels, breach-achievable, thresholds | S11 | inline | pending |
 | T9 | i18n dictionary + pseudo-locale + all chrome | S12 | inline | pending |
 | T10 | Screens: setup/draft, handoff, table, endgame, credits | S13 | inline | pending |

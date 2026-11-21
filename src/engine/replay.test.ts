@@ -12,6 +12,7 @@
 
 import { describe, expect, it } from "vitest";
 import { reachableEndpoints } from "./movement";
+import { gatesAlong } from "./board";
 import { hashState } from "./hash";
 import { createGame, reduce } from "./reduce";
 import { nextInt } from "./rng";
@@ -30,6 +31,11 @@ function play(seed: number, actions: readonly Action[]): GameState {
 
 /** The legal moves in the current phase. Grows as rules land. */
 export function legalActions(state: GameState): Action[] {
+  if (state.outcome) return [];
+  if (state.draft) return [{ type: "chooseRole", roleId: state.draft.options[0]! }];
+  if (state.pendingCompel) return [{ type: "respondCompel", accept: true }];
+  if (state.vote) return [{ type: "castVote", choice: "seal" }];
+
   const player = playerAt(state.players, state.seat);
 
   switch (state.phase) {
@@ -39,7 +45,11 @@ export function legalActions(state: GameState): Action[] {
         ? [{ type: "respawn" }, { type: "endTurn" }]
         : [{ type: "rollMovement" }];
     case "move":
-      return reachableEndpoints(player.node, state.roll).map((node) => ({ type: "moveTo", node }));
+      return reachableEndpoints(player.node, state.roll)
+        .filter((node) =>
+          gatesAlong(player.node, node, state.roll).every((gate) => !(state.sealedGates[gate.id] ?? 0) || (state.sealedGates[gate.id] ?? 0) <= state.round),
+        )
+        .map((node) => ({ type: "moveTo", node }));
     case "space":
       return [
         { type: "resolveAnomaly", choice: "contain" },
@@ -79,7 +89,7 @@ function randomLegalRun(seedValue: number, steps: number): Action[] {
 describe("replay determinism", () => {
   it("produces an identical hash for the same seed and actions", () => {
     const actions = randomLegalRun(2026, 200);
-    expect(actions.length).toBe(200);
+    expect(actions.length).toBeGreaterThan(20);
     expect(hashState(play(2026, actions))).toBe(hashState(play(2026, actions)));
   });
 

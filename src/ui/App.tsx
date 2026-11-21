@@ -260,10 +260,9 @@ export function App() {
                   {getNode(player.node).name.en}
                   <div className="mt-0.5 text-[11px]">
                     C{player.stats.combat} I{player.stats.intellect} · rec {player.records} · clr{" "}
-                    {player.clearance} · ev {player.evidence.accident}/{player.evidence.intent}
-                    {player.evidence.tamperedProtocol > 0 && (
-                      <span className="text-[var(--danger)]"> · tamper {player.evidence.tamperedProtocol}</span>
-                    )}
+                    {player.clearance} · ev{" "}
+                    {state.evidence.filter((token) => token.sourceSeat === player.seat && token.class === "accident").length}/
+                    {state.evidence.filter((token) => token.sourceSeat === player.seat && token.class === "intent").length}
                     {player.tags.length > 0 && <> · {player.tags.join(", ")}</>}
                   </div>
                 </div>

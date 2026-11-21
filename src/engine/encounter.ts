@@ -7,6 +7,7 @@
  */
 
 import { ANOMALIES, ANOMALY_BY_ID } from "../content/anomalies";
+import { gearTestBonus } from "../content/gear";
 import { getNode } from "./board";
 import { nextInt, roll4dF } from "./rng";
 import { playerAt } from "./types";
@@ -85,11 +86,16 @@ export function rollTest(
   state: GameState,
   seat: SeatId,
   stat: Stat,
-  difficulty: number,
+  baseDifficulty: number,
   kind: "gate" | "anomaly" | "protocol",
 ): { readonly state: GameState; readonly result: TestResult } {
   const [dice, rng] = roll4dF(state.rng);
-  const statValue = playerAt(state.players, seat).stats[stat];
+  const player = playerAt(state.players, seat);
+  // §C5.5: gear is a standing modifier the test formula reads.
+  const statValue = player.stats[stat] + gearTestBonus(player.gear, kind, stat);
+  // §C3.3: Reckless #2 makes the next test harder, once.
+  const hard = player.tags.includes("hardTest");
+  const difficulty = baseDifficulty + (hard ? 1 : 0);
   const shift = dice + statValue - difficulty;
 
   const result: TestResult = {
@@ -103,7 +109,11 @@ export function rollTest(
     outcome: tierOf(shift),
   };
 
-  return { state: { ...state, rng, lastTest: result }, result };
+  const withoutHard = hard
+    ? { ...state, players: { ...state.players, [seat]: { ...player, tags: player.tags.filter((tag) => tag !== "hardTest") } } }
+    : state;
+
+  return { state: { ...withoutHard, rng, lastTest: result }, result };
 }
 
 /**

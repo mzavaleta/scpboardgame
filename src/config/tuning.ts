@@ -91,6 +91,44 @@ export const tuningSchema = z.object({
     steps: z.number().int().min(1),
     difficulty: z.number().int().min(0).max(6),
   }),
+  /**
+   * §7b.3: the political economy. Every number here is a dial; the *rule* that
+   * the invoker always pays and the target chooses stays in code.
+   */
+  fate: z.object({
+    cap: z.number().int().min(1),
+    acceptCompel: z.number().int().min(0),
+    refuseCompel: z.number().int().min(0),
+    invokeCompel: z.number().int().min(0),
+    reroll: z.number().int().min(0),
+    deepRing: z.number().int().min(0),
+    breach: z.number().int().min(0),
+    escalation: z.number().int().min(0),
+    invokeBonus: z.number().int().min(0),
+  }),
+  /** §7: hunters exist to make standing still dangerous. */
+  hunters: z.object({
+    max: z.number().int().min(0),
+    contactDamage: z.number().int().min(0),
+  }),
+  /** D16: the third consecutive stalled turn draws a hazard. */
+  stall: z.object({
+    hazardAfter: z.number().int().min(1),
+  }),
+  /** §C5.4: three slots, a rule rather than content. */
+  equipment: z.object({
+    slots: z.number().int().min(1),
+  }),
+  /** §C5.3: Emergency Assembly numbers. */
+  vote: z.object({
+    holdThreat: z.number().int().min(0),
+    tieThreat: z.number().int().min(0),
+    lockRounds: z.number().int().min(1),
+  }),
+  /** §S2 Q26: how many role options the draft offers, capped. */
+  draft: z.object({
+    maxOptions: z.number().int().min(1),
+  }),
   /** Records paid for containing an anomaly of each tier (§C1.4). */
   rewards: z.object({
     safe: z.number().int().min(0),
@@ -156,6 +194,31 @@ export function protocolRule(): {
 /** Records a containment pays, by tier. Content projects this onto each card. */
 export function tierReward(deck: DeckId): number {
   return TUNING.rewards[deck];
+}
+
+/** §7b.3: the Fate economy's numbers. Rules (who pays, who chooses) stay in code. */
+export function fateRule(): Tuning["fate"] {
+  return TUNING.fate;
+}
+
+export function hunterRule(): Tuning["hunters"] {
+  return TUNING.hunters;
+}
+
+export function stallRule(): Tuning["stall"] {
+  return TUNING.stall;
+}
+
+export function equipmentRule(): Tuning["equipment"] {
+  return TUNING.equipment;
+}
+
+export function voteRule(): Tuning["vote"] {
+  return TUNING.vote;
+}
+
+export function draftRule(): Tuning["draft"] {
+  return TUNING.draft;
 }
 
 /** Threat paid for declining, by tier. Zero means walking away is free. */

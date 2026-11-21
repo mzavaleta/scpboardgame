@@ -141,8 +141,8 @@ describe("containing", () => {
     const after = apply(facing(seed, "scp-106"), { type: "resolveAnomaly", choice: "contain" });
 
     expect(after.players.p1?.records).toBe(0);
-    expect(after.players.p1?.evidence.accident).toBe(1);
-    expect(after.players.p1?.evidence.intent).toBe(0);
+    expect(after.evidence.filter((token) => token.sourceSeat === "p1" && token.class === "accident")).toHaveLength(1);
+    expect(after.evidence.filter((token) => token.sourceSeat === "p1" && token.class === "intent")).toHaveLength(0);
   });
 
   it("always closes the encounter and hands the turn to the action phase", () => {
@@ -216,10 +216,14 @@ describe("going down", () => {
 
     const after = apply(down, { type: "respawn" });
 
-    expect(after.players.p1?.node).toBe(ARRIVAL_NODE);
-    expect(after.players.p1?.integrity).toBe(6);
-    expect(after.players.p1?.downed).toBe(false);
-    expect(after.phase).toBe("action");
+    // Q22: respawn is a draft, not a free reset — the new character is chosen.
+    expect(after.draft?.purpose).toBe("respawn");
+    const chosen = apply(after, { type: "chooseRole", roleId: after.draft!.options[0]! });
+
+    expect(chosen.players.p1?.node).toBe(ARRIVAL_NODE);
+    expect(chosen.players.p1?.integrity).toBe(chosen.players.p1?.maxIntegrity);
+    expect(chosen.players.p1?.downed).toBe(false);
+    expect(chosen.phase).toBe("roll");
   });
 
   it("lets a downed seat skip its turn instead of being stuck", () => {
@@ -291,8 +295,8 @@ describe("gates", () => {
         expect(landed.players.p1?.node).toBe("middle-04");
       } else {
         sawFail = true;
-        expect(landed.players.p1?.node).toBe(ARRIVAL_NODE);
-        expect(landed.players.p1?.evidence.accident).toBe(1);
+        expect(landed.players.p1?.node).toBe("outer-05");
+        expect(landed.evidence.filter((token) => token.sourceSeat === "p1" && token.class === "accident")).toHaveLength(1);
         expect(landed.phase).toBe("action");
       }
     }
@@ -388,7 +392,7 @@ describe("a whole turn (M2's acceptance criterion)", () => {
 
     expect(records).toBe(held ? card.reward.records : 0);
     if (outcome === "failure" || outcome === "breach") expect(integrity).toBeLessThan(6);
-    if (outcome === "breach") expect(resolved.players.p1?.evidence.accident).toBe(1);
+    if (outcome === "breach") expect(resolved.evidence.filter((token) => token.sourceSeat === "p1" && token.class === "accident")).toHaveLength(1);
 
     const log = resolved.log.join("\n");
 

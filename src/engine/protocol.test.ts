@@ -34,8 +34,9 @@ function atCore(options: { seat2?: string; steps?: number } = {}): GameState {
     protocolSteps: options.steps ?? 0,
     players: {
       ...base.players,
-      p1: { ...base.players.p1!, node: "core-00" },
-      p2: { ...base.players.p2!, node: options.seat2 ?? "inner-02" },
+      // §7c.3: a winner is a seat whose *directive* says so, so the fixture says so.
+      p1: { ...base.players.p1!, node: "core-00", mainDirectiveId: "m-untouched" },
+      p2: { ...base.players.p2!, node: options.seat2 ?? "inner-02", mainDirectiveId: "m-nobody-left" },
     },
   };
 }
@@ -121,7 +122,7 @@ describe("sabotage is the visible counter-move", () => {
     const after = apply(atCore({ steps: 2 }), { type: "sabotageProtocol" });
 
     expect(after.protocolSteps).toBe(1);
-    expect(after.players.p1?.evidence.tamperedProtocol).toBe(1);
+    expect(after.evidence.filter((token) => token.sourceSeat === "p1" && token.kind === "tamperedProtocol")).toHaveLength(1);
     expect(after.log.join("\n")).toMatch(/protocol 2 → 1/);
   });
 
@@ -129,7 +130,7 @@ describe("sabotage is the visible counter-move", () => {
     const after = apply(atCore({ steps: 0 }), { type: "sabotageProtocol" });
 
     expect(after.protocolSteps).toBe(0);
-    expect(after.players.p1?.evidence.tamperedProtocol).toBe(1);
+    expect(after.evidence.filter((token) => token.sourceSeat === "p1" && token.kind === "tamperedProtocol")).toHaveLength(1);
   });
 
   it("does not count as progress — it is a move against the site", () => {

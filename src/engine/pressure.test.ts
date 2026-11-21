@@ -133,7 +133,7 @@ describe("the warhead is the clock's face", () => {
     };
     const dead = idleRound(armed);
 
-    expect(dead.outcome).toEqual({ terminal: "detonated", winners: [] });
+    expect(dead.outcome).toMatchObject({ terminal: "detonated", winners: [] });
     expect(dead.log.join("\n")).toMatch(/detonated/i);
   });
 });

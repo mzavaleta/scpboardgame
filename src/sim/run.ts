@@ -11,7 +11,7 @@
  * whole seed, so the same options always produce the same report (§S9.1).
  */
 
-import { CONFIG_FINGERPRINT, clearancePrice, protocolRule } from "../config/tuning";
+import { CONFIG_FINGERPRINT, protocolRule, progressionRule } from "../config/tuning";
 import { BOARD } from "../content/board";
 import { directiveById } from "../content/directives";
 import { aspectById, roleById } from "../content/roles";
@@ -169,10 +169,8 @@ function pickDestination(state: GameState, policy: Policy): string {
   }
 
   // Cautious: take a route it can open for free; otherwise stay at depth and
-  // keep containing. It also refuses the core until it can pay its way in, since
-  // every exit from the core is the same clearance-4 gate.
-  const enterable = (node: string): boolean =>
-    getNode(node).ring !== "core" || player.clearance >= 4;
+  // keep containing.
+  const enterable = (_node: string): boolean => true;
 
   const passableOptions = options.filter((node) => enterable(node) && passable(node));
   if (passableOptions.length > 0) return deepest(passableOptions);
@@ -238,6 +236,9 @@ function chooseAction(state: GameState, policy: Policy): Action | null {
         if (gate) return { type: "sealGate", gateId: gate.id };
       }
 
+      // L15: the capsule is a win; a bot that can take it, takes it.
+      if (atCore && state.capsuleSeat === null) return { type: "claimCapsule" };
+
       if (!breach && atCore && state.protocolSteps < protocolRule().steps) return { type: "advanceProtocol" };
 
       const compel = pickCompel(state, policy);
@@ -245,11 +246,11 @@ function chooseAction(state: GameState, policy: Policy): Action | null {
 
       if (player.integrity * 2 < player.maxIntegrity && !player.tags.includes("rested")) return { type: "rest" };
 
-      if (policy === "cautious") {
-        const level = player.clearance < 4 ? player.clearance + 1 : null;
-        if (level && getNode(player.node).kind === "checkpoint") {
-          const price = clearancePrice(level as 2 | 3 | 4);
-          if (player.records >= price) return { type: "attemptClearance", level };
+      if (policy === "cautious" && getNode(player.node).kind === "checkpoint") {
+        const rule = progressionRule();
+        const stat = player.stats.combat <= player.stats.intellect ? "combat" : "intellect";
+        if (player.stats[stat] < rule.statCap && player.records >= rule.pointsPerStep) {
+          return { type: "raiseStat", stat };
         }
       }
 
@@ -299,7 +300,7 @@ export function playGame(policy: Policy, players: 2 | 3, seed: number, maxRounds
       if (!before.players[seat]?.downed && player.downed) deaths += 1;
     }
 
-    if (action.type === "attemptClearance") {
+    if (action.type === "raiseStat") {
       const paid = (before.players[state.seat]?.records ?? 0) - (playerAt(state.players, state.seat).records);
       recordsSpent += paid;
     }
@@ -310,7 +311,7 @@ export function playGame(policy: Policy, players: 2 | 3, seed: number, maxRounds
   const gateCrossedFree = count(log, /^\s+crossed G\d+ on clearance \d+\.$/);
   const gateCrossedByTest = count(log, /^\s+crossed G\d+\.$/);
   const draws = count(log, /^\s+.+ is here\.$/);
-  const purchases = count(log, /bought clearance \d+ → \d+/);
+  const purchases = count(log, /raised (combat|intellect) to \d+/);
 
   const seats = playersIn(state.players);
   const containmentSeats = seats.filter((player) => playerRoleAlignment(state, player.seat) === "containment").length;

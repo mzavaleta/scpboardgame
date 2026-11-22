@@ -103,8 +103,14 @@ export function acquireItem(state: GameState, seat: SeatId, itemId: ItemId): Eff
   let player = playerAt(state.players, seat);
   const item = gearById(itemId);
 
-  if (player.gear.length >= equipmentRule().slots) {
-    return { state, notes: [`${seat}'s rack is full — ${item.name.en} is left behind.`] };
+  // R6: two racks of three. A full rack no longer destroys the draw — the piece
+  // stays on the node, and anyone standing there can take it.
+  const sameRack = (id: string): boolean => (gearById(id).lifetime === "consumed") === (item.lifetime === "consumed");
+  if (player.gear.filter(sameRack).length >= equipmentRule().slots) {
+    return {
+      state: { ...state, dropped: [...state.dropped, { node: player.node, itemId }] },
+      notes: [`${seat}'s rack is full — ${item.name.en} is left at ${player.node}.`],
+    };
   }
 
   player = withGearCeiling({ ...player, gear: [...player.gear, itemId] });
@@ -230,12 +236,6 @@ export function applyEffects(
         const threat = clamp(next.threat + effect.delta, 0, threatRule().max);
         next = { ...next, threat };
         notes.push(`Threat ${sign(effect.delta)} → ${threat}`);
-        break;
-      }
-
-      case "setClearance": {
-        player = { ...player, clearance: clamp(effect.level, 1, 4) };
-        notes.push(`Clearance ${player.clearance}`);
         break;
       }
 

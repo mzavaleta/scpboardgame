@@ -15,7 +15,6 @@ import { seatsFor } from "../engine/types";
 import {
   CONFIG_FINGERPRINT,
   TUNING,
-  clearancePrice,
   deckCopies,
   declineThreat,
   tierReward,
@@ -105,10 +104,9 @@ describe("config and content agree", () => {
     }
   });
 
-  it("prices clearance as the access economy documents (§C1.4)", () => {
-    expect(clearancePrice(2)).toBe(3);
-    expect(clearancePrice(3)).toBe(4);
-    expect(clearancePrice(4)).toBe(5);
+  it("prices a stat step and caps the band (R3)", () => {
+    expect(TUNING.progression.pointsPerStep).toBe(3);
+    expect(TUNING.progression.statCap).toBe(6);
   });
 });
 
@@ -121,7 +119,6 @@ describe("the game reads the tuning, not a copy of it", () => {
     expect(player.integrity).toBe(TUNING.start.integrity);
     expect(player.maxIntegrity).toBe(TUNING.start.maxIntegrity);
     expect(player.fate).toBe(TUNING.start.fate);
-    expect(player.clearance).toBe(TUNING.start.clearance);
     expect(player.stats).toEqual(TUNING.start.stats);
   });
 

@@ -17,7 +17,7 @@ import { ESCALATION } from "../content/escalation";
 import { EQUIPMENT, gearById, gearTestBonus, hasModifier, modifiersOf } from "../content/gear";
 import { RULE_SECTIONS } from "../content/rules";
 import { aspectById, roleById, ROLES } from "../content/roles";
-import { TUNING, clearancePrice } from "../config/tuning";
+import { TUNING, progressionRule } from "../config/tuning";
 import { evalCondition } from "../engine/conditions";
 import { verdictFor } from "../engine/directives";
 import { hashState } from "../engine/hash";
@@ -502,7 +502,7 @@ export function App() {
                 </div>
                 <div className="mt-1 text-xs text-[var(--muted)]">
                   {t(lang, "integrity")} {player.integrity}/{player.maxIntegrity} · {t(lang, "fate")} {player.fate} ·{" "}
-                  {t(lang, "records")} {player.records} · {t(lang, "clearance")} {player.clearance}
+                  {t(lang, "records")} {player.records}
                 </div>
                 <div className="mt-0.5 text-[11px] text-[var(--muted)]">
                   {localized(getNode(player.node).name, lang)}
@@ -788,8 +788,6 @@ export function App() {
                     <span>{owner.fate}</span>
                     <span className="text-[var(--muted)]">{t(lang, "records")}</span>
                     <span>{owner.records}</span>
-                    <span className="text-[var(--muted)]">{t(lang, "clearance")}</span>
-                    <span>{owner.clearance}</span>
                     <span className="text-[var(--muted)]">{t(lang, "yourAspect")}</span>
                     <span>{owner.aspectId ? localized(aspectById(owner.aspectId).name, lang) : t(lang, "none")}</span>
                     <span className="text-[var(--muted)]">{t(lang, "evidence")}</span>
@@ -945,18 +943,37 @@ export function App() {
                 </>
               )}
 
-              {activeNode?.kind === "checkpoint" && active.clearance < 4 && (
-                <button
-                  onClick={() => dispatch({ type: "attemptClearance", level: active.clearance + 1 })}
-                  disabled={active.records < clearancePrice((active.clearance + 1) as 2 | 3 | 4)}
-                  className="rounded border border-[var(--accent)] px-3 py-2 text-sm text-[var(--accent)] disabled:opacity-30"
-                >
-                  {t(lang, "buyClearance", {
-                    level: active.clearance + 1,
-                    price: clearancePrice((active.clearance + 1) as 2 | 3 | 4),
-                  })}
-                </button>
-              )}
+              {activeNode?.kind === "checkpoint" &&
+                (["combat", "intellect"] as const).map((stat) => {
+                  const rule = progressionRule();
+                  const atCap = active.stats[stat] >= rule.statCap;
+                  return (
+                    <button
+                      key={`raise-${stat}`}
+                      onClick={() => dispatch({ type: "raiseStat", stat })}
+                      disabled={atCap || active.records < rule.pointsPerStep}
+                      className="rounded border border-[var(--accent)] px-3 py-2 text-sm text-[var(--accent)] disabled:opacity-30"
+                    >
+                      {t(lang, "raiseStat", {
+                        stat: t(lang, stat),
+                        cost: rule.pointsPerStep,
+                        value: active.stats[stat],
+                      })}
+                    </button>
+                  );
+                })}
+
+              {game.dropped
+                .filter((drop) => drop.node === active.node)
+                .map((drop) => (
+                  <button
+                    key={`pick-${drop.itemId}`}
+                    onClick={() => dispatch({ type: "pickUp", itemId: drop.itemId })}
+                    className="rounded border border-[var(--accent)] px-3 py-2 text-sm text-[var(--accent)]"
+                  >
+                    {t(lang, "pickUp", { item: localized(gearById(drop.itemId).name, lang) })}
+                  </button>
+                ))}
 
               <button
                 onClick={() => dispatch({ type: "rest" })}

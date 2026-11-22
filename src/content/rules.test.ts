@@ -39,7 +39,8 @@ describe("the rules page", () => {
     expect(all).toContain(`${TUNING.threat.warheadCountdown} rounds later`);
     expect(all).toContain(`difficulty ${TUNING.protocol.difficulty}`);
     expect(all).toContain(`Safe ${TUNING.rewards.safe}`);
-    expect(all).toContain(`${TUNING.equipment.slots} items`);
+    expect(all).toContain(`Two racks of ${TUNING.equipment.slots}`);
+    expect(all).toContain(`${TUNING.progression.pointsPerStep} Records to raise`);
   });
 
   it("names every gate the board actually has", () => {

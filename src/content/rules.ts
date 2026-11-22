@@ -165,15 +165,15 @@ export const RULE_SECTIONS: readonly RuleSection[] = [
   },
   {
     id: "records",
-    title: { en: "Records and clearance", es: "Registros y acceso" },
+    title: { en: "Records and progress", es: "Registros y progreso" },
     body: [
       {
         en: "Records are what the facility pays you for containing anomalies. They are public.",
         es: "Los Registros son lo que la instalación te paga por contener anomalías. Son públicos.",
       },
       {
-        en: "Careful: the checkpoint shop is being reworked. Today the only purchase is clearance — an administrative rank that some directives ask for, but that opens no door. Doors have conditions now, not ranks.",
-        es: "Atención: la tienda del punto de control está en revisión. Hoy la única compra es el acceso — un rango administrativo que algunas directrices piden, pero que no abre ninguna puerta. Ahora las puertas tienen condición, no rango.",
+        en: `At a checkpoint you spend ${TUNING.progression.pointsPerStep} Records to raise Combat or Intellect by one, up to ${TUNING.progression.statCap}. That is the only progression in the game: there is no clearance, and no door asks for a rank.`,
+        es: `En un punto de control gastas ${TUNING.progression.pointsPerStep} Registros para subir Combate o Intelecto en uno, hasta ${TUNING.progression.statCap}. Esa es la única progresión del juego: no hay acceso y ninguna puerta pide un rango.`,
       },
     ],
   },
@@ -186,8 +186,8 @@ export const RULE_SECTIONS: readonly RuleSection[] = [
         es: `El Destino es el pequeño recurso del temple. Lo ganas la primera vez que desciendes a un anillo, cuando una anomalía hace brecha, y con algunas cartas de escalada. Máximo ${fate.cap}.`,
       },
       {
-        en: `Spend ${fate.reroll} to reroll a test, ${fate.invokeCompel} to invoke a compel, ${fate.refuseCompel} to refuse one.`,
-        es: `Gasta ${fate.reroll} para repetir una prueba, ${fate.invokeCompel} para invocar un apremio, ${fate.refuseCompel} para rechazarlo.`,
+        en: `Spend ${fate.reroll} to reroll a test. A compel moves Fate instead of creating it: the invoker offers ${fate.invokeCompel}; if the target accepts, the point becomes theirs; if they refuse, they pay ${fate.refuseCompel} back to the invoker.`,
+        es: `Gasta ${fate.reroll} para repetir una prueba. Un apremio mueve Destino en vez de crearlo: quien invoca ofrece ${fate.invokeCompel}; si el objetivo acepta, el punto pasa a ser suyo; si rechaza, paga ${fate.refuseCompel} a quien invocó.`,
       },
     ],
   },
@@ -210,8 +210,8 @@ export const RULE_SECTIONS: readonly RuleSection[] = [
     title: { en: "Gear", es: "Equipo" },
     body: [
       {
-        en: `You carry ${TUNING.equipment.slots} items. Some modify your tests or your stats, some are consumed when used. A fourth draw is discarded, not swapped.`,
-        es: `Llevas ${TUNING.equipment.slots} objetos. Algunos modifican tus pruebas o tus estadísticas, otros se consumen al usarlos. Un cuarto robo se descarta, no se intercambia.`,
+        en: `Two racks of ${TUNING.equipment.slots}: one for consumables, one for standing equipment. Some items modify your tests or your stats. When a rack is full the new piece stays on the node where you found it, and anyone standing there can take it — including you, once you free a slot.`,
+        es: `Dos estantes de ${TUNING.equipment.slots}: uno para consumibles y otro para equipo permanente. Algunos objetos modifican tus pruebas o tus estadísticas. Cuando un estante está lleno, la pieza nueva queda en la casilla donde la encontraste, y cualquiera que esté allí puede tomarla — incluido tú, cuando liberes un hueco.`,
       },
     ],
   },

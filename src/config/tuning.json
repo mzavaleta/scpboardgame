@@ -4,7 +4,6 @@
     "integrity": 6,
     "maxIntegrity": 6,
     "fate": 0,
-    "clearance": 1,
     "stats": {
       "combat": 3,
       "intellect": 3
@@ -20,7 +19,7 @@
   },
   "fate": {
     "cap": 3,
-    "acceptCompel": 2,
+    "acceptCompel": 1,
     "refuseCompel": 1,
     "invokeCompel": 1,
     "reroll": 1,
@@ -167,11 +166,6 @@
       "difficulty": 6
     }
   },
-  "clearancePrices": {
-    "2": 3,
-    "3": 4,
-    "4": 5
-  },
   "decks": {
     "safe": {
       "scp-005": 1,
@@ -202,6 +196,10 @@
   },
   "version": 1,
   "doom": {
-    "chancePercent": 50
+    "chancePercent": 30
+  },
+  "progression": {
+    "pointsPerStep": 3,
+    "statCap": 6
   }
 }

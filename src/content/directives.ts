@@ -69,13 +69,13 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     id: "m-merit",
     name: { en: "By Merit", es: "Por Mérito" },
     text: {
-      en: "You hold Clearance 4 and never failed a gate test.",
-      es: "Tienes Acceso 4 y nunca fallaste una prueba de puerta.",
+      en: "You contained three anomalies and never failed a gate test.",
+      es: "Contuviste tres anomalías y nunca fallaste una prueba de puerta.",
     },
     alignment: "containment",
     condition: {
       kind: "all",
-      of: [{ kind: "clearanceAtLeast", n: 4 }, { kind: "noGateFailures" }],
+      of: [{ kind: "containments", atLeast: 3 }, { kind: "noGateFailures" }],
     },
     publicFootprint: [],
     attribution: ours,

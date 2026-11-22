@@ -52,8 +52,6 @@ export function evalCondition(
       return MARKED_KINDS.has(node.kind);
     case "atCheckpoint":
       return node.kind === "checkpoint";
-    case "clearanceAtLeast":
-      return player.clearance >= condition.n;
     case "fateAtLeast":
       return player.fate >= condition.n;
     case "recordsAtLeast":

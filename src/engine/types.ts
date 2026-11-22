@@ -103,7 +103,6 @@ export type Effect =
   | { readonly kind: "setRecords"; readonly value: number }
   | { readonly kind: "grantFate"; readonly delta: number }
   | { readonly kind: "raiseThreat"; readonly delta: number }
-  | { readonly kind: "setClearance"; readonly level: number }
   | { readonly kind: "addTag"; readonly tag: string }
   | { readonly kind: "spawnHunter"; readonly count: number }
   | { readonly kind: "spawnHunterAtRing"; readonly ring: RingId; readonly count: number }
@@ -134,7 +133,6 @@ export type Condition =
   | { readonly kind: "inRing"; readonly ring: RingId }
   | { readonly kind: "atMarkedNode" }
   | { readonly kind: "atCheckpoint" }
-  | { readonly kind: "clearanceAtLeast"; readonly n: number }
   | { readonly kind: "fateAtLeast"; readonly n: number }
   | { readonly kind: "recordsAtLeast"; readonly n: number }
   | { readonly kind: "gearAtLeast"; readonly n: number }
@@ -192,6 +190,9 @@ export type TestResult = {
   readonly shift: number;
   readonly outcome: Outcome;
 };
+
+/** R6: an item left on a node, waiting for a free rack. */
+export type DroppedItem = { readonly node: NodeId; readonly itemId: ItemId };
 
 /** §14k.4: the three conditions a gate can be in. Sealed is an overlay, not a fourth. */
 export type GateCondition = "open" | "locked" | "guarded";
@@ -265,9 +266,8 @@ export type Player = {
   /** 0..`TUNING.fate.cap` (§7b.3). */
   readonly fate: number;
   readonly stats: Stats;
+  /** R3: the facility's voucher — spent at a checkpoint to raise one stat. */
   readonly records: number;
-  /** Clearance level 1-4 (§C1.6). Level ≥ a gate's requirement crosses freely. */
-  readonly clearance: number;
   /** Public tags a card can grant ("key", "bound", "sample", "hardTest"). */
   readonly tags: readonly string[];
   /** §C5.4: three slots, item ids from `src/content/gear.ts`. */
@@ -402,6 +402,8 @@ export type GameState = {
    * ending and the directives have to change together.
    */
   readonly capsuleSeat: SeatId | null;
+  /** R6: items a full rack left on the floor; anyone standing there can take one. */
+  readonly dropped: readonly DroppedItem[];
   /** §S8.3 check 11: a replay can refuse content it was not recorded with. */
   readonly contentVersion: string;
   /** Public narration. Every entry here is public by definition (§S5). */
@@ -412,10 +414,10 @@ export type Action =
   | { readonly type: "rollMovement" }
   | { readonly type: "moveTo"; readonly node: NodeId }
   | { readonly type: "resolveAnomaly"; readonly choice: "contain" | "decline" }
-  /**
-   * §C1.4: spend Records at a checkpoint to buy the *next* clearance level.
-   */
-  | { readonly type: "attemptClearance"; readonly level: number }
+  /** R3: spend Records at a checkpoint to raise a stat by one. */
+  | { readonly type: "raiseStat"; readonly stat: "combat" | "intellect" }
+  /** R6: take an item left on this node by a full rack. */
+  | { readonly type: "pickUp"; readonly itemId: ItemId }
   /** §C4.4: one step up the recontainment protocol, at the Command Center. */
   | { readonly type: "advanceProtocol" }
   /** §C4.4: push the protocol down one step and leave `tamperedProtocol` evidence. */
@@ -465,8 +467,8 @@ export type RejectionCode =
   | "invalid-value"
   | "no-encounter"
   | "no-checkpoint"
-  | "not-enough-records"
-  | "clearance-order"
+  | "not-enough-progress"
+  | "stat-at-cap"
   | "no-core"
   | "capsule-taken"
   | "game-over"

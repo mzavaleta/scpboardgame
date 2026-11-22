@@ -73,8 +73,12 @@ export const tuningSchema = z.object({
     integrity: z.number().int().min(1),
     maxIntegrity: z.number().int().min(1),
     fate: z.number().int().min(0),
-    clearance: z.number().int().min(1).max(4),
     stats: statsSchema,
+  }),
+  /** R3: a stat step's price and the band's ceiling. */
+  progression: z.object({
+    pointsPerStep: z.number().int().min(1),
+    statCap: z.number().int().min(1).max(6),
   }),
   roles: z.array(roleSchema).min(1),
   /**
@@ -149,7 +153,6 @@ export const tuningSchema = z.object({
   /** §14k.5 R2: the doom deck's draw chance at the end of each round. */
   doom: z.object({ chancePercent: z.number().int().min(0).max(100) }),
   gates: z.record(z.string(), gateSchema),
-  clearancePrices: z.record(z.string(), z.number().int().min(0)),
   decks: z.object({
     safe: deckSchema,
     euclid: deckSchema,
@@ -187,6 +190,11 @@ export function gateRule(gateId: string): {
 /** §7: the track's ceiling and the warhead's fuse. */
 export function threatRule(): { readonly max: number; readonly countdown: number } {
   return { max: TUNING.threat.max, countdown: TUNING.threat.warheadCountdown };
+}
+
+/** R3: what a stat step costs and where the band stops. */
+export function progressionRule(): Tuning["progression"] {
+  return TUNING.progression;
 }
 
 /** §C4.4: the protocol's length and the difficulty of one step. */
@@ -237,12 +245,6 @@ export function declineThreat(deck: DeckId): number {
 }
 
 /** Records needed to raise clearance to `level` (§C1.4; M3a spends these). */
-export function clearancePrice(level: 2 | 3 | 4): number {
-  const price: number | undefined = TUNING.clearancePrices[String(level)];
-  if (price === undefined) throw new Error(`tuning: no clearance price for level ${level}`);
-  return price;
-}
-
 export function roleSheet(roleId: string): Tuning["roles"][number] {
   const role = TUNING.roles.find((candidate) => candidate.id === roleId);
   if (!role) throw new Error(`tuning: no role "${roleId}"`);

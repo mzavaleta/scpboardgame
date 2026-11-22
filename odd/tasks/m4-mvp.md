@@ -177,9 +177,9 @@ the pre-L15 order and is superseded by this line.
 | # | Item | Debt | Where it lives |
 | --: | --- | --- | --- |
 | A1 | **Gates become places** — **DONE 2026-11-22, `odd/tasks/m6-gates.md`**; three conditions + seal overlay, guard persists and blocks both directions, toll deleted | D10 / §14k.4 | `content/board.ts` (gate shape), `engine/reduce.ts` (`tryCrossGate`), `engine/effects.ts` (no persistence today), `content/anomalies.ts` |
-| A2 | **The economy: what Records buy** — the sink the gate rework deletes (gear/consumables, stats, or rank), visible on the board and explained in place | D12 / D28 | `ui/App.tsx`, `i18n/index.ts`, `config/tuning.json` |
+| A2 | **The economy** — **PARTIAL 2026-11-22, `odd/tasks/m6-economy.md`**: Records buy +1 Combat/Intellect at a checkpoint, clearance deleted; typed per-stat rewards and a visible shop are next | D12 / D28 | `ui/App.tsx`, `i18n/index.ts`, `config/tuning.json` |
 | A3 | **Directives become objectives** — 2–4 concrete steps, a private checklist with live progress, and actions that perform them; designed together with the post-MVP personal stake | D13 | `content/directives.ts`, `engine/conditions.ts`, `engine/directives.ts`, `ui/App.tsx` |
-| A4 | **Compels that can fire** — 6 of 18 are unreachable; pick a resolution (last-turn memory, state conditions, or a reaction window) | D11 | `engine/conditions.ts`, `content/roles.ts`, `engine/reduce.ts` (`compel`) |
+| A4 | **Compels** — **Fate transfer done 2026-11-22** (R5); the 6 unreachable compels are still open | D11 | `engine/conditions.ts`, `content/roles.ts`, `engine/reduce.ts` (`compel`) |
 | A5 | **The clock's ending** — guaranteed terminal; the wave clock is the leading candidate | checkpoint / §S9.6 | `engine/reduce.ts` (`endRound`), `engine/hunters.ts`, `config/tuning.json` |
 | A6 | **Save/resume and the respawn handoff** — 90-minute games without saving are not a complete product; infra, not polish | M5 | `engine/serialize*`, `ui/App.tsx` |
 | A7 | **CI and a committed Playwright path** — protects every item after it | M5 | `.github/`, `e2e/` |
@@ -459,3 +459,11 @@ texts were re-written out of the recontainment frame; the rules page follows the
 ending could not fire. **And the simulator was caught lying**: it broke samples on rejected bot actions and
 counted them as cap hits; after three bot fixes the reading is cap 0%, detonated 100%, median 8–10 rounds —
 so the old 44–82% "cap" was partly an artefact. Balance stays in Phase B.
+
+**L20 — the economy round (2026-11-22).** Owner: *"implement as much as you can … include balance that feels
+appropriate … keep current look and feel."* Built: Records → +1 stat at a checkpoint (3 Records, cap 6), clearance
+deleted end to end; compels now **transfer** Fate (invoke pays 1; accept moves it; refuse hands it back; the
+Waiver passes nothing); two gear racks (consumables / standing, 3 each) with overflow **left on the node** and a
+`pickUp` action. Balance: doom 30%, sim median 11–13 rounds, cap 0%. Full detail and the one deviation (typed
+per-stat rewards deferred) in `odd/tasks/m6-economy.md`. Not in the round: R4 (needs a pre-test window), A3
+(objectives), R7 (hunters as monsters).

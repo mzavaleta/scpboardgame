@@ -213,7 +213,9 @@ describe("compels and the Fate economy (§7b.3, §C3.5)", () => {
     const accepted = apply(state, { type: "respondCompel", accept: true });
     expect(accepted.pendingCompel).toBeNull();
     expect(accepted.players.p2?.records).toBe(3);
-    expect(accepted.players.p2?.fate).toBe(3);
+    // R5: the invoker's point moves to the target; nothing is created.
+    expect(accepted.players.p2?.fate).toBe(2);
+    expect(accepted.players.p1?.fate).toBe(0);
     expect(accepted.threat).toBe(1);
   });
 
@@ -221,6 +223,8 @@ describe("compels and the Fate economy (§7b.3, §C3.5)", () => {
     const state = apply(compelled(), { type: "compel", target: "p2", aspectId: "curious", compelIndex: 2 });
     const refused = apply(state, { type: "respondCompel", accept: false });
     expect(refused.players.p2?.fate).toBe(0);
+    // R5: refusing hands the offered point back.
+    expect(refused.players.p1?.fate).toBe(1);
     expect(refused.players.p2?.records).toBe(2);
 
     const broke = { ...state, players: { ...state.players, p2: { ...state.players.p2!, fate: 0 } } };

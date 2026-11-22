@@ -12,9 +12,10 @@
 import {
   CONFIG_FINGERPRINT,
   TUNING,
-  clearancePrice,
   doomRule,
+  equipmentRule,
   fateRule,
+  progressionRule,
   protocolRule,
   stallRule,
   threatRule,
@@ -31,7 +32,7 @@ import { CONTENT_VERSION } from "../content/version";
 import { distance, gatesAlong, getNode, ringDepth } from "./board";
 import { evalCondition } from "./conditions";
 import { dealDirectives, directivesSeed, resolveOutcome } from "./directives";
-import { applyEffects, containmentRecords } from "./effects";
+import { acquireItem, applyEffects, containmentRecords } from "./effects";
 import { anomalyName, deckForNode, describeTest, drawAnomaly, rollTest } from "./encounter";
 import { gateIsSealed, resolveVote } from "./escalation";
 import { hunterContact, moveHunters } from "./hunters";
@@ -108,7 +109,6 @@ function playerFromRole(seat: SeatId, roleId: string, node: string, previousDire
     fate: TUNING.start.fate,
     stats: role.stats,
     records: 0,
-    clearance: TUNING.start.clearance,
     tags: [],
     gear: [...role.startingGear],
     counters: emptyCounters(),
@@ -131,7 +131,6 @@ function blankPlayer(seat: SeatId): Player {
     fate: TUNING.start.fate,
     stats: TUNING.start.stats,
     records: 0,
-    clearance: TUNING.start.clearance,
     tags: [],
     gear: [],
     counters: emptyCounters(),
@@ -177,6 +176,7 @@ export function createGame(
     // §14k.4: the board declares what each door is; the state copy is what changes.
     gates: Object.fromEntries(BOARD.gates.map((gate) => [gate.id, { condition: gate.condition }])),
     capsuleSeat: null,
+    dropped: [],
     contentVersion: CONTENT_VERSION,
     log: [`Round 1 — ${seats[0]} to act.`],
   };
@@ -797,41 +797,38 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
       });
     }
 
-    case "attemptClearance": {
-      if (state.phase !== "action") {
-        return reject("wrong-phase", `Cannot buy clearance during the ${state.phase} phase.`);
+    case "raiseStat": {
+      if (!canAct(state)) return reject("wrong-phase", "Raise a stat on your own action phase.");
+      const owner = playerAt(state.players, state.seat);
+      const here = getNode(owner.node);
+      if (here.kind !== "checkpoint") {
+        return reject("no-checkpoint", `${here.name.en} has no requisition desk.`);
       }
 
-      const buyer = playerAt(state.players, state.seat);
-      if (buyer.downed) {
-        return reject("downed", `${state.seat} is down — respawn before buying clearance.`);
+      const rule = progressionRule();
+      if (owner.stats[action.stat] >= rule.statCap) {
+        return reject("stat-at-cap", `${action.stat} is already at ${rule.statCap}.`);
       }
-      if (buyer.tags.includes("held") || buyer.tags.includes("distracted")) {
-        return reject("wrong-phase", `${state.seat} loses this action.`);
-      }
-
-      const here = getNode(buyer.node);
-      if (here.kind !== "checkpoint") return reject("no-checkpoint", `${here.name.en} has no access desk.`);
-
-      const level = action.level;
-      if (level < 2 || level > 4 || level !== buyer.clearance + 1) {
-        return reject("clearance-order", `Clearance ${level} is not the next level from ${buyer.clearance}.`);
-      }
-
-      const price = clearancePrice(level as 2 | 3 | 4);
-      if (buyer.records < price) {
-        return reject("not-enough-records", `Clearance ${level} costs ${price} Records; ${state.seat} has ${buyer.records}.`);
+      if (owner.records < rule.pointsPerStep) {
+        return reject(
+          "not-enough-progress",
+          `A step costs ${rule.pointsPerStep} Records; ${state.seat} has ${owner.records}.`,
+        );
       }
 
       return ok({
         ...markProgress(state, state.seat),
         players: {
           ...state.players,
-          [state.seat]: { ...buyer, clearance: level, records: buyer.records - price },
+          [state.seat]: {
+            ...owner,
+            stats: { ...owner.stats, [action.stat]: owner.stats[action.stat] + 1 },
+            records: owner.records - rule.pointsPerStep,
+          },
         },
         log: [
           ...state.log,
-          `${state.seat} bought clearance ${buyer.clearance} → ${level} for ${price} Records at ${here.name.en}.`,
+          `${state.seat} raised ${action.stat} to ${owner.stats[action.stat] + 1} for ${rule.pointsPerStep} Records at ${here.name.en}.`,
         ],
       });
     }
@@ -969,7 +966,10 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
       }
 
       const gear = waiverIndex >= 0 ? target.gear.filter((_, index) => index !== waiverIndex) : target.gear;
+      // R5: Fate is never created or burned by a compel. Refusing hands the
+      // offered point back to the invoker; waiving the refusal passes nothing.
       let next = replacePlayer(state, withFate({ ...target, gear }, -cost));
+      if (waiverIndex < 0) next = replacePlayer(next, withFate(playerAt(next.players, pending.invoker), cost));
       return ok({
         ...next,
         pendingCompel: null,
@@ -1173,6 +1173,25 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
           ...(nextPlayer.downed ? [`— ${nextSeat} is down (respawn or skip).`] : []),
           `— ${nextSeat} to act (round ${round}).`,
         ],
+      });
+    }
+
+    case "pickUp": {
+      if (!canAct(state)) return reject("wrong-phase", "Pick something up on your own action phase.");
+      const picker = playerAt(state.players, state.seat);
+      const drop = state.dropped.find((entry) => entry.node === picker.node && entry.itemId === action.itemId);
+      if (!drop) return reject("invalid-target", "That item is not here.");
+      const item = gearById(action.itemId);
+      const sameRack = (id: string): boolean => (gearById(id).lifetime === "consumed") === (item.lifetime === "consumed");
+      if (picker.gear.filter(sameRack).length >= equipmentRule().slots) {
+        return reject("invalid-target", "That rack is full.");
+      }
+
+      const rest = state.dropped.filter((entry) => entry !== drop);
+      const acquired = acquireItem({ ...state, dropped: rest }, state.seat, action.itemId);
+      return ok({
+        ...acquired.state,
+        log: [...acquired.state.log, `${state.seat} picks up ${item.name.en}.`, ...acquired.notes],
       });
     }
 

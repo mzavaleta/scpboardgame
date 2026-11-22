@@ -206,6 +206,20 @@ export const RULE_SECTIONS: readonly RuleSection[] = [
     ],
   },
   {
+    id: "objectives",
+    title: { en: "Public objectives", es: "Objetivos públicos" },
+    body: [
+      {
+        en: "Each character has one public objective, fixed by who they are — the reason they are in the building. Everyone can read it.",
+        es: "Cada personaje tiene un objetivo público, fijado por quién es: la razón por la que está en el edificio. Todos pueden leerlo.",
+      },
+      {
+        en: "Meet it during the game and take a real reward. Still have it undone when the warhead arms and it costs you — the moment the site's destruction stops being a threat and becomes a fact. An objective already met is never punished.",
+        es: "Cúmplelo durante la partida y llévate una recompensa real. Si sigue sin cumplirse cuando se arma la ojiva, te cuesta: el momento en que la destrucción del sitio deja de ser una amenaza y se vuelve un hecho. Un objetivo ya cumplido nunca se castiga.",
+      },
+    ],
+  },
+  {
     id: "gear",
     title: { en: "Gear", es: "Equipo" },
     body: [

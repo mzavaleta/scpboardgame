@@ -79,3 +79,18 @@ contact rolls the same 4dF test as a containment and costs `hunters.contactDamag
 `confrontHunter` action is the deliberate fight: success destroys the hunter, failure applies the card's own
 failure/breach payload. Being caught is cheap; choosing to fight is not. The rules page says so. Balance after it:
 median 11–12 rounds, cap 0%, deaths 1.05–2.9/game (3-player tables still above the 1.5 target — Phase B).
+
+**L7 — A3, layer 1: public character objectives (2026-11-22).** Each of the six roles now carries one **fixed,
+public** objective (`src/content/objectives.ts`), the character's reason to be in the building: the Field Agent
+clears two anomalies, the Researcher brings a Keter, the D-Class reaches the inner ring, the Specialist holds two
+Euclid, the Medic performs a rescue, the Ethics Aide audits someone else's intent evidence. It pays a one-time
+reward the moment it is met (checked at the end of that seat's turn) and turns into a **mild penalty** when the
+warhead arms — the moment the site's destruction stops being a threat. An already-met objective is never punished.
+It is visible in the players panel and in the player sheet, with ✓/○/✗. 215 tests. Balance after: median 11–12,
+deaths 1.05–3.05.
+
+**L8 — A3, layer 2 is still open.** The hidden Main Directive is still a **predicate read once at the end**, which
+is D13's core complaint. The design I would build next: give each directive 2–4 `steps` (conditions), render them
+as a private checklist with live ✓/○ in the player sheet, and derive the labels with one `describeCondition`
+helper rather than 20 new strings. That keeps the win rule unchanged (the existing condition) while making the
+motive legible and actionable; a later pass turns the steps into actions that perform them.

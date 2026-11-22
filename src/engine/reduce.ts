@@ -23,6 +23,7 @@ import {
 } from "../config/tuning";
 import { ANOMALIES } from "../content/anomalies";
 import { DOOM } from "../content/doom";
+import { objectiveFor } from "../content/objectives";
 import { ARRIVAL_NODE, BOARD } from "../content/board";
 import { MAIN_DIRECTIVES, directiveById } from "../content/directives";
 import { ESCALATION_BY_ID } from "../content/escalation";
@@ -115,6 +116,8 @@ function playerFromRole(seat: SeatId, roleId: string, node: string, previousDire
     visitedRings: [getNode(node).ring],
     stalledTurns: 0,
     downed: false,
+    objectiveDone: false,
+    objectiveFailed: false,
   };
 }
 
@@ -137,6 +140,8 @@ function blankPlayer(seat: SeatId): Player {
     visitedRings: [getNode(ARRIVAL_NODE).ring],
     stalledTurns: 0,
     downed: false,
+    objectiveDone: false,
+    objectiveFailed: false,
   };
 }
 
@@ -284,6 +289,12 @@ function endRound(state: GameState): GameState {
       };
     }
     notes.push(`the warhead counts down — ${remaining} round${remaining === 1 ? "" : "s"} left.`);
+  }
+
+  if (state.warhead === null && warhead !== null) {
+    const failed = failObjectives(next);
+    next = failed.state;
+    notes.push(...failed.notes);
   }
 
   next = removeTags({ ...next, threat, warhead, progressThisRound: [], turnProgress: false, turnEvents: [] }, ["unseen"]);
@@ -465,6 +476,33 @@ function dealOneDirective(state: GameState, seat: SeatId, exclude: readonly stri
   const directive = pool[directivesSeed(state, seat, pool.length)] as (typeof MAIN_DIRECTIVES)[number];
   const player = playerAt(state.players, seat);
   return replacePlayer(state, { ...player, mainDirectiveId: directive.id });
+}
+
+/** A3: the public objective pays once, the moment it is met. */
+function checkObjective(state: GameState, seat: SeatId): { state: GameState; notes: readonly string[] } {
+  const player = playerAt(state.players, seat);
+  if (player.objectiveDone || player.objectiveFailed || !player.roleId) return { state, notes: [] };
+  const objective = objectiveFor(player.roleId);
+  if (!evalCondition(state, seat, objective.condition)) return { state, notes: [] };
+  const applied = applyEffects(state, seat, objective.reward);
+  return {
+    state: replacePlayer(applied.state, { ...playerAt(applied.state.players, seat), objectiveDone: true }),
+    notes: [`${seat} met their objective — ${applied.notes.join(", ") || "reward"}.`],
+  };
+}
+
+/** A3: the warhead arming turns an unmet objective into a failure. */
+function failObjectives(state: GameState): { state: GameState; notes: readonly string[] } {
+  let next = state;
+  const notes: string[] = [];
+  for (const player of playersIn(next.players)) {
+    if (player.objectiveDone || player.objectiveFailed || !player.roleId) continue;
+    const objective = objectiveFor(player.roleId);
+    const applied = applyEffects(next, player.seat, objective.penalty);
+    next = replacePlayer(applied.state, { ...playerAt(applied.state.players, player.seat), objectiveFailed: true });
+    notes.push(`${player.seat} did not meet their objective — ${applied.notes.join(", ") || "penalty"}.`);
+  }
+  return { state: next, notes };
 }
 
 /** L15: each protocol step buys the table one round of countdown. */
@@ -1142,6 +1180,9 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
       } else if (state.turnProgress) {
         settled = replacePlayer(settled, { ...active, stalledTurns: 0 });
       }
+
+      const objective = checkObjective(settled, state.seat);
+      settled = { ...objective.state, log: [...objective.state.log, ...objective.notes] };
 
       settled = removeTags(settled, ["bound", "held", "distracted", "rested", "unseen", "hardTest"]);
 

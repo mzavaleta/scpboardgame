@@ -282,6 +282,10 @@ export type Player = {
   readonly stalledTurns: number;
   /** At 0 Integrity you stop acting until you respawn or are rescued (Q22). */
   readonly downed: boolean;
+  /** A3: the role's public objective, once met. */
+  readonly objectiveDone: boolean;
+  /** A3: the moment passed (the warhead armed) and it was not met. */
+  readonly objectiveFailed: boolean;
 };
 
 /**

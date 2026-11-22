@@ -98,6 +98,7 @@ const EN = {
   claimSeat: "I am…",
   notYourSeat: "Nothing here for that seat.",
   motive: "Motive",
+  objective: "Objective",
 
   tierSafe: "safe",
   tierEuclid: "euclid",
@@ -271,6 +272,7 @@ const ES: Record<Key, string> = {
   claimSeat: "Yo soy…",
   notYourSeat: "No hay nada para esa posición.",
   motive: "Motivo",
+  objective: "Objetivo",
 
   tierSafe: "seguro",
   tierEuclid: "euclid",

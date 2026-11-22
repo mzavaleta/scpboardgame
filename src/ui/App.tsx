@@ -15,6 +15,7 @@ import { BOARD } from "../content/board";
 import { MAIN_DIRECTIVES, directiveById } from "../content/directives";
 import { ESCALATION } from "../content/escalation";
 import { EQUIPMENT, gearById, gearTestBonus, hasModifier, modifiersOf } from "../content/gear";
+import { objectiveFor } from "../content/objectives";
 import { RULE_SECTIONS } from "../content/rules";
 import { aspectById, roleById, ROLES } from "../content/roles";
 import { TUNING, progressionRule } from "../config/tuning";
@@ -510,6 +511,14 @@ export function App() {
                 <div className="mt-0.5 text-[11px] text-[var(--muted)]">
                   {t(lang, "aspect")}: {player.aspectId ? localized(aspectById(player.aspectId).name, lang) : t(lang, "none")}
                 </div>
+                {player.roleId && (
+                  <div className="mt-0.5 text-[11px] text-[var(--muted)]">
+                    {t(lang, "objective")}: {localized(objectiveFor(player.roleId).text, lang)}{" "}
+                    <span className={player.objectiveDone ? "text-[var(--accent)]" : player.objectiveFailed ? "text-[var(--danger)]" : ""}>
+                      {player.objectiveDone ? "✓" : player.objectiveFailed ? "✗" : "○"}
+                    </span>
+                  </div>
+                )}
                 {player.gear.length > 0 && (
                   <div className="mt-0.5 text-[11px] text-[var(--muted)]">
                     {t(lang, "gear")}: {player.gear.map((id) => localized(gearById(id).name, lang)).join(", ")}
@@ -773,6 +782,15 @@ export function App() {
                   <div className="text-sm">{directive ? localized(directive.name, lang) : t(lang, "none")}</div>
                   {directive && (
                     <div className="text-xs text-[var(--muted)]">{localized(directive.text, lang)}</div>
+                  )}
+
+                  {owner.roleId && (
+                    <div className="mt-3 text-xs text-[var(--muted)]">
+                      {t(lang, "objective")}: {localized(objectiveFor(owner.roleId).text, lang)}{" "}
+                      <b className={owner.objectiveDone ? "text-[var(--accent)]" : owner.objectiveFailed ? "text-[var(--danger)]" : ""}>
+                        {owner.objectiveDone ? "✓" : owner.objectiveFailed ? "✗" : "○"}
+                      </b>
+                    </div>
                   )}
 
                   <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1 text-sm">

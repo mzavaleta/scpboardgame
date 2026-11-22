@@ -178,7 +178,7 @@ the pre-L15 order and is superseded by this line.
 | --: | --- | --- | --- |
 | A1 | **Gates become places** — **DONE 2026-11-22, `odd/tasks/m6-gates.md`**; three conditions + seal overlay, guard persists and blocks both directions, toll deleted | D10 / §14k.4 | `content/board.ts` (gate shape), `engine/reduce.ts` (`tryCrossGate`), `engine/effects.ts` (no persistence today), `content/anomalies.ts` |
 | A2 | **The economy** — **PARTIAL 2026-11-22, `odd/tasks/m6-economy.md`**: Records buy +1 Combat/Intellect at a checkpoint, clearance deleted; typed per-stat rewards and a visible shop are next | D12 / D28 | `ui/App.tsx`, `i18n/index.ts`, `config/tuning.json` |
-| A3 | **Directives become objectives** — 2–4 concrete steps, a private checklist with live progress, and actions that perform them; designed together with the post-MVP personal stake | D13 | `content/directives.ts`, `engine/conditions.ts`, `engine/directives.ts`, `ui/App.tsx` |
+| A3 | **Directives become objectives** — **PARTIAL 2026-11-22**: public per-role objectives (fixed, visible, reward/penalty) are built; the hidden directive still needs 2–4 steps, a private checklist and performable actions | D13 | `content/directives.ts`, `engine/conditions.ts`, `engine/directives.ts`, `ui/App.tsx` |
 | A4 | **Compels** — **Fate transfer done 2026-11-22** (R5); the 6 unreachable compels are still open | D11 | `engine/conditions.ts`, `content/roles.ts`, `engine/reduce.ts` (`compel`) |
 | A5 | **The clock's ending** — guaranteed terminal; the wave clock is the leading candidate | checkpoint / §S9.6 | `engine/reduce.ts` (`endRound`), `engine/hunters.ts`, `config/tuning.json` |
 | A6 | **Save/resume and the respawn handoff** — 90-minute games without saving are not a complete product; infra, not polish | M5 | `engine/serialize*`, `ui/App.tsx` |
@@ -473,3 +473,8 @@ on the economy: *"ok but eventually will be splitted. we need different economie
 economies are the end state; the flat pool is a stage. R7 also landed: hunters carry a Keter card as their stat
 block, contact is a 4dF test costing 1 Integrity on a failure, and `confrontHunter` is the real fight (success
 destroys, failure applies the card's payload). 211 tests, build clean, median 11–12 rounds, deaths 1.05–2.9.
+
+**L22 — public objectives (2026-11-22).** A3 layer 1 landed: six fixed, public role objectives with a one-time
+reward when met and a mild penalty at the moment the warhead arms; visible in the table and the sheet. Layer 2 —
+the hidden directive as a stepped, legible checklist — is the next unit and the remaining half of D13. 215 tests,
+build clean, median 11–12 rounds.

@@ -162,6 +162,8 @@ const EN = {
   pendingAttribution: "author pending",
   original: "original",
   back: "Back",
+  rules: "Rules",
+  rulesLead: "How the facility works, in the order you meet it at the table.",
 
   devTools: "Dev tools",
   forceRoll: "Force roll",
@@ -328,6 +330,8 @@ const ES: Record<Key, string> = {
   pendingAttribution: "autor pendiente",
   original: "original",
   back: "Volver",
+  rules: "Reglas",
+  rulesLead: "Cómo funciona la instalación, en el orden en que la encuentras en la mesa.",
 
   devTools: "Herramientas de desarrollo",
   forceRoll: "Forzar tirada",

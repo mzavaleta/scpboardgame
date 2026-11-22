@@ -1,0 +1,248 @@
+/**
+ * The rules page (§S12 chrome, content stays `{ en, es }`).
+ *
+ * Two rules for this file:
+ * 1. **It describes what the engine actually does.** Where a number is a dial it
+ *    is read from `TUNING`, so the page cannot drift from the build.
+ * 2. **It is written for a player at the table**, not for the design document:
+ *    short sentences, no jargon the screen does not already use.
+ *
+ * The gate table is generated from `BOARD.gates` + `gateRule()`, the same source
+ * the engine reads.
+ */
+
+import { gateRule, TUNING } from "../config/tuning";
+import { BOARD, type Localized } from "./board";
+
+export type RuleSection = {
+  readonly id: string;
+  readonly title: Localized;
+  readonly body: readonly Localized[];
+};
+
+const rewards = TUNING.rewards;
+const threat = TUNING.threat;
+const protocol = TUNING.protocol;
+const fate = TUNING.fate;
+const gates = BOARD.gates
+  .map((gate) => {
+    const rule = gateRule(gate.id);
+    const word =
+      rule.condition === "open" ? { en: "open", es: "abierta" } : rule.condition === "locked" ? { en: "locked", es: "bloqueada" } : { en: "guarded", es: "vigilada" };
+    return `${gate.id} — ${word.en} · Intellect ${rule.test.difficulty}`;
+  })
+  .join(" · ");
+
+const gatesEs = BOARD.gates
+  .map((gate) => {
+    const rule = gateRule(gate.id);
+    const word =
+      rule.condition === "open" ? "abierta" : rule.condition === "locked" ? "bloqueada" : "vigilada";
+    return `${gate.id} — ${word} · Intelecto ${rule.test.difficulty}`;
+  })
+  .join(" · ");
+
+export const RULE_SECTIONS: readonly RuleSection[] = [
+  {
+    id: "goal",
+    title: { en: "The goal", es: "El objetivo" },
+    body: [
+      {
+        en: "The facility is failing. You are trying to survive it — and each player has a secret Main Directive that says what surviving means to them. Nobody else can see it.",
+        es: "La instalación está fallando. Intentas sobrevivir — y cada jugador tiene una Directriz Principal secreta que dice qué significa sobrevivir para él. Nadie más puede verla.",
+      },
+      {
+        en: "The game ends in one of two ways: the site is recontained, or the Alpha Warhead detonates. At the end every directive is revealed and read: most pay off only on one of those two endings.",
+        es: "La partida termina de una de dos formas: el sitio se recontiene, o la Ojiva Alfa detona. Al final se revelan y se leen todas las directrices: la mayoría solo se cumplen con uno de esos dos finales.",
+      },
+    ],
+  },
+  {
+    id: "turn",
+    title: { en: "Your turn", es: "Tu turno" },
+    body: [
+      {
+        en: "Roll one die, move exactly that many spaces, resolve the space you land on, take one action, then end your turn. Only the landing resolves — passing through a space does nothing.",
+        es: "Tira un dado, muévete exactamente esa cantidad de casillas, resuelve la casilla donde aterrizas, realiza una acción y termina tu turno. Solo se resuelve el aterrizaje — pasar por una casilla no hace nada.",
+      },
+      {
+        en: "The path must be simple: you cannot return to a space you already visited in the same move. Gates are edges between rings — crossing one is part of the move.",
+        es: "El camino debe ser simple: no puedes volver a una casilla que ya visitaste en el mismo movimiento. Las puertas son bordes entre anillos — cruzarlas forma parte del movimiento.",
+      },
+    ],
+  },
+  {
+    id: "board",
+    title: { en: "The board", es: "El tablero" },
+    body: [
+      {
+        en: "Three rings around a Core: outer, middle and inner. The deeper you go, the worse the spaces and the better the payoff. Every boundary is crossed through one of two gates.",
+        es: "Tres anillos alrededor de un Núcleo: exterior, medio e interior. Cuanto más profundo, peores son las casillas y mejor la recompensa. Cada frontera se cruza por una de dos puertas.",
+      },
+    ],
+  },
+  {
+    id: "spaces",
+    title: { en: "Spaces", es: "Casillas" },
+    body: [
+      {
+        en: "Lab or cell: draw an anomaly (Safe in the outer ring, Euclid in the middle, Keter in the inner).",
+        es: "Laboratorio o celda: roba una anomalía (Segura en el anillo exterior, Euclides en el medio, Keter en el interior).",
+      },
+      {
+        en: "Supply or terminal: draw a piece of equipment. Alarm: draw an escalation card. Medical: resting there heals one more. Checkpoint: where Records are spent.",
+        es: "Suministros o terminal: roba una pieza de equipo. Alarma: roba una carta de escalada. Enfermería: descansar allí cura uno más. Punto de control: donde se gastan los Registros.",
+      },
+      {
+        en: "The Core holds the Command Center: the only place where the protocol can be worked.",
+        es: "El Núcleo contiene el Centro de Mando: el único lugar donde se puede trabajar el protocolo.",
+      },
+    ],
+  },
+  {
+    id: "anomalies",
+    title: { en: "Anomalies", es: "Anomalías" },
+    body: [
+      {
+        en: "Roll four Fate dice and add Combat or Intellect, then subtract the card's difficulty. The margin reads the outcome: clean or success contains it, collateral contains it and you pay the card's price, failure means it is still loose, breach means it gets out and the site pays.",
+        es: "Tira cuatro dados de Destino y suma Combate o Intelecto, luego resta la dificultad de la carta. El margen decide el resultado: limpio o éxito la contiene, colateral la contiene y pagas el precio de la carta, fallo significa que sigue suelta, brecha significa que escapa y el sitio lo paga.",
+      },
+      {
+        en: `Containing pays Records by tier: Safe ${rewards.safe}, Euclid ${rewards.euclid}, Keter ${rewards.keter}. Walking away costs Threat on Euclid and Keter cards, and the anomaly is not contained.`,
+        es: `Contener paga Registros según el nivel: Segura ${rewards.safe}, Euclides ${rewards.euclid}, Keter ${rewards.keter}. Alejarse cuesta Amenaza en las cartas Euclides y Keter, y la anomalía no queda contenida.`,
+      },
+    ],
+  },
+  {
+    id: "gates",
+    title: { en: "Gates", es: "Puertas" },
+    body: [
+      {
+        en: `Open: walk through. Locked: opened by a key or one Intellect test — and once opened it stays open for everyone. Guarded: the walk stops at the mouth and draws an anomaly from the ring you are entering. Contain it and you cross; fail or walk away and it stays at the gate, blocking everybody in both directions until someone clears it. Sealed: the Emergency Assembly can shut a gate for ${TUNING.vote.lockRounds} rounds.`,
+        es: `Abierta: pasa. Bloqueada: se abre con una llave o con una prueba de Intelecto — y una vez abierta queda abierta para todos. Vigilada: el movimiento se detiene en la boca y roba una anomalía del anillo al que entras. Contenla y cruzas; si fallas o te alejas, se queda en la puerta y bloquea a todos en ambos sentidos hasta que alguien la despeje. Sellada: la Asamblea de Emergencia puede cerrar una puerta durante ${TUNING.vote.lockRounds} rondas.`,
+      },
+      {
+        en: `Current doors: ${gates}.`,
+        es: `Puertas actuales: ${gatesEs}.`,
+      },
+    ],
+  },
+  {
+    id: "threat",
+    title: { en: "Threat and the warhead", es: "Amenaza y la ojiva" },
+    body: [
+      {
+        en: `The Threat track runs from 0 to ${threat.max}. At the end of each round it advances by one only if nobody attempted anything that round. An attempt is touching a gate, stepping into a deeper ring, starting a containment, or working the protocol — the outcome does not matter, trying is enough.`,
+        es: `La pista de Amenaza va de 0 a ${threat.max}. Al final de cada ronda avanza uno solo si nadie intentó nada en esa ronda. Un intento es tocar una puerta, entrar en un anillo más profundo, iniciar una contención o trabajar el protocolo — el resultado no importa, intentarlo basta.`,
+      },
+      {
+        en: `At ${threat.max} the Alpha Warhead arms. It detonates ${threat.warheadCountdown} rounds later.`,
+        es: `Con ${threat.max} se arma la Ojiva Alfa. Detona ${threat.warheadCountdown} rondas después.`,
+      },
+      {
+        en: `Stalling has its own price: three turns in a row without attempting anything draws a hazard.`,
+        es: `Estancarse tiene su propio precio: tres turnos seguidos sin intentar nada roban un peligro.`,
+      },
+    ],
+  },
+  {
+    id: "protocol",
+    title: { en: "The protocol", es: "El protocolo" },
+    body: [
+      {
+        en: `From the Command Center you can work the protocol: an Intellect test at difficulty ${protocol.difficulty}, one step per success. ${protocol.steps} steps recontain the site and end the game.`,
+        es: `Desde el Centro de Mando puedes trabajar el protocolo: una prueba de Intelecto con dificultad ${protocol.difficulty}, un paso por éxito. ${protocol.steps} pasos recontienen el sitio y terminan la partida.`,
+      },
+      {
+        en: "Anyone can sabotage it: one step back, and it leaves public evidence.",
+        es: "Cualquiera puede sabotearlo: un paso atrás, y deja evidencia pública.",
+      },
+    ],
+  },
+  {
+    id: "records",
+    title: { en: "Records and clearance", es: "Registros y acceso" },
+    body: [
+      {
+        en: "Records are what the facility pays you for containing anomalies. They are public.",
+        es: "Los Registros son lo que la instalación te paga por contener anomalías. Son públicos.",
+      },
+      {
+        en: "Careful: the checkpoint shop is being reworked. Today the only purchase is clearance — an administrative rank that some directives ask for, but that opens no door. Doors have conditions now, not ranks.",
+        es: "Atención: la tienda del punto de control está en revisión. Hoy la única compra es el acceso — un rango administrativo que algunas directrices piden, pero que no abre ninguna puerta. Ahora las puertas tienen condición, no rango.",
+      },
+    ],
+  },
+  {
+    id: "fate",
+    title: { en: "Fate", es: "Destino" },
+    body: [
+      {
+        en: `Fate is the small resource of nerve. You earn it the first time you descend into a ring, when an anomaly breaches, and from some escalation cards. It caps at ${fate.cap}.`,
+        es: `El Destino es el pequeño recurso del temple. Lo ganas la primera vez que desciendes a un anillo, cuando una anomalía hace brecha, y con algunas cartas de escalada. Máximo ${fate.cap}.`,
+      },
+      {
+        en: `Spend ${fate.reroll} to reroll a test, ${fate.invokeCompel} to invoke a compel, ${fate.refuseCompel} to refuse one.`,
+        es: `Gasta ${fate.reroll} para repetir una prueba, ${fate.invokeCompel} para invocar un apremio, ${fate.refuseCompel} para rechazarlo.`,
+      },
+    ],
+  },
+  {
+    id: "aspects",
+    title: { en: "Aspects and compels", es: "Aspectos y apremios" },
+    body: [
+      {
+        en: "Every character has a public Aspect with three Compels: lines of behaviour anyone can trigger when the situation fits. The Aspect is public even though your directive is not.",
+        es: "Cada personaje tiene un Aspecto público con tres Apremios: líneas de conducta que cualquiera puede activar cuando la situación encaja. El Aspecto es público aunque tu directriz no lo sea.",
+      },
+      {
+        en: `Invoking costs ${fate.invokeCompel} Fate and is once per turn. The target either accepts — the compel's effect applies and they gain ${fate.acceptCompel} Fate — or refuses, spending ${fate.refuseCompel} Fate. The Ethics Waiver refuses for free, once.`,
+        es: `Invocar cuesta ${fate.invokeCompel} de Destino y es una vez por turno. El objetivo acepta — se aplica el efecto y gana ${fate.acceptCompel} de Destino — o rechaza, gastando ${fate.refuseCompel} de Destino. La Dispensa Ética rechaza gratis, una vez.`,
+      },
+    ],
+  },
+  {
+    id: "gear",
+    title: { en: "Gear", es: "Equipo" },
+    body: [
+      {
+        en: `You carry ${TUNING.equipment.slots} items. Some modify your tests or your stats, some are consumed when used. A fourth draw is discarded, not swapped.`,
+        es: `Llevas ${TUNING.equipment.slots} objetos. Algunos modifican tus pruebas o tus estadísticas, otros se consumen al usarlos. Un cuarto robo se descarta, no se intercambia.`,
+      },
+    ],
+  },
+  {
+    id: "hunters",
+    title: { en: "Hunters", es: "Cazadores" },
+    body: [
+      {
+        en: `Escalation cards release Hunters. They move at the end of every round and deal ${TUNING.hunters.contactDamage} Integrity to anyone sharing their space. They are public: the whole table sees where they are.`,
+        es: `Las cartas de escalada liberan Cazadores. Se mueven al final de cada ronda y hacen ${TUNING.hunters.contactDamage} de Integridad a quien comparta su casilla. Son públicos: toda la mesa ve dónde están.`,
+      },
+    ],
+  },
+  {
+    id: "winning",
+    title: { en: "Winning", es: "Ganar" },
+    body: [
+      {
+        en: "When the site is recontained, containment-aligned directives are read. A containment directive only pays if you are standing in the Core when it happens.",
+        es: "Cuando el sitio se recontiene, se leen las directrices alineadas con la contención. Una directriz de contención solo se cumple si estás en el Núcleo cuando ocurre.",
+      },
+      {
+        en: "When the warhead detonates, breach-aligned directives are read — but only if your footprint is public: evidence the table can point at. Evidence is recorded as accident or intent and never disappears.",
+        es: "Cuando la ojiva detona, se leen las directrices alineadas con la brecha — pero solo si tu huella es pública: evidencia que la mesa pueda señalar. La evidencia se registra como accidente o intención y nunca desaparece.",
+      },
+    ],
+  },
+  {
+    id: "downed",
+    title: { en: "Down", es: "Caído" },
+    body: [
+      {
+        en: "At 0 Integrity you are down: your turn is skipped unless someone revives you. A player on your space can revive you at 1 Integrity; with a Field Radio they can do it from an adjacent space.",
+        es: "Con 0 de Integridad quedas caído: tu turno se salta a menos que alguien te reanime. Un jugador en tu casilla puede reanimarte con 1 de Integridad; con una Radio de Campo puede hacerlo desde una casilla adyacente.",
+      },
+    ],
+  },
+];

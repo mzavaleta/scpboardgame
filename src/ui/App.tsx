@@ -15,6 +15,7 @@ import { BOARD } from "../content/board";
 import { MAIN_DIRECTIVES, directiveById } from "../content/directives";
 import { ESCALATION } from "../content/escalation";
 import { EQUIPMENT, gearById, gearTestBonus, hasModifier, modifiersOf } from "../content/gear";
+import { RULE_SECTIONS } from "../content/rules";
 import { aspectById, roleById, ROLES } from "../content/roles";
 import { TUNING, clearancePrice } from "../config/tuning";
 import { evalCondition } from "../engine/conditions";
@@ -72,7 +73,7 @@ function phaseLabel(lang: Lang, phase: Phase): string {
   return t(lang, PHASE_KEY[phase]);
 }
 
-type Screen = "setup" | "table" | "endgame" | "credits";
+type Screen = "setup" | "table" | "endgame" | "credits" | "rules";
 
 export function App() {
   const [lang, setLang] = useState<Lang>(() => detectLang());
@@ -80,6 +81,7 @@ export function App() {
   const [game, setGame] = useState<GameState | null>(null);
   const [seatCount, setSeatCount] = useState<2 | 3>(opening.seats);
   const [screen, setScreen] = useState<Screen>("setup");
+  const [rulesFrom, setRulesFrom] = useState<Screen>("setup");
   const [error, setError] = useState("");
   const [claimedSeat, setClaimedSeat] = useState<SeatId>("p1");
   const [sheetSeat, setSheetSeat] = useState<SeatId | null>(null);
@@ -153,6 +155,51 @@ export function App() {
   const isDev = import.meta.env.DEV || new URLSearchParams(window.location.search).has("dev");
   const phase = game?.phase;
 
+  /* ---------------------------------------------------------------- rules -- */
+
+  if (screen === "rules") {
+    return (
+      <div className="mx-auto h-full max-w-3xl overflow-y-auto p-8">
+        <h1 className="mb-1 text-2xl font-semibold">{t(lang, "rules")}</h1>
+        <div className="mb-2 flex items-center gap-2 text-xs">
+          <span className="text-[var(--muted)]">{t(lang, "language")}</span>
+          {(["en", "es"] as const).map((option) => (
+            <button
+              key={option}
+              onClick={() => changeLang(option)}
+              className={`rounded border px-2 py-0.5 ${
+                option === lang ? "border-[var(--accent)]" : "border-[var(--line)] text-[var(--muted)]"
+              }`}
+            >
+              {option.toUpperCase()}
+            </button>
+          ))}
+        </div>
+        <p className="mb-6 text-sm text-[var(--muted)]">{t(lang, "rulesLead")}</p>
+        <div className="space-y-6">
+          {RULE_SECTIONS.map((section) => (
+            <section key={section.id}>
+              <h2 className="mb-1 text-xs uppercase tracking-widest text-[var(--accent)]">
+                {localized(section.title, lang)}
+              </h2>
+              {section.body.map((line, index) => (
+                <p key={index} className="mb-2 text-sm leading-relaxed">
+                  {localized(line, lang)}
+                </p>
+              ))}
+            </section>
+          ))}
+        </div>
+        <button
+          onClick={() => setScreen(rulesFrom)}
+          className="mt-8 rounded border border-[var(--line)] px-4 py-2 text-sm"
+        >
+          {t(lang, "back")}
+        </button>
+      </div>
+    );
+  }
+
   /* ---------------------------------------------------------------- setup -- */
 
   if (screen === "setup") {
@@ -210,6 +257,15 @@ export function App() {
             className="ml-3 rounded border border-[var(--line)] px-4 py-2 text-sm text-[var(--muted)]"
           >
             {t(lang, "credits")}
+          </button>
+          <button
+            onClick={() => {
+              setRulesFrom("setup");
+              setScreen("rules");
+            }}
+            className="ml-3 rounded border border-[var(--line)] px-4 py-2 text-sm text-[var(--muted)]"
+          >
+            {t(lang, "rules")}
           </button>
         </div>
       </div>
@@ -406,6 +462,15 @@ export function App() {
               {option.toUpperCase()}
             </button>
           ))}
+          <button
+            onClick={() => {
+              setRulesFrom("table");
+              setScreen("rules");
+            }}
+            className="rounded border border-[var(--line)] px-3 py-1 text-xs text-[var(--muted)]"
+          >
+            {t(lang, "rules")}
+          </button>
           <button
             onClick={() => start(seatCount)}
             className="rounded border border-[var(--line)] px-3 py-1 text-xs text-[var(--muted)]"

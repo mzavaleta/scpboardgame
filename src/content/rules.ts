@@ -136,6 +136,10 @@ export const RULE_SECTIONS: readonly RuleSection[] = [
         es: `La pista de Amenaza va de 0 a ${threat.max}. Al final de cada ronda avanza uno solo si nadie intentó nada en esa ronda. Un intento es tocar una puerta, entrar en un anillo más profundo, iniciar una contención o trabajar el protocolo — el resultado no importa, intentarlo basta.`,
       },
       {
+        en: "Trying is not enough to hold it. At the end of every round the facility also gives way: a doom card is drawn by chance, and it raises the track too. The site is lost on a schedule, not on a mistake.",
+        es: "Intentarlo no basta para contenerla. Al final de cada ronda la instalación también cede: se roba una carta de perdición por azar, y también sube la pista. El sitio se pierde según un calendario, no por un error.",
+      },
+      {
         en: `At ${threat.max} the Alpha Warhead arms. It detonates ${threat.warheadCountdown} rounds later.`,
         es: `Con ${threat.max} se arma la Ojiva Alfa. Detona ${threat.warheadCountdown} rondas después.`,
       },

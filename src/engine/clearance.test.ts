@@ -110,21 +110,23 @@ describe("buying clearance at a checkpoint", () => {
 });
 
 describe("the loop M3a exists for", () => {
-  it("buys the gate open: clearance 2 crosses G1 with no test and no die", () => {
-    const bought = apply(atCheckpoint({ records: clearancePrice(2) }), {
-      type: "attemptClearance",
-      level: 2,
-    });
+  it("no longer buys passage: clearance 4 still cannot open a locked gate", () => {
+    // §14k.4 deleted the toll. Buying clearance is administrative rank now; the
+    // door has a condition, and rank is not a key.
+    const base = createGame(2026, seatsFor(2));
+    const rich = {
+      ...base,
+      phase: "move" as const,
+      roll: 1,
+      players: { ...base.players, p1: { ...base.players.p1!, node: "outer-10", clearance: 4 } },
+    };
 
-    // From the checkpoint the die still decides the distance; the gate is now
-    // free. G1 is the edge straight out of Checkpoint Alpha, so one step.
-    const rolled = apply({ ...bought, phase: "roll" }, { type: "devRoll", value: 1 });
-    const landed = apply(rolled, { type: "moveTo", node: "middle-04" });
+    const landed = apply(rich, { type: "moveTo", node: "middle-08" });
 
-    expect(gatesAlong("outer-05", "middle-04", 1).map((gate) => gate.id)).toEqual(["G1"]);
-    expect(landed.players.p1?.node).toBe("middle-04");
-    expect(landed.lastTest).toBeNull();
-    expect(landed.log.join("\n")).toMatch(/crossed G1 on clearance 2/);
+    expect(gatesAlong("outer-10", "middle-08", 1).map((gate) => gate.id)).toEqual(["G2"]);
+    // Rank is not a key: a test was rolled at the lock either way.
+    expect(landed.lastTest).not.toBeNull();
+    expect(landed.log.join("\n")).toContain("lock at G2");
   });
 
   it("earns the Records by containing, then spends them on the same visit", () => {

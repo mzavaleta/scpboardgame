@@ -35,9 +35,9 @@ describe("validation fails loudly", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects an impossible clearance level", () => {
+  it("rejects an impossible gate condition", () => {
     const broken = clone(TUNING);
-    broken.gates = { G1: { clearance: 9, difficulty: 2 } };
+    broken.gates = { G1: { condition: "ajar", difficulty: 2 } } as unknown as typeof TUNING.gates;
 
     expect(tuningSchema.safeParse(broken).success).toBe(false);
   });
@@ -91,7 +91,7 @@ describe("config and content agree", () => {
     // And the content really reads the config rather than keeping a copy.
     for (const gate of BOARD.gates) {
       const rule = gateRule(gate.id);
-      expect(gate.clearance).toBe(rule.clearance);
+      expect(gate.condition).toBe(rule.condition);
       expect(gate.test.difficulty).toBe(rule.test.difficulty);
     }
   });

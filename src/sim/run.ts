@@ -112,12 +112,16 @@ export type SimReport = {
 
 const depthOf = ringDepth;
 
-/** Would crossing `gate` cost a test, under this seat's clearance and tags? */
-function gateIsPassable(state: GameState, seat: SeatId, gate: { readonly id: string; readonly clearance: number }): boolean {
+/** Would the bot cross `gate` without a fight? §14k.4 makes it a condition, not clearance. */
+function gateIsPassable(state: GameState, seat: SeatId, gate: { readonly id: string }): boolean {
   const player = playerAt(state.players, seat);
-  const sealedUntil = state.sealedGates[gate.id];
-  if (sealedUntil !== undefined && sealedUntil > state.round) return false;
-  return player.clearance >= gate.clearance || player.tags.includes("key");
+  const status = state.gates[gate.id];
+  if (!status) return true;
+  if (status.reopen !== undefined && status.reopen > state.round) return false;
+  if (status.condition === "open") return true;
+  // A guard is a fight the cautious bot avoids; a lock opens with a key or a roll.
+  if (status.condition === "guarded") return false;
+  return player.tags.includes("key") || player.stats.intellect >= 3;
 }
 
 function alignmentOf(state: GameState, seat: SeatId): Alignment {
@@ -157,8 +161,8 @@ function pickDestination(state: GameState, policy: Policy): string {
     // Gamble at the gate: the only destinations it refuses are sealed ones.
     const open = options.filter((node) =>
       gatesAlong(player.node, node, state.roll).every((gate) => {
-        const sealedUntil = state.sealedGates[gate.id];
-        return sealedUntil === undefined || sealedUntil <= state.round;
+        const reopen = state.gates[gate.id]?.reopen;
+        return reopen === undefined || reopen <= state.round;
       }),
     );
     return deepest(open.length > 0 ? open : options);

@@ -83,29 +83,39 @@ export function Board({ state, lang, onMove }: Props) {
       {BOARD.gates.map((gate) => {
         const a = positionOf(BOARD.nodes.find((node) => node.id === gate.a) as BoardNode);
         const b = positionOf(BOARD.nodes.find((node) => node.id === gate.b) as BoardNode);
-        const reopen = state.sealedGates[gate.id];
+        const reopen = state.gates[gate.id]?.reopen;
         const sealed = reopen !== undefined && reopen > state.round;
+        const condition = state.gates[gate.id]?.condition ?? gate.condition;
+        const guard = state.gates[gate.id]?.guard;
         return (
-          <line
-            key={gate.id}
-            x1={a.x}
-            y1={a.y}
-            x2={b.x}
-            y2={b.y}
-            stroke={sealed ? "var(--danger)" : "var(--warn)"}
-            strokeWidth={sealed ? 2.5 : 1}
-            strokeDasharray={sealed ? "2 4" : "5 5"}
-            opacity={sealed ? 0.95 : 0.55}
-          >
-            <title>
-              {t(lang, sealed ? "gateTipSealed" : "gateTip", {
-                gate: gate.id,
-                clearance: gate.clearance,
-                difficulty: gate.test.difficulty,
-                round: reopen ?? "",
-              })}
-            </title>
-          </line>
+          <g key={gate.id}>
+            <line
+              x1={a.x}
+              y1={a.y}
+              x2={b.x}
+              y2={b.y}
+              stroke={sealed || condition === "guarded" ? "var(--danger)" : condition === "locked" ? "var(--warn)" : "var(--line)"}
+              strokeWidth={sealed ? 2.5 : condition === "open" ? 0.75 : 1.5}
+              strokeDasharray={sealed ? "2 4" : condition === "locked" ? "5 5" : undefined}
+              opacity={sealed || condition !== "open" ? 0.95 : 0.45}
+            >
+              <title>
+                {t(lang, sealed ? "gateTipSealed" : "gateTip", {
+                  gate: gate.id,
+                  condition: t(lang, condition === "open" ? "gateOpen" : condition === "locked" ? "gateLocked" : "gateGuarded"),
+                  difficulty: gate.test.difficulty,
+                  round: reopen ?? "",
+                })}
+              </title>
+            </line>
+            {guard && (
+              <g transform={`translate(${(a.x + b.x) / 2} ${(a.y + b.y) / 2})`}>
+                <rect x={-4} y={-4} width={8} height={8} fill="#ff4d4d" stroke="#0b0d10" strokeWidth={1} transform="rotate(45)">
+                  <title>{t(lang, "gateGuarded")}</title>
+                </rect>
+              </g>
+            )}
+          </g>
         );
       })}
 

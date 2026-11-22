@@ -339,13 +339,12 @@ export function applyEffects(
       case "lockGate": {
         const gateId = effect.gateId === "nearest" ? nearestGate(player.node) : effect.gateId;
         if (effect.rounds <= 0) {
-          const sealed = { ...next.sealedGates };
-          delete sealed[gateId];
-          next = { ...next, sealedGates: sealed };
+          const { reopen: _cleared, ...unsealed } = next.gates[gateId] ?? { condition: "open" as const };
+          next = { ...next, gates: { ...next.gates, [gateId]: unsealed } };
           notes.push(`${gateId} is open again`);
         } else {
           const reopen = next.round + effect.rounds;
-          next = { ...next, sealedGates: { ...next.sealedGates, [gateId]: reopen } };
+          next = { ...next, gates: { ...next.gates, [gateId]: { ...next.gates[gateId]!, reopen } } };
           notes.push(`${gateId} sealed until round ${reopen}`);
         }
         break;

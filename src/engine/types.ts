@@ -193,10 +193,24 @@ export type TestResult = {
   readonly outcome: Outcome;
 };
 
+/** §14k.4: the three conditions a gate can be in. Sealed is an overlay, not a fourth. */
+export type GateCondition = "open" | "locked" | "guarded";
+
+/** The mutable half of a gate; topology and lock difficulty are content. */
+export type GateStatus = {
+  readonly condition: GateCondition;
+  /** The anomaly card held at the mouth; blocks everyone until it is contained. */
+  readonly guard?: CardId;
+  /** No crossing until this round has passed (Assembly seal / Lockdown). */
+  readonly reopen?: number;
+};
+
 /** An anomaly that has been drawn and is waiting for the active seat to decide. */
 export type Encounter = {
   readonly card: CardId;
   readonly node: NodeId;
+  /** §14k.4: set when the card is a guard at this gate rather than a room's occupant. */
+  readonly gate?: string;
 };
 
 export type CounterId =
@@ -375,8 +389,13 @@ export type GameState = {
   readonly vote: Vote | null;
   /** §S2 Q26: while set, only `chooseRole` is accepted. */
   readonly draft: Draft | null;
-  /** Gates sealed by `sealGate` / Lockdown: gate id → round it reopens. */
-  readonly sealedGates: Readonly<Record<string, number>>;
+  /**
+   * §14k.4: a gate is a place with one condition. The seal is an overlay
+   * (`reopen > round`) so a lapsed seal returns to the door's real condition;
+   * `guard` is the anomaly card held at the mouth, which blocks everyone until
+   * it is contained.
+   */
+  readonly gates: Readonly<Record<string, GateStatus>>;
   /** §S8.3 check 11: a replay can refuse content it was not recorded with. */
   readonly contentVersion: string;
   /** Public narration. Every entry here is public by definition (§S5). */

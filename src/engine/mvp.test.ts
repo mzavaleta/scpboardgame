@@ -243,14 +243,15 @@ describe("compels and the Fate economy (§7b.3, §C3.5)", () => {
 
   it("earns Fate for the first descent into a deeper ring, and only once", () => {
     const base = createGame(2, seatsFor(2));
-    const onGate = { ...base, seat: "p1" as const, phase: "move" as const, roll: 1, players: { ...base.players, p1: { ...base.players.p1!, node: "outer-05", clearance: 4 } } };
+    // §14k.4: G1 is open, G4 is locked — the key buys the second descent.
+    const onGate = { ...base, seat: "p1" as const, phase: "move" as const, roll: 1, players: { ...base.players, p1: { ...base.players.p1!, node: "outer-05" } } };
 
     const down = apply(onGate, { type: "moveTo", node: "middle-04" });
     expect(down.players.p1?.fate).toBe(1);
     expect(down.players.p1?.visitedRings).toContain("middle");
 
-    const again = { ...down, phase: "move" as const, roll: 1, players: { ...down.players, p1: { ...down.players.p1!, node: "middle-02", clearance: 4 } } };
-    const deeper = apply(again, { type: "moveTo", node: "inner-02" });
+    const again = { ...down, phase: "move" as const, roll: 1, players: { ...down.players, p1: { ...down.players.p1!, node: "middle-07", tags: ["key"] } } };
+    const deeper = apply(again, { type: "moveTo", node: "inner-06" });
     expect(deeper.players.p1?.fate).toBe(2);
   });
 
@@ -328,7 +329,7 @@ describe("escalation and the Emergency Assembly (§C5)", () => {
 
     expect(done.vote).toBeNull();
     expect(done.threat).toBe(0);
-    expect(Object.keys(done.sealedGates).length).toBe(1);
+    expect(Object.values(done.gates).filter((status) => status.reopen !== undefined).length).toBe(1);
   });
 
   it("advances the track by two on hold, and by one on a tie", () => {

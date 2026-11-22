@@ -915,7 +915,7 @@ export function App() {
 
               {BOARD.gates
                 .filter((gate) => gate.a === active.node || gate.b === active.node)
-                .filter((gate) => !(game.sealedGates[gate.id] !== undefined && game.sealedGates[gate.id]! > game.round))
+                .filter((gate) => !(game.gates[gate.id]?.reopen !== undefined && game.gates[gate.id]!.reopen! > game.round))
                 .map((gate) => (
                   <button
                     key={`seal-${gate.id}`}

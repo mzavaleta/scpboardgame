@@ -1,0 +1,70 @@
+# M6 A1 — Gates become places, not tolls
+
+Branch: `main` · Delivery: work-unit commits · Runner: `pnpm test` (vitest) · Spec origin: `implementation.md`
+§14k.4 (amendment to D29) · Debt: D10 · Backlog: Phase A item A1.
+
+## Specs
+
+**S1 — A gate is a place with one state.** The owner, playing:
+*"if door is open i shoudl be able to cross, if closed i need to open it, by key, by special artifact or item,
+by skill etc. or maybe the door is open but passign by activates a draw and if hapens to be a monster then
+needs to be cleared before corssing."*
+Each gate holds exactly one **condition** — `open`, `locked`, `guarded` — plus an optional **seal** (the
+existing Assembly/Lockdown: `reopen > round` blocks it regardless of condition) and an optional **guard**
+(an anomaly card held at the gate). State lives in `GameState`, is serializable, and is visible on the board.
+
+**S2 — Open crosses free.** No roll, no spend, either direction, any player.
+
+**S3 — Locked opens, and opening is permanent.** A locked gate opens by, in order: the `key` tag (consumed),
+gear that opens locks, or one successful Intellect test at the gate's difficulty. Opening sets the gate to
+`open` **for everyone, for the rest of the game** — a door that was opened is open.
+
+**S4 — Guarded draws on the way through.** Crossing a guarded gate draws an anomaly from the deck of the ring
+being **entered** (core entries draw from the inner deck). Containing it lets you cross and the gate becomes
+`open`. Failing or walking away means **you do not cross and the thing stays at the gate**.
+
+**S5 — A guard persists and blocks everyone.** While a `guard` card is held at a gate, the gate is a blocked
+corridor: any player crossing it, in either direction, must face that same card. It is never discarded by a
+failure. Leaving it behind is a public act (the evidence rules already make a failed gate an accident).
+
+**S6 — Sealed wins.** A gate sealed by `sealGate` / Lockdown crosses nobody until its reopen round passes;
+when it lapses the gate returns to its underlying condition, not automatically to `open`.
+
+**S7 — The toll is deleted.** Clearance no longer grants passage and `buyClearance` / `attemptClearance` no
+longer exist at a gate. **ASSUMPTION, pending the owner's decision on the economy**: what replaces them is
+A2, not this item.
+
+**S8 — The board says what each gate is.** Condition and seal are visible on the board (colour + tooltip),
+localized through `t()`; the crossing prompt names the requirement (`locked · Intellect 2`, `guarded`, `sealed
+until round N`).
+
+**S9 — The instrument is told the truth.** The simulator models gate condition and guard occupancy instead of
+`clearance >= gate.clearance`; `purchasesPerGame` is dropped until A2 gives Records a sink (the metric's
+detail work is B2).
+
+**S10 — Tests pin each rule.** One test per state, plus: opening is permanent; a failed guard blocks the other
+direction; a seal lapses to the underlying condition; crossing marks progress exactly once.
+
+## Tasks
+
+| ID | Task | Specs | Route | Status |
+| --- | --- | --- | --- | --- |
+| T1 | Gate state model: `gates` map in `GameState`, defaults from tuning, seal derived, hash/serialization | S1, S2, S6 | inline | pending |
+| T2 | Crossing: open free, locked opens permanently, sealed refuses | S2, S3, S6, S7 | inline | pending |
+| T3 | Guarded: entry draw, containment crosses, failure persists the guard and blocks everyone | S4, S5 | inline | pending |
+| T4 | Content + tuning: starting conditions, lock difficulties, core entry deck | S1, S4 | inline | pending |
+| T5 | Simulator: gate condition and guard occupancy replace the clearance check | S9 | inline | pending |
+| T6 | Board and prompts: condition, seal, guard badge, requirement text, i18n | S8 | inline | pending |
+| T7 | Close: docs, feature log, full suite and build | all | inline | pending |
+
+## Log
+
+**L1 — owner, 2026-11-22 (verbatim).** *"ok then lets go with next M6-7 butcould we differ and separate all
+visual improvements , im interested in first finish all related with mechanics and reall value improvements,
+then finetuning and balance, then visuals"* — this item is the first of Phase A, and no visual polish is part
+of it (the board work in T6 exists because a state you cannot see is not a rule).
+
+**L2 — the model, chosen from §14k.4.** One condition per gate, with the seal as an overlay instead of a
+fourth state. Reason: `sealedGates` already exists and is *time-bounded*, while `open/locked/guarded` describe
+the door itself; modelling `sealed` as a fifth condition would have to remember what to return to. The
+`condition` field is the truth; `reopen > round` is the seal.

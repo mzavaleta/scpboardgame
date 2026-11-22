@@ -36,9 +36,9 @@ describe("board shape", () => {
     }
   });
 
-  it("raises clearance with depth: 2, 3, 4", () => {
-    const byBoundary = BOARD.gates.map((gate) => gate.clearance);
-    expect(byBoundary).toEqual([2, 2, 3, 3, 4, 4]);
+  it("gives each boundary a choice of shape: open or locked outside, guarded or locked deeper", () => {
+    const byBoundary = BOARD.gates.map((gate) => gate.condition);
+    expect(byBoundary).toEqual(["open", "locked", "guarded", "locked", "locked", "guarded"]);
   });
 });
 

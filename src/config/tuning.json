@@ -143,27 +143,27 @@
   ],
   "gates": {
     "G1": {
-      "clearance": 2,
+      "condition": "open",
       "difficulty": 2
     },
     "G2": {
-      "clearance": 2,
+      "condition": "locked",
       "difficulty": 2
     },
     "G3": {
-      "clearance": 3,
+      "condition": "guarded",
       "difficulty": 3
     },
     "G4": {
-      "clearance": 3,
+      "condition": "locked",
       "difficulty": 3
     },
     "G5": {
-      "clearance": 4,
+      "condition": "locked",
       "difficulty": 6
     },
     "G6": {
-      "clearance": 4,
+      "condition": "guarded",
       "difficulty": 6
     }
   },

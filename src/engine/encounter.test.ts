@@ -250,54 +250,58 @@ describe("gates", () => {
     expect(gatesAlong(ARRIVAL_NODE, "outer-06", 4)).toEqual([]);
   });
 
-  it("crosses freely on clearance", () => {
+  it("crosses an open gate with no test and no die", () => {
+    // §14k.4: G1 starts open, so the walk is free and nothing is rolled.
     const base = createGame(2026, seatsFor(2));
-    const cleared = {
-      ...base,
-      players: { ...base.players, p1: { ...base.players.p1!, clearance: 2 } },
-    };
-
-    const rolled = apply(cleared, { type: "devRoll", value: 4 });
+    const rolled = apply(base, { type: "devRoll", value: 4 });
     const landed = apply(rolled, { type: "moveTo", node: "middle-04" });
 
     expect(landed.players.p1?.node).toBe("middle-04");
-    expect(landed.log.join("\n")).toMatch(/crossed G1 on clearance 2/);
+    expect(landed.lastTest).toBeNull();
   });
 
-  it("uses the key tag to bypass a gate, and spends it", () => {
+  it("opens a locked gate with the key tag, and spends it", () => {
     const base = createGame(2026, seatsFor(2));
     const keyed = {
       ...base,
-      players: { ...base.players, p1: { ...base.players.p1!, tags: ["key"] } },
+      players: {
+        ...base.players,
+        p1: { ...base.players.p1!, node: "outer-10", tags: ["key"] },
+      },
     };
 
-    const rolled = apply(keyed, { type: "devRoll", value: 4 });
-    const landed = apply(rolled, { type: "moveTo", node: "middle-04" });
+    const rolled = apply(keyed, { type: "devRoll", value: 1 });
+    const landed = apply(rolled, { type: "moveTo", node: "middle-08" });
 
-    expect(landed.players.p1?.node).toBe("middle-04");
+    expect(landed.players.p1?.node).toBe("middle-08");
     expect(landed.players.p1?.tags).toEqual([]);
+    expect(landed.gates.G2?.condition).toBe("open");
   });
 
-  it("holds the gate when the check fails, and the roll is spent", () => {
-    // Without clearance the gate is a test; whichever way it falls, the two
-    // branches must agree with the logged shift.
+  it("holds a locked gate when the check fails, and the roll is spent", () => {
     let sawFail = false;
     let sawPass = false;
 
     for (let seed = 1; seed <= 40 && !(sawFail && sawPass); seed += 1) {
       const base = createGame(seed, seatsFor(2));
-      const rolled = apply(base, { type: "devRoll", value: 4 });
-      const landed = apply(rolled, { type: "moveTo", node: "middle-04" });
+      const at = {
+        ...base,
+        players: { ...base.players, p1: { ...base.players.p1!, node: "outer-10" } },
+      };
+      const rolled = apply(at, { type: "devRoll", value: 1 });
+      const landed = apply(rolled, { type: "moveTo", node: "middle-08" });
       const shift = landed.lastTest?.shift as number;
 
       if (shift >= 0) {
         sawPass = true;
-        expect(landed.players.p1?.node).toBe("middle-04");
+        expect(landed.players.p1?.node).toBe("middle-08");
+        expect(landed.gates.G2?.condition).toBe("open");
       } else {
         sawFail = true;
-        expect(landed.players.p1?.node).toBe("outer-05");
+        expect(landed.players.p1?.node).toBe("outer-10");
         expect(landed.evidence.filter((token) => token.sourceSeat === "p1" && token.class === "accident")).toHaveLength(1);
         expect(landed.phase).toBe("action");
+        expect(landed.gates.G2?.condition).toBe("locked");
       }
     }
 

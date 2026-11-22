@@ -53,7 +53,12 @@ const roleSchema = z
   }, "role balance band: combat + intellect must be 5 or 6 (§C3.2)");
 
 const gateSchema = z.object({
-  clearance: z.number().int().min(1).max(4),
+  /**
+   * §14k.4: the door's starting condition. `open` crosses free, `locked` opens by
+   * key/gear/skill once, `guarded` draws an anomaly at the mouth.
+   */
+  condition: z.enum(["open", "locked", "guarded"]),
+  /** Intellect difficulty of the lock, for a `locked` gate. */
   difficulty: z.number().int().min(0).max(6),
 });
 
@@ -166,14 +171,13 @@ export function deckCopies(deck: DeckId, cardId: string): number {
 
 /** The numbers behind a gate: topology stays in content, values stay here. */
 export function gateRule(gateId: string): {
-  readonly clearance: 1 | 2 | 3 | 4;
+  readonly condition: "open" | "locked" | "guarded";
   readonly test: { readonly stat: "intellect"; readonly difficulty: number };
 } {
-  const rule: { clearance: number; difficulty: number } | undefined = TUNING.gates[gateId];
+  const rule: { condition: "open" | "locked" | "guarded"; difficulty: number } | undefined = TUNING.gates[gateId];
   if (!rule) throw new Error(`tuning: no entry for gate "${gateId}"`);
-  // The schema already constrains this to 1..4; the cast only restores the union.
   return {
-    clearance: rule.clearance as 1 | 2 | 3 | 4,
+    condition: rule.condition,
     test: { stat: "intellect", difficulty: rule.difficulty },
   };
 }

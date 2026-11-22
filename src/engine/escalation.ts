@@ -68,7 +68,7 @@ export function resolveVote(state: GameState): { state: GameState; notes: readon
       state: {
         ...state,
         vote: null,
-        sealedGates: { ...state.sealedGates, [vote.gateId]: reopen },
+        gates: { ...state.gates, [vote.gateId]: { ...state.gates[vote.gateId]!, reopen } },
       },
       notes: [`the table seals ${vote.gateId} until round ${reopen} — the track holds.`],
     };
@@ -86,7 +86,7 @@ export function resolveVote(state: GameState): { state: GameState; notes: readon
 }
 
 export function gateIsSealed(state: GameState, gateId: string): boolean {
-  const reopen = state.sealedGates[gateId];
+  const reopen = state.gates[gateId]?.reopen;
   return reopen !== undefined && reopen > state.round;
 }
 

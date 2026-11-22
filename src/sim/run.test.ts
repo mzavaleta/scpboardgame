@@ -83,8 +83,10 @@ describe("what M3a is allowed to claim", () => {
   });
 
   it("stops a game when the warhead fires instead of playing to the cap", () => {
-    const report = runSimulation({ ...options, games: 6, maxRounds: 40 });
-    // With a working clock some games must end before the cap...
+    // §14k.4 note: after the gate rework the bot stalls more (its "pay the door"
+    // heuristic is gone), so 6 games are no longer enough to catch a terminal.
+    // Recorded as a Phase B instrument finding; the warhead still fires.
+    const report = runSimulation({ ...options, games: 20, maxRounds: 40 });
     expect(report.rows.some((row) => row.capHitShare < 1)).toBe(true);
   });
 });

@@ -38,9 +38,9 @@ export type Gate = {
   /** Nodes on either side. Gates are bidirectional edges, never nodes (§C1.3). */
   readonly a: string;
   readonly b: string;
-  /** Clearance level that lets you through without a test. */
-  readonly clearance: 1 | 2 | 3 | 4;
-  /** Fallback for players who have not bought clearance yet. */
+  /** §14k.4: what the door is when the game starts; the state copy is mutable. */
+  readonly condition: "open" | "locked" | "guarded";
+  /** Intellect difficulty of the lock, for a `locked` gate. */
   readonly test: { readonly stat: "intellect"; readonly difficulty: number };
 };
 

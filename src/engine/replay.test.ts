@@ -47,7 +47,10 @@ export function legalActions(state: GameState): Action[] {
     case "move":
       return reachableEndpoints(player.node, state.roll)
         .filter((node) =>
-          gatesAlong(player.node, node, state.roll).every((gate) => !(state.sealedGates[gate.id] ?? 0) || (state.sealedGates[gate.id] ?? 0) <= state.round),
+          gatesAlong(player.node, node, state.roll).every((gate) => {
+            const reopen = state.gates[gate.id]?.reopen;
+            return reopen === undefined || reopen <= state.round;
+          }),
         )
         .map((node) => ({ type: "moveTo", node }));
     case "space":

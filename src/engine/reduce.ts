@@ -39,6 +39,7 @@ import { ok, playerAt, playersIn, reject, SEAT_ORDER, emptyCounters } from "./ty
 import type {
   Action,
   Alignment,
+  DeckId,
   Draft,
   Effect,
   GameState,
@@ -171,7 +172,8 @@ export function createGame(
     pendingCompel: null,
     vote: null,
     draft: null,
-    sealedGates: {},
+    // §14k.4: the board declares what each door is; the state copy is what changes.
+    gates: Object.fromEntries(BOARD.gates.map((gate) => [gate.id, { condition: gate.condition }])),
     contentVersion: CONTENT_VERSION,
     log: [`Round 1 — ${seats[0]} to act.`],
   };
@@ -268,8 +270,14 @@ function endRound(state: GameState): GameState {
   return { ...next, log: [...next.log, ...notes] };
 }
 
-/** Clearance level first, then the key tag, then the gate's Intellect test. */
-function tryCrossGate(
+/**
+ * §14k.4 — a locked door, opened once and then open for everyone.
+ *
+ * Order: the key tag (consumed), gear that opens locks, then one Intellect test.
+ * A failed attempt costs a turn, marks the accident and leaves you at the mouth;
+ * success rewrites the gate's state, not just your passage.
+ */
+function tryOpenLock(
   state: GameState,
   seat: SeatId,
   gate: ReturnType<typeof gatesAlong>[number],
@@ -279,25 +287,31 @@ function tryCrossGate(
   // Touching a gate is an attempt whatever it costs (§7's progress list).
   state = markProgress(state, seat);
 
-  if (player.clearance >= gate.clearance) {
-    notes.push(`crossed ${gate.id} on clearance ${player.clearance}.`);
-    return { state, passed: true, notes };
-  }
-
   if (player.tags.includes("key")) {
-    notes.push(`crossed ${gate.id} with the key (tag spent).`);
+    notes.push(`opened ${gate.id} with the key (tag spent).`);
     return {
-      state: replacePlayer(state, { ...player, tags: player.tags.filter((tag) => tag !== "key") }),
+      state: replacePlayer({ ...state, gates: { ...state.gates, [gate.id]: { ...state.gates[gate.id]!, condition: "open" } } }, {
+        ...player,
+        tags: player.tags.filter((tag) => tag !== "key"),
+      }),
       passed: true,
       notes,
     };
   }
 
   const { state: rolled, result } = rollTest(state, seat, gate.test.stat, gate.test.difficulty, "gate");
-  const verdict = result.shift >= 0 ? `crossed ${gate.id}.` : `the gate holds.`;
-  notes.push(`  ${verdict}`, `clearance check at ${gate.id} — ${describeTest(result)}`);
+  notes.push(
+    `  ${result.shift >= 0 ? `opened ${gate.id}.` : `${gate.id} holds.`}`,
+    `lock at ${gate.id} — ${describeTest(result)}`,
+  );
 
-  if (result.shift >= 0) return { state: rolled, passed: true, notes };
+  if (result.shift >= 0) {
+    return {
+      state: { ...rolled, gates: { ...rolled.gates, [gate.id]: { ...rolled.gates[gate.id]!, condition: "open" } } },
+      passed: true,
+      notes,
+    };
+  }
 
   // §C2.3: a failed gate is an *accident*, public noise that never satisfies a breach directive.
   player = playerAt(rolled.players, seat);
@@ -320,6 +334,57 @@ function tryCrossGate(
   }
 
   return { state: next, passed: false, notes: [...notes, ...marked.notes] };
+}
+
+/** §14k.4: which deck a gate's guard is drawn from — the ring being entered. */
+function guardDeck(gate: ReturnType<typeof gatesAlong>[number]): DeckId {
+  const deeper = ringDepth(gate.a) >= ringDepth(gate.b) ? gate.a : gate.b;
+  const depth = ringDepth(deeper);
+  return depth >= 2 ? "keter" : "euclid";
+}
+
+/**
+ * §14k.4 — a guarded gate stops the walk at the mouth and opens the encounter.
+ * If a guard is already there, the same card is faced again: the corridor is
+ * blocked for everyone until somebody contains it.
+ */
+function startGuardEncounter(
+  state: GameState,
+  seat: SeatId,
+  gate: ReturnType<typeof gatesAlong>[number],
+  notes: readonly string[],
+): { readonly state: GameState; readonly opened: boolean } {
+  const player = playerAt(state.players, seat);
+  const origin = getNode(player.node);
+  const mouth = [gate.a, gate.b].filter((id) => getNode(id).ring === origin.ring).sort()[0] ?? player.node;
+
+  let next: GameState = replacePlayer(state, { ...player, node: mouth });
+  next = markProgress(next, seat);
+  const status = next.gates[gate.id] ?? { condition: gate.condition };
+  let card = status.guard;
+
+  if (!card) {
+    const drawn = drawAnomaly(next, guardDeck(gate));
+    next = drawn.state;
+    card = drawn.card ?? undefined;
+  }
+
+  if (!card) {
+    // The pile is empty: nothing stands in the doorway, and the door stays open.
+    next = { ...next, gates: { ...next.gates, [gate.id]: { condition: "open" } } };
+    return { state: { ...next, log: [...next.log, ...notes, `  ${gate.id} is unguarded.`] }, opened: false };
+  }
+
+  next = { ...next, gates: { ...next.gates, [gate.id]: { condition: "guarded", guard: card } } };
+  return {
+    state: {
+      ...next,
+      phase: "space",
+      encounter: { card, node: mouth, gate: gate.id },
+      log: [...next.log, ...notes, `  something holds ${gate.id}.`],
+    },
+    opened: true,
+  };
 }
 
 /** §7: entering a deeper ring for the first time is the Fate economy's risk dividend. */
@@ -533,11 +598,18 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
 
       let next = state;
       for (const gate of gatesAlong(player.node, action.node, state.roll)) {
-        const crossing = tryCrossGate(next, state.seat, gate);
-        next = crossing.state;
-        notes.push(...crossing.notes);
-        if (!crossing.passed) {
-          return ok({ ...next, phase: "action", log: [...next.log, ...notes] });
+        const status = next.gates[gate.id] ?? { condition: gate.condition };
+        if (status.condition === "guarded") {
+          // §14k.4: the corridor is blocked; the walk ends at the mouth with a draw.
+          return ok(startGuardEncounter(next, state.seat, gate, notes).state);
+        }
+        if (status.condition === "locked") {
+          const opened = tryOpenLock(next, state.seat, gate);
+          next = opened.state;
+          notes.push(...opened.notes);
+          if (!opened.passed) {
+            return ok({ ...next, phase: "action", log: [...next.log, ...notes] });
+          }
         }
       }
 
@@ -595,6 +667,7 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
       const notes: string[] = [];
       const consequences: string[] = [];
       let next = state;
+      const guardGate = state.encounter.gate;
 
       if (action.choice === "decline") {
         if (card.declineCost.length > 0) {
@@ -604,6 +677,7 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
         } else {
           notes.push(`${seat} walked away from ${card.name.en}.`);
         }
+        if (guardGate) notes.push(`  ${card.name.en} keeps ${guardGate} shut.`);
         next = addTurnEvent(next, seat, "declined");
         return ok({ ...next, phase: "action", encounter: null, log: [...next.log, ...notes] });
       }
@@ -671,6 +745,22 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
       const after = playerAt(next.players, seat);
       if (after.downed) {
         consequences.push(`${seat} is down at ${getNode(after.node).name.en}.`);
+      }
+
+      // §14k.4: containing the thing at the mouth opens the door and lets you through.
+      if (guardGate && ["clean", "success", "collateral"].includes(result.outcome) && !after.downed) {
+        const gateDef = BOARD.gates.find((gate) => gate.id === guardGate);
+        const across = gateDef ? (gateDef.a === after.node ? gateDef.b : gateDef.a) : null;
+        next = {
+          ...next,
+          gates: { ...next.gates, [guardGate]: { condition: "open" } },
+        };
+        if (across) {
+          next = replacePlayer(next, { ...playerAt(next.players, seat), node: across });
+          notes.push(`  ${guardGate} is clear — ${seat} crosses to ${getNode(across).name.en}.`);
+        }
+      } else if (guardGate && !["clean", "success", "collateral"].includes(result.outcome)) {
+        notes.push(`  ${card.name.en} keeps ${guardGate} shut.`);
       }
 
       return ok({
@@ -963,7 +1053,7 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
 
       return ok({
         ...next,
-        sealedGates: { ...next.sealedGates, [action.gateId]: reopen },
+        gates: { ...next.gates, [action.gateId]: { ...next.gates[action.gateId]!, reopen } },
         log: [...next.log, `${state.seat} seals ${action.gateId} until round ${reopen}.`],
       });
     }

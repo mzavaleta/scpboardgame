@@ -186,8 +186,8 @@ export const RULE_SECTIONS: readonly RuleSection[] = [
         es: `El Destino es el pequeño recurso del temple. Lo ganas la primera vez que desciendes a un anillo, cuando una anomalía hace brecha, y con algunas cartas de escalada. Máximo ${fate.cap}.`,
       },
       {
-        en: `Spend ${fate.reroll} to reroll a test. A compel moves Fate instead of creating it: the invoker offers ${fate.invokeCompel}; if the target accepts, the point becomes theirs; if they refuse, they pay ${fate.refuseCompel} back to the invoker.`,
-        es: `Gasta ${fate.reroll} para repetir una prueba. Un apremio mueve Destino en vez de crearlo: quien invoca ofrece ${fate.invokeCompel}; si el objetivo acepta, el punto pasa a ser suyo; si rechaza, paga ${fate.refuseCompel} a quien invocó.`,
+        en: `Spend ${fate.reroll} to reroll a test, or 1 Fate per point to push a test by up to +2 — declared before the roll and spent once. A compel moves Fate instead of creating it: the invoker offers ${fate.invokeCompel}; if the target accepts, the point becomes theirs; if they refuse, they pay ${fate.refuseCompel} back to the invoker.`,
+        es: `Gasta ${fate.reroll} para repetir una prueba, o 1 de Destino por punto para empujar una prueba hasta +2 — se declara antes de tirar y se gasta una vez. Un apremio mueve Destino en vez de crearlo: quien invoca ofrece ${fate.invokeCompel}; si el objetivo acepta, el punto pasa a ser suyo; si rechaza, paga ${fate.refuseCompel} a quien invocó.`,
       },
     ],
   },

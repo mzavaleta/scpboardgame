@@ -92,7 +92,8 @@ export function rollTest(
   const [dice, rng] = roll4dF(state.rng);
   const player = playerAt(state.players, seat);
   // §C5.5: gear is a standing modifier the test formula reads.
-  const statValue = player.stats[stat] + gearTestBonus(player.gear, kind, stat);
+  const boost = Math.max(0, Math.min(2, player.boost));
+  const statValue = player.stats[stat] + gearTestBonus(player.gear, kind, stat) + boost;
   // §C3.3: Reckless #2 makes the next test harder, once.
   const hard = player.tags.includes("hardTest");
   const difficulty = baseDifficulty + (hard ? 1 : 0);
@@ -104,16 +105,27 @@ export function rollTest(
     stat,
     difficulty,
     statValue,
+    boost,
     dice,
     shift,
     outcome: tierOf(shift),
   };
 
-  const withoutHard = hard
-    ? { ...state, players: { ...state.players, [seat]: { ...player, tags: player.tags.filter((tag) => tag !== "hardTest") } } }
-    : state;
+  let next = state;
+  if (boost > 0) {
+    next = { ...next, players: { ...next.players, [seat]: { ...playerAt(next.players, seat), boost: 0 } } };
+  }
+  if (hard) {
+    next = {
+      ...next,
+      players: {
+        ...next.players,
+        [seat]: { ...playerAt(next.players, seat), tags: playerAt(next.players, seat).tags.filter((tag) => tag !== "hardTest") },
+      },
+    };
+  }
 
-  return { state: { ...withoutHard, rng, lastTest: result }, result };
+  return { state: { ...next, rng, lastTest: result }, result };
 }
 
 /**
@@ -128,6 +140,7 @@ export function showTest(result: TestResult): string {
   const sign = (value: number): string => (value >= 0 ? `+${value}` : `${value}`);
   return (
     `4dF sum [${sign(result.dice)}] + ${result.stat} [${result.statValue}] ` +
+    `${result.boost > 0 ? `(incl. +${result.boost} Fate) ` : ""}` +
     `− difficulty [${result.difficulty}] = ${sign(result.shift)}`
   );
 }

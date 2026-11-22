@@ -116,6 +116,7 @@ function playerFromRole(seat: SeatId, roleId: string, node: string, previousDire
     visitedRings: [getNode(node).ring],
     stalledTurns: 0,
     downed: false,
+    boost: 0,
     objectiveDone: false,
     objectiveFailed: false,
   };
@@ -140,6 +141,7 @@ function blankPlayer(seat: SeatId): Player {
     visitedRings: [getNode(ARRIVAL_NODE).ring],
     stalledTurns: 0,
     downed: false,
+    boost: 0,
     objectiveDone: false,
     objectiveFailed: false,
   };
@@ -614,6 +616,27 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
         phase: "move",
         roll: value,
         log: [...state.log, `${state.seat} rolled ${value}${forcedStill ? " (held in place)" : ""}.`],
+      });
+    }
+
+    case "boostTest": {
+      const buyer = playerAt(state.players, state.seat);
+      if (state.phase !== "move" && state.phase !== "space" && state.phase !== "action") {
+        return reject("wrong-phase", "Declare a boost before the test, on your own turn.");
+      }
+      if (buyer.downed) return reject("downed", `${state.seat} is down and cannot push.`);
+      const amount = action.amount;
+      if (amount !== 1 && amount !== 2) return reject("invalid-value", "A boost is +1 or +2.");
+      if (buyer.boost + amount > 2) return reject("invalid-value", "A test can only be pushed by +2 in total.");
+      if (buyer.fate < amount) return reject("no-fate", `+${amount} costs ${amount} Fate; ${state.seat} has ${buyer.fate}.`);
+
+      return ok({
+        ...state,
+        players: {
+          ...state.players,
+          [state.seat]: { ...buyer, fate: buyer.fate - amount, boost: buyer.boost + amount },
+        },
+        log: [...state.log, `${state.seat} pushes the next test +${buyer.boost + amount} (${amount} Fate).`],
       });
     }
 
@@ -1184,6 +1207,10 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
       const objective = checkObjective(settled, state.seat);
       settled = { ...objective.state, log: [...objective.state.log, ...objective.notes] };
 
+      settled = {
+        ...settled,
+        players: { ...settled.players, [state.seat]: { ...playerAt(settled.players, state.seat), boost: 0 } },
+      };
       settled = removeTags(settled, ["bound", "held", "distracted", "rested", "unseen", "hardTest"]);
 
       const order = playersIn(settled.players).map((player) => player.seat);

@@ -483,3 +483,7 @@ build clean, median 11–12 rounds.
 rendered as a private checklist with live counts in the player sheet (`Containments 2/3`), labels derived by one
 helper. The win rule is unchanged, so this is presentation without behavior risk. What remains of D13 is
 performability — steps you can *do*, not only watch. 218 tests, build clean.
+
+**L24 — Fate pushes the roll (2026-11-22).** R4: `boostTest {1|2}` spends Fate before a test for +1/+2, applied
+once by `rollTest` and cleared. Buttons live in the move footer and the encounter banner; the preview counts it.
+221 tests, build clean.

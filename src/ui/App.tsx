@@ -881,7 +881,7 @@ export function App() {
           // the difficulty (Reckless #2). Showing the raw stat lied to the table.
           const gearBonus = gearTestBonus(active.gear, "anomaly", card.test.stat);
           const hard = active.tags.includes("hardTest");
-          const statValue = active.stats[card.test.stat] + gearBonus;
+          const statValue = active.stats[card.test.stat] + gearBonus + active.boost;
           const difficulty = card.test.difficulty + (hard ? 1 : 0);
           const threatCost = card.declineCost.length > 0 ? 1 : 0;
           return (
@@ -900,6 +900,16 @@ export function App() {
                   difficulty,
                 })}
               </div>
+              {([1, 2] as const).map((amount) => (
+                <button
+                  key={`boost-${amount}`}
+                  onClick={() => dispatch({ type: "boostTest", amount })}
+                  disabled={active.fate < amount || active.boost + amount > 2}
+                  className="rounded border border-[var(--line)] px-2 py-1 text-xs disabled:opacity-30"
+                >
+                  {t(lang, "boostTest", { amount, cost: amount })}
+                </button>
+              ))}
               <button
                 onClick={() => dispatch({ type: "resolveAnomaly", choice: "contain" })}
                 className="rounded bg-[var(--accent)] px-3 py-1.5 text-sm font-semibold text-[#04121b]"
@@ -941,6 +951,19 @@ export function App() {
               {t(lang, "fate")} · {TUNING.fate.reroll}
             </button>
           )}
+
+          {(game.phase === "move" || game.phase === "space") &&
+            active &&
+            ([1, 2] as const).map((amount) => (
+              <button
+                key={`boost-${game.phase}-${amount}`}
+                onClick={() => dispatch({ type: "boostTest", amount })}
+                disabled={active.fate < amount || active.boost + amount > 2}
+                className="rounded border border-[var(--line)] px-3 py-2 text-xs disabled:opacity-30"
+              >
+                {t(lang, "boostTest", { amount, cost: amount })}
+              </button>
+            ))}
 
           {game.draft === null && active?.downed && game.phase === "roll" && (
             <button

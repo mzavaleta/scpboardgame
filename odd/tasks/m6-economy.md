@@ -95,3 +95,9 @@ deaths 1.05–3.05.
 twenty hand-written strings. The win rule is untouched: the engine still reads `condition`, so behavior cannot
 change — only the player's ability to see what advances the motive. Verified in the browser. **Still open:** turning
 the steps into *actions that perform them* (the directive is legible now, not yet performable).
+
+**L9 — R4: Fate pushes a test (2026-11-22).** `Player.boost` holds Fate bought before a roll; `boostTest {amount}`
+(1 or 2) is declared in the move/space/action phase, costs one Fate per point, caps at +2, and is consumed by
+`rollTest`, which records the boost on `TestResult` and prints `(incl. +2 Fate)` in the arithmetic line. A reroll
+still costs 1. The UI puts the two buttons in the move footer and in the encounter banner; the preview includes the
+boost. Three tests pin the spend, the consumption and the refusals. The rules page says it in one sentence.

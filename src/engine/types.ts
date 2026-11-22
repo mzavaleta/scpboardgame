@@ -186,6 +186,8 @@ export type TestResult = {
   readonly statValue: number;
   /** The raw 4dF sum, -4..+4. */
   readonly dice: number;
+  /** R4: the Fate-bought part of `statValue` (0 when none was spent). */
+  readonly boost: number;
   /** `dice + statValue − difficulty`. */
   readonly shift: number;
   readonly outcome: Outcome;
@@ -282,6 +284,8 @@ export type Player = {
   readonly stalledTurns: number;
   /** At 0 Integrity you stop acting until you respawn or are rescued (Q22). */
   readonly downed: boolean;
+  /** R4: Fate spent before a test, applied once and then cleared. */
+  readonly boost: number;
   /** A3: the role's public objective, once met. */
   readonly objectiveDone: boolean;
   /** A3: the moment passed (the warhead armed) and it was not met. */
@@ -438,6 +442,8 @@ export type Action =
   | { readonly type: "endTurn" }
   /** §7b.3: pay Fate for a second movement die (§S2 allows exactly one). */
   | { readonly type: "spendFateToReroll" }
+  /** R4: pay Fate for +1/+2 on the next test (`player.boost`). */
+  | { readonly type: "boostTest"; readonly amount: 1 | 2 }
   /** §C3.5: spend 1 Fate to compel a public aspect. */
   | {
       readonly type: "compel";

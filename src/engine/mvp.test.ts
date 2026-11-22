@@ -383,25 +383,29 @@ describe("hunters move and bite (§7)", () => {
     const state = {
       ...base,
       players: { ...base.players, p1: { ...base.players.p1!, node: "outer-03" }, p2: { ...base.players.p2!, node: "inner-00" } },
-      hunters: [{ id: "h1", node: "outer-00" }],
+      hunters: [{ id: "h1", node: "outer-00", card: "scp-106" }],
     };
     const moved = moveHunters(state);
     expect(moved.state.hunters[0]?.node).not.toBe("outer-00");
     expect(distance(moved.state.hunters[0]!.node, "outer-03")).toBeLessThan(3);
   });
 
-  it("costs Integrity on contact at the round boundary", () => {
+  it("fights on contact: a test against the monster's own card (R7)", () => {
     const base = createGame(1, seatsFor(2));
     const state = {
       ...base,
       seat: "p2" as SeatId,
       phase: "action" as const,
-      hunters: [{ id: "h1", node: "outer-02" }],
+      hunters: [{ id: "h1", node: "outer-02", card: "scp-106" }],
     };
     const afterRound = apply(state, { type: "endTurn" });
 
-    expect(afterRound.players.p1?.integrity).toBe(5);
-    expect(afterRound.players.p2?.integrity).toBe(5);
+    // Contact is a real test now, described in the log like any other roll; it is
+    // no longer a flat point of damage.
+    const log = afterRound.log.join("\n");
+    expect(log).toMatch(/h1 .*reaches p1/);
+    expect(log).toMatch(/4dF/);
+    expect(log).toMatch(/holds it off|Integrity/);
   });
 });
 

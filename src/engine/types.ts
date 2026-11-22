@@ -249,6 +249,8 @@ export type Alignment = "containment" | "breach";
 export type Hunter = {
   readonly id: string;
   readonly node: NodeId;
+  /** R7: the creature's stat block — a Keter anomaly card, fought like one. */
+  readonly card: CardId;
 };
 
 export type Player = {
@@ -418,6 +420,8 @@ export type Action =
   | { readonly type: "raiseStat"; readonly stat: "combat" | "intellect" }
   /** R6: take an item left on this node by a full rack. */
   | { readonly type: "pickUp"; readonly itemId: ItemId }
+  /** R7: fight a hunter on your node; success clears it. */
+  | { readonly type: "confrontHunter"; readonly hunterId: string }
   /** §C4.4: one step up the recontainment protocol, at the Command Center. */
   | { readonly type: "advanceProtocol" }
   /** §C4.4: push the protocol down one step and leave `tamperedProtocol` evidence. */

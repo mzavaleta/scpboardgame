@@ -963,6 +963,18 @@ export function App() {
                   );
                 })}
 
+              {game.hunters
+                .filter((hunter) => hunter.node === active.node)
+                .map((hunter) => (
+                  <button
+                    key={`confront-${hunter.id}`}
+                    onClick={() => dispatch({ type: "confrontHunter", hunterId: hunter.id })}
+                    className="rounded border border-[var(--danger)] px-3 py-2 text-sm text-[var(--danger)]"
+                  >
+                    {t(lang, "confront", { hunter: hunter.id })}
+                  </button>
+                ))}
+
               {game.dropped
                 .filter((drop) => drop.node === active.node)
                 .map((drop) => (

@@ -467,3 +467,9 @@ Waiver passes nothing); two gear racks (consumables / standing, 3 each) with ove
 `pickUp` action. Balance: doom 30%, sim median 11–13 rounds, cap 0%. Full detail and the one deviation (typed
 per-stat rewards deferred) in `odd/tasks/m6-economy.md`. Not in the round: R4 (needs a pre-test window), A3
 (objectives), R7 (hunters as monsters).
+
+**L21 — confirmations and the hunter rework (2026-11-22).** Owner accepted assumptions 1–5 and set the direction
+on the economy: *"ok but eventually will be splitted. we need different economies."* Typed Combat/Intellect
+economies are the end state; the flat pool is a stage. R7 also landed: hunters carry a Keter card as their stat
+block, contact is a 4dF test costing 1 Integrity on a failure, and `confrontHunter` is the real fight (success
+destroys, failure applies the card's payload). 211 tests, build clean, median 11–12 rounds, deaths 1.05–2.9.

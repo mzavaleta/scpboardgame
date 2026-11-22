@@ -116,10 +116,6 @@ export const tuningSchema = z.object({
     invokeBonus: z.number().int().min(0),
   }),
   /** §7: hunters exist to make standing still dangerous. */
-  hunters: z.object({
-    max: z.number().int().min(0),
-    contactDamage: z.number().int().min(0),
-  }),
   /** D16: the third consecutive stalled turn draws a hazard. */
   stall: z.object({
     hazardAfter: z.number().int().min(1),
@@ -149,6 +145,10 @@ export const tuningSchema = z.object({
     safe: z.number().int().min(0),
     euclid: z.number().int().min(0),
     keter: z.number().int().min(0),
+  }),
+  /** R7: what being caught by a hunter costs; the real fight is `confrontHunter`. */
+  hunters: z.object({
+    contactDamage: z.number().int().min(0),
   }),
   /** §14k.5 R2: the doom deck's draw chance at the end of each round. */
   doom: z.object({ chancePercent: z.number().int().min(0).max(100) }),
@@ -215,12 +215,12 @@ export function fateRule(): Tuning["fate"] {
   return TUNING.fate;
 }
 
-export function doomRule(): Tuning["doom"] {
-  return TUNING.doom;
-}
-
 export function hunterRule(): Tuning["hunters"] {
   return TUNING.hunters;
+}
+
+export function doomRule(): Tuning["doom"] {
+  return TUNING.doom;
 }
 
 export function stallRule(): Tuning["stall"] {

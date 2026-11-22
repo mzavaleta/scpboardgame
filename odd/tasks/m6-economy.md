@@ -66,3 +66,16 @@ directive wins.
 current single-click flow does not have; **A3** (public character objective + directives as steps) is the next
 design unit; **R7** (hunters as real monsters) needs stat blocks and the containment pipeline. All three remain
 in `implementation.md` §14k.5.
+
+**L5 — the owner's confirmations (2026-11-22).** All five assumptions were accepted, with one direction on the
+deviation: *"ok but eventually will be splitted. we need different economies."* So **typed, separate economies for
+Combat and Intellect are the intended end state** (R3's full form); this round's flat Records pool is a stage, not
+the design. Recorded in §14k.5 as the next economy step. The rest are confirmed as built: 3 Records per step and a
+cap of 6; drops stay on the node and cost the action; no capsule claim window; the capsule and a directive can
+both win.
+
+**L6 — R7 landed in the same round (hunters are monsters).** `Hunter` now carries `card` (a Keter stat block),
+contact rolls the same 4dF test as a containment and costs `hunters.contactDamage` (1) on a failure, and the new
+`confrontHunter` action is the deliberate fight: success destroys the hunter, failure applies the card's own
+failure/breach payload. Being caught is cheap; choosing to fight is not. The rules page says so. Balance after it:
+median 11–12 rounds, cap 0%, deaths 1.05–2.9/game (3-player tables still above the 1.5 target — Phase B).

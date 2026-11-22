@@ -220,8 +220,8 @@ export const RULE_SECTIONS: readonly RuleSection[] = [
     title: { en: "Hunters", es: "Cazadores" },
     body: [
       {
-        en: `Escalation cards release Hunters. They move at the end of every round and deal ${TUNING.hunters.contactDamage} Integrity to anyone sharing their space. They are public: the whole table sees where they are.`,
-        es: `Las cartas de escalada liberan Cazadores. Se mueven al final de cada ronda y hacen ${TUNING.hunters.contactDamage} de Integridad a quien comparta su casilla. Son públicos: toda la mesa ve dónde están.`,
+        en: "Escalation cards release Hunters. Each one is a real creature with a card's stats: it moves at the end of every round, and sharing its space means fighting it like a containment. A failed test leaves you hurt; confront it on your turn to destroy it. They are public: the whole table sees where they are.",
+        es: "Las cartas de escalada liberan Cazadores. Cada uno es una criatura real con las estadísticas de una carta: se mueve al final de cada ronda, y compartir su casilla significa combatirlo como una contención. Una prueba fallida te deja herido; confróntalo en tu turno para destruirlo. Son públicos: toda la mesa ve dónde están.",
       },
     ],
   },

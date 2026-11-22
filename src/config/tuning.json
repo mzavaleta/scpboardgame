@@ -28,10 +28,6 @@
     "escalation": 1,
     "invokeBonus": 2
   },
-  "hunters": {
-    "max": 4,
-    "contactDamage": 1
-  },
   "stall": {
     "hazardAfter": 3
   },
@@ -201,5 +197,8 @@
   "progression": {
     "pointsPerStep": 3,
     "statCap": 6
+  },
+  "hunters": {
+    "contactDamage": 1
   }
 }

@@ -1,15 +1,22 @@
 /**
- * Hunters (§7): the local pressure layer.
+ * Hunters (§7, R7): the local pressure layer.
  *
  * The scent rule is **visible and deterministic on purpose** — hidden movement
  * produces gotcha, visible movement produces dread and planning. Each hunter takes
  * one step along the shortest path to the nearest player (ties to the lowest
- * seat), and contact costs Integrity.
+ * seat).
+ *
+ * R7: a hunter is a real monster. Its stat block is a Keter anomaly card, contact
+ * is the same 4dF test as a containment, and a failure applies that card's payload
+ * instead of flat damage. `confrontHunter` (in the reducer) is how the table
+ * clears one.
  */
 
 import { getNode, neighborsOf, distance } from "./board";
-import { applyEffects } from "./effects";
+import { ANOMALIES } from "../content/anomalies";
 import { hunterRule } from "../config/tuning";
+import { applyEffects } from "./effects";
+import { describeTest, rollTest } from "./encounter";
 import { playerAt, playersIn } from "./types";
 import type { GameState, Hunter, SeatId } from "./types";
 
@@ -69,20 +76,41 @@ export function moveHunters(state: GameState): { state: GameState; notes: readon
   return { state: { ...state, hunters }, notes };
 }
 
-/** Round boundary step 2 (§S2): contact costs Integrity, publicly. */
+/** Round boundary step 2 (§S2): contact is a fight, card and all. */
 export function hunterContact(state: GameState): { state: GameState; notes: readonly string[] } {
-  const damage = hunterRule().contactDamage;
-  if (damage <= 0 || state.hunters.length === 0) return { state, notes: [] };
+  if (state.hunters.length === 0) return { state, notes: [] };
 
   let next = state;
   const notes: string[] = [];
 
   for (const hunter of state.hunters) {
+    const card = ANOMALIES.find((anomaly) => anomaly.id === hunter.card);
+    if (!card) continue;
     for (const player of playersIn(next.players)) {
       if (player.node !== hunter.node || player.downed) continue;
-      const hit = applyEffects(next, player.seat, [{ kind: "modifyIntegrity", delta: -damage }]);
-      next = hit.state;
-      notes.push(`${hunter.id} reaches ${player.seat} — ${damage} Integrity.`);
+      const { state: rolled, result } = rollTest(
+        next,
+        player.seat,
+        card.test.stat,
+        card.test.difficulty,
+        "anomaly",
+      );
+      next = rolled;
+      notes.push(`${hunter.id} (${card.name.en}) reaches ${player.seat} — ${describeTest(result)}.`);
+
+      if (result.shift >= 0) {
+        notes.push(`  ${player.seat} holds it off.`);
+        continue;
+      }
+
+      // Being caught costs a point; the card's own payload is for the deliberate
+      // fight (`confrontHunter` in the reducer).
+      const damage = hunterRule().contactDamage;
+      if (damage > 0) {
+        const hit = applyEffects(next, player.seat, [{ kind: "modifyIntegrity", delta: -damage }]);
+        next = hit.state;
+        notes.push(`  ${damage} Integrity.`);
+      }
       if (playerAt(next.players, player.seat).downed) {
         notes.push(`${player.seat} is down at ${getNode(hunter.node).name.en}.`);
       }

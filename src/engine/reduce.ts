@@ -1195,6 +1195,35 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
       });
     }
 
+    case "confrontHunter": {
+      if (!canAct(state)) return reject("wrong-phase", "Confront a hunter on your own action phase.");
+      const fighter = playerAt(state.players, state.seat);
+      const hunter = state.hunters.find((candidate) => candidate.id === action.hunterId);
+      if (!hunter || hunter.node !== fighter.node) {
+        return reject("invalid-target", "That hunter is not on your space.");
+      }
+
+      const card = ANOMALIES.find((anomaly) => anomaly.id === hunter.card);
+      if (!card) return reject("invalid-target", "That hunter has no stat block.");
+
+      let next = markProgress(state, state.seat);
+      const { state: rolled, result } = rollTest(next, state.seat, card.test.stat, card.test.difficulty, "anomaly");
+      next = rolled;
+      const notes = [`${state.seat} confronts ${hunter.id} (${card.name.en}) — ${describeTest(result)}.`];
+
+      if (result.shift >= 0) {
+        next = { ...next, hunters: next.hunters.filter((candidate) => candidate.id !== hunter.id) };
+        notes.push(`  ${hunter.id} is destroyed.`);
+      } else {
+        const payload = result.outcome === "breach" ? [...card.failure, ...card.breach] : card.failure;
+        const applied = applyEffects(next, state.seat, payload);
+        next = applied.state;
+        if (applied.notes.length > 0) notes.push(`  ${applied.notes.join(", ")}`);
+      }
+
+      return ok({ ...next, log: [...next.log, ...notes] });
+    }
+
     case "claimCapsule": {
       if (!canAct(state)) return reject("wrong-phase", "Claim the capsule on your own action phase.");
       const claimant = playerAt(state.players, state.seat);

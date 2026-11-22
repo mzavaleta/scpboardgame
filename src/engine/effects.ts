@@ -11,6 +11,7 @@
  *    still writes a note into the public log, so inert debt is visible.
  */
 
+import { ANOMALIES } from "../content/anomalies";
 import { BOARD } from "../content/board";
 import { EQUIPMENT, gearById, gearExtraRecords, gearMaxIntegrity } from "../content/gear";
 import { roleById } from "../content/roles";
@@ -52,9 +53,13 @@ function spawnAt(state: GameState, ring: RingId): { state: GameState; node: Node
 }
 
 function addHunter(state: GameState, node: NodeId): GameState {
+  // R7: a hunter is a real monster. Its stat block is a Keter card, chosen
+  // deterministically by spawn order so replays and tests are stable.
+  const keter = ANOMALIES.filter((anomaly) => anomaly.tier === "keter");
+  const card = keter[state.hunters.length % Math.max(1, keter.length)]?.id ?? "scp-106";
   return {
     ...state,
-    hunters: [...state.hunters, { id: `h${state.hunters.length + 1}`, node }],
+    hunters: [...state.hunters, { id: `h${state.hunters.length + 1}`, node, card }],
   };
 }
 

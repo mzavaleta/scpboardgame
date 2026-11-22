@@ -109,6 +109,19 @@ presence, board integrity, footprint satisfiability, role invariants, deck suffi
   the same target render two identical `Compel P2` buttons, distinguishable only by an HTML `title` tooltip —
   invisible on touch.
 
+## Post-MVP backlog — recorded, **not** to be fixed in this pass
+
+Owner's instruction (2026-11-21, playtest): *"ok record it to be fixed later."* Nothing below is built now.
+The order is the decision; the debt entries above hold the detail.
+
+| Order | Item | Debt | Where it lives |
+| --: | --- | --- | --- |
+| 1 | **Gates become places** — four states, entry draws, an unresolved guard persists and blocks everyone; Records find a physical sink | D10 / §14k.4 | `content/board.ts` (gate shape), `engine/reduce.ts` (`tryCrossGate`), `engine/effects.ts` (no persistence today), `content/anomalies.ts` |
+| 2 | **Compels that can fire** — 6 of 18 are unreachable; pick a resolution (last-turn memory, state conditions, or a reaction window) | D11 | `engine/conditions.ts`, `content/roles.ts`, `engine/reduce.ts` (`compel`) |
+| 3 | **The clock's ending** — guaranteed terminal; the wave clock is the leading candidate | checkpoint / §S9.6 | `engine/reduce.ts` (`endRound`), `engine/hunters.ts` (the base), `config/tuning.json` |
+| 4 | **UI comprehension** — tooltips/help for `Rest`, `Seal`, `Compel`, the Assembly's consequences; distinct labels when two compels apply to one target | D11 (UI half) | `ui/App.tsx`, `i18n/index.ts` |
+| 5 | Everything else in the debt list above | D1–D9 | — |
+
 ## Tasks
 
 | ID | Task | Specs | Route | Status |

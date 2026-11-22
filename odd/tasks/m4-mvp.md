@@ -108,6 +108,18 @@ presence, board integrity, footprint satisfiability, role invariants, deck suffi
   event happens, which is the richest and the most work. **Also a UI defect (M5):** two applicable compels on
   the same target render two identical `Compel P2` buttons, distinguishable only by an HTML `title` tooltip —
   invisible on touch.
+- **D12 — The economy is unreachable in practice, and invisible when it is reachable.** First full game
+  (25 rounds, 2 players): **4 containments, all Safe tier, 4 Records total**, ending at 1 and 3. The first
+  purchase (clearance 2) costs 3, so it needs three Safe containments — and the owner never saw the button
+  enabled: *"i did not see the buy thing."* Two independent failures stacked: **(a) affordability** — the game
+  produced 4 Records against the 12 needed for clearance 4, a different order of magnitude, not a shortfall;
+  **(b) discoverability** — `Buy clearance` renders only during the **action phase** while standing on one of
+  five checkpoints, and is `opacity-30` when unaffordable; there is **no glossary, help or rules screen
+  anywhere in the UI**, so `Records 3` on the sheet explains nothing. Fix direction: always show the ladder at
+  a checkpoint (`Access 2 · 3 Records · you have 1`), make the checkpoint a board feature rather than a button,
+  and put the purpose of Records somewhere reachable. Pairs with D10 (Records need a physical sink) and with
+  the owner's ask for *"items, consumables, equipment that help to go forward"* — there is still no progression
+  system: D28 remains designed-not-built.
 
 ## Post-MVP backlog — recorded, **not** to be fixed in this pass
 
@@ -117,10 +129,11 @@ The order is the decision; the debt entries above hold the detail.
 | Order | Item | Debt | Where it lives |
 | --: | --- | --- | --- |
 | 1 | **Gates become places** — four states, entry draws, an unresolved guard persists and blocks everyone; Records find a physical sink | D10 / §14k.4 | `content/board.ts` (gate shape), `engine/reduce.ts` (`tryCrossGate`), `engine/effects.ts` (no persistence today), `content/anomalies.ts` |
-| 2 | **Compels that can fire** — 6 of 18 are unreachable; pick a resolution (last-turn memory, state conditions, or a reaction window) | D11 | `engine/conditions.ts`, `content/roles.ts`, `engine/reduce.ts` (`compel`) |
-| 3 | **The clock's ending** — guaranteed terminal; the wave clock is the leading candidate | checkpoint / §S9.6 | `engine/reduce.ts` (`endRound`), `engine/hunters.ts` (the base), `config/tuning.json` |
-| 4 | **UI comprehension** — tooltips/help for `Rest`, `Seal`, `Compel`, the Assembly's consequences; distinct labels when two compels apply to one target | D11 (UI half) | `ui/App.tsx`, `i18n/index.ts` |
-| 5 | Everything else in the debt list above | D1–D9 | — |
+| 2 | **The economy is visible and reachable** — the price ladder always shown at a checkpoint, the checkpoint as a board feature, Records explained somewhere; then decide whether progression lives in Records or in gear | D12 / D28 | `ui/App.tsx`, `i18n/index.ts`, `config/tuning.json` (prices/rewards) |
+| 3 | **Compels that can fire** — 6 of 18 are unreachable; pick a resolution (last-turn memory, state conditions, or a reaction window) | D11 | `engine/conditions.ts`, `content/roles.ts`, `engine/reduce.ts` (`compel`) |
+| 4 | **The clock's ending** — guaranteed terminal; the wave clock is the leading candidate | checkpoint / §S9.6 | `engine/reduce.ts` (`endRound`), `engine/hunters.ts` (the base), `config/tuning.json` |
+| 5 | **UI comprehension** — tooltips/help for `Rest`, `Seal`, `Compel`, the Assembly's consequences; distinct labels when two compels apply to one target | D11 (UI half) | `ui/App.tsx`, `i18n/index.ts` |
+| 6 | Everything else in the debt list above | D1–D9 | — |
 
 ## Tasks
 

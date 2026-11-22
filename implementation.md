@@ -90,7 +90,7 @@ boundary until the previous one has zero `OPEN` items.
 | --- | --- | --- |
 | **D1** | Win axis = **descend to the Command Center to recontain**. The "escape" feeling is delivered by pressure, not by a puzzle-escape victory. | `AGREED` |
 | **D5** | **Dice split: `1d6` for movement, `4dF` for tests** (combat, containment checks, achievements). | `AGREED` |
-| **D29** | **A bridge has a gatekeeper, not a check** — a door (clearance/hacking), a creature (a fight), an officer (clearance/social), instead of a bare 4dF test. The current check fails only 18.5% of the time, so entry is cheap while the room behind is lethal. (§14k.2, §14k.3) `PROPOSED` |
+| **D29** | **A bridge has a gatekeeper, not a check** — a door (clearance/hacking), a creature (a fight), an officer (clearance/social), instead of a bare 4dF test. The current check fails only 18.5% of the time, so entry is cheap while the room behind is lethal. **Amended 2026-11-21 (§14k.4): a gate is a place with a state, not a toll** — open / locked / guarded / sealed; a guard is an entry draw whose unresolved creature **stays and blocks everyone**; the "buy permission" shape is rejected, and Records must find a physical sink. `PROPOSED` |
 | **D30** | **Declining costs something, scaled by tier** — priced in Fate, or an escape check that can fail, instead of the flat `+1 Threat` of §14f.3. (§14k.3) `PROPOSED` |
 | **D31** | **Every landing produces something** — a table per node kind, so medical/supply/alarm/terminal do something instead of nothing. Same design as §14g seen from the other end; do them once. D27 makes the content free, so the cost is turn length. (§14k.3) `PROPOSED` |
 | **D28** | **Containment is a collectible spent on stats** (Talisman shape): containing yields a trophy typed by tier, trophies are exchanged for stats at a facility, and some entries are usable objects that can be dropped onto a node and stay there. Cheap variant: `records` (already 1/2/3 by tier) *is* the tally. (§14i) `PROPOSED` |
@@ -1543,6 +1543,56 @@ once**, not twice. The real cost is not content but **time**: a 35-landing sessi
 
 **What to do with all three:** nothing yet. They are the shape of M4, and M3 (the economy) has to exist first —
 you cannot price a gatekeeper before Records buy something.
+
+#### 14k.4 Amendment to D29 — a gate is a place with a state, not a toll (2026-11-21)
+
+Found by the owner **while playing the MVP**, not by reading the design. Verbatim:
+
+> *"thats the thing, you rememeber what we talk about having a narrative? paying a door just because just
+> dont makes sense. if door is open i shoudl be able to cross, if closed i need to open it, by key, by special
+> artifact or item, by skill etc. or maybe the door is open but passign by activates a draw and if hapens to be
+> a monster then needs to be cleared before corssing. if not defeated that monster remains there so anyone will
+> want to cress needs to clear it contain it. yo know what i try to say?"*
+
+**What this settles.** D29 offered four gatekeeper shapes — door, creature, officer, or the bare check. The
+amendment **rejects the toll** as a shape: `clearance ≥ gate number → walk through` is *permission*, not an
+object. You cannot point at it on the board, and it never changes state. What replaces it:
+
+| State | The fiction | The rule |
+| --- | --- | --- |
+| **Open** | A door. | Free passage, no roll. |
+| **Locked** | Shut, and something opens it. | A key, an artifact, gear, or a skill test — the thing is consumed or the test is paid once. |
+| **Guarded** | Open, but something is at the mouth. | An entry draw. A creature means an encounter; clear it and cross, fail and **you do not cross and it stays**. |
+| **Sealed** | Welded for a while. | Already built (`sealedGates` + reopen round). |
+
+**The new mechanic, and the load-bearing one: an unresolved thing persists.** Today an anomaly that is declined
+evaporates — the card returns to a pile that never depletes, and the table watches a monster politely leave.
+Under this amendment, declining leaves the guard at the gate mouth, visible, blocking **everyone** in both
+directions until somebody clears it. Three consequences, all wanted:
+
+1. **A gate becomes a shared problem.** Nobody descends until somebody spends turns clearing it.
+2. **The saboteur gets a physical weapon.** Leaving a guard in the corridor is a breach move with a public
+   footprint — the table can see who walked away from it.
+3. **The die keeps a job, but it moves.** You no longer roll to see whether architecture lets you through;
+   you roll against **the thing standing in front of it**. Rolling against a door is what made entry cheap
+   (81.5%) while the room behind was lethal (§14k.2).
+
+**The cost, stated plainly.** If doors are no longer bought, **Records lose their only sink**. The economy's
+current answer to "why pay?" is "permission", and this amendment deletes it. So the rework is not complete
+until Records buy something physical: keys, gear, healing, a cleared evidence trail, a protocol advance, Fate.
+That question — *what is money for?* — is now the rework's real design problem, and it is the same question
+D28 was circling.
+
+**Consequence for the instrument.** §S9.4 cannot judge this yet: the simulator has no notion of a gate state or
+a persistent guard, so `purchasesPerGame` and `gateFailureShare` stop meaning what they measure today once the
+toll is gone. The sim needs gate state and guard occupancy before the change can be balanced.
+
+**Status:** `PROPOSED`, unscheduled. Sequence it **ahead of the clock rework** in M6 — the clock decides
+*when* the game ends; the gate decides whether the game is *about* anything.
+
+**The playtest line that produced it** (the format from §14j):
+
+`R? — P1 — pressed Seal G1 / looked for a way to "pay" the door — "paying a door just doesn't make sense" — the gate has no fiction, it is a toll`
 
 ---
 

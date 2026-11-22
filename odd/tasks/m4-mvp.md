@@ -88,6 +88,15 @@ presence, board integrity, footprint satisfiability, role invariants, deck suffi
 - **D7 — `createGame` auto-drafts** roles when `draft` is not requested, so the simulator and engine tests
   are not a UI flow. The setup screen requests `draft: true`.
 - **D8 — Seat count** stays 2–3 (existing type); §14b's 2–4 UI is not reached.
+- **D9 — The engine log is English-only.** Bilingual narration needs structured events (typed log entries)
+  instead of pre-rendered sentences; only then can the UI translate them. Accepted for the MVP by the owner
+  (*"logs english only is ok, is mostly for debug"*) — the UI, characters, cards and content are translated.
+- **D10 — Gates are tolls, not places.** Found by the owner playing the MVP: *"paying a door just because just
+  dont makes sense."* Clearance is permission, not an object; a door has no state; and a declined anomaly
+  evaporates instead of staying in the room. The rework is `implementation.md` §14k.4 (amendment to D29): four
+  gate states, entry draws, and **an unresolved guard persists and blocks everyone**. Two prerequisites before
+  it can be built: (a) Records need a physical sink once permission is gone; (b) the simulator needs gate
+  state and guard occupancy, or §S9.4 stops measuring anything. Sequenced **before** the clock rework in M6.
 
 ## Tasks
 
@@ -148,3 +157,16 @@ natural terminal, and save/resume (M5).
 **L8 — close.** 194 tests (14 files), typecheck clean, build clean, `pnpm validate` 0 errors, 800 sim games
 in ~2 s. The feature document, `implementation.md`'s checkpoint and §S9.6b, and the README are updated.
 Open questions are recorded as debt in the Specs section and the checkpoint, not silently fixed by guessing.
+
+**L9 — the first human playtest (owner at the table, 2026-11-21).** Live findings, recorded as they arrive:
+
+- **Comprehension (UI, not rules).** The owner asked what `Rest`, `Seal G1` and the Emergency Assembly do.
+  All three work as designed; none is *explained in place*. The overlay states the vote's fiction but not its
+  consequences (+2 / +1 / locked 2 rounds), and `Rest`/`Seal` have no tooltip. This is M5 work (help text,
+  tooltips, a first-turn hint), not a rule defect.
+- **The gate verdict (design).** *"Paying a door just because just dont makes sense."* Recorded as debt **D10**
+  and as `implementation.md` §14k.4, an amendment to D29. The owner's own model — door states, an entry draw,
+  and an unresolved guard that **persists and blocks everyone** — is recorded verbatim there, because it is
+  stronger than the toll it replaces and it gives sabotage a physical object.
+- **Sequencing decision.** The gate rework goes **ahead of the clock rework** in M6: the clock decides when the
+  game ends, the gate decides whether the game is about anything.

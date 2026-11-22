@@ -14,7 +14,7 @@ import { ANOMALIES, anomalyById } from "../content/anomalies";
 import { BOARD } from "../content/board";
 import { MAIN_DIRECTIVES, directiveById } from "../content/directives";
 import { ESCALATION } from "../content/escalation";
-import { EQUIPMENT, gearById, gearTestBonus, hasModifier } from "../content/gear";
+import { EQUIPMENT, gearById, gearTestBonus, hasModifier, modifiersOf } from "../content/gear";
 import { aspectById, roleById, ROLES } from "../content/roles";
 import { TUNING, clearancePrice } from "../config/tuning";
 import { evalCondition } from "../engine/conditions";
@@ -76,7 +76,7 @@ export function App() {
   const [screen, setScreen] = useState<Screen>("setup");
   const [error, setError] = useState("");
   const [claimedSeat, setClaimedSeat] = useState<SeatId>("p1");
-  const [holdSeat, setHoldSeat] = useState<SeatId | null>(null);
+  const [sheetSeat, setSheetSeat] = useState<SeatId | null>(null);
   const [handoff, setHandoff] = useState<{ seats: SeatId[]; index: number } | null>(null);
   const [handoffDone, setHandoffDone] = useState(false);
   const [devCard, setDevCard] = useState(ANOMALIES[0]?.id ?? "scp-005");
@@ -353,8 +353,6 @@ export function App() {
     : null;
 
   const vote = game.vote;
-  // §S7.3: private UI is fed by the projection, never by the live state.
-  const privateView = project(game, claimedSeat).players[claimedSeat];
 
   return (
     <div className="relative grid h-full grid-cols-[260px_1fr_320px] grid-rows-[auto_1fr_auto] gap-3 p-3">
@@ -458,10 +456,13 @@ export function App() {
         </ul>
 
         <h2 className="mt-4 mb-2 text-xs uppercase tracking-widest text-[var(--muted)]">
-          {t(lang, "privatePanel")}
+          {t(lang, "yourSheet")}
         </h2>
+        {/* The seat selector is navigation, not privacy. Hiding on a shared
+            screen was theatre — anyone could tap it. On multi-screen play each
+            device simply receives its own seat and this disappears. */}
         <div className="rounded border border-[var(--line)] p-2 text-xs">
-          <div className="mb-1 flex items-center gap-1 text-[var(--muted)]">
+          <div className="mb-2 flex items-center gap-1 text-[var(--muted)]">
             {t(lang, "claimSeat")}
             {seats.map((seat) => (
               <button
@@ -475,31 +476,12 @@ export function App() {
               </button>
             ))}
           </div>
-          <div
-            className="cursor-pointer select-none rounded border border-dashed border-[var(--line)] p-2"
-            onPointerDown={() => setHoldSeat(claimedSeat)}
-            onPointerUp={() => setHoldSeat(null)}
-            onPointerLeave={() => setHoldSeat(null)}
+          <button
+            onClick={() => setSheetSeat(claimedSeat)}
+            className="w-full rounded border border-[var(--accent)] px-2 py-1.5 text-[var(--accent)]"
           >
-            {holdSeat === claimedSeat ? (
-              <div>
-                <div className="text-[var(--muted)]">{t(lang, "directive")}</div>
-                <div className="mb-1 text-[var(--text)]">
-                  {privateView?.mainDirectiveId
-                    ? localized(directiveById(privateView.mainDirectiveId).name, lang)
-                    : t(lang, "none")}
-                </div>
-                <div className="text-[var(--muted)]">{t(lang, "yourAspect")}</div>
-                <div className="text-[var(--text)]">
-                  {privateView?.aspectId
-                    ? localized(aspectById(privateView.aspectId).name, lang)
-                    : t(lang, "none")}
-                </div>
-              </div>
-            ) : (
-              <span className="text-[var(--muted)]">{t(lang, "holdToReveal")}</span>
-            )}
-          </div>
+            {t(lang, "yourSheet")} · {claimedSeat.toUpperCase()}
+          </button>
         </div>
       </aside>
 
@@ -672,6 +654,107 @@ export function App() {
             </div>
           </div>
         )}
+
+        {/* Player sheet. Full-screen on purpose: it is a card you open and put
+            down, not a corner of the screen the next player can read. When each
+            player has a device this overlay disappears entirely — the device
+            receives only its own seat's projection. */}
+        {sheetSeat &&
+          (() => {
+            const view = project(game, sheetSeat).players[sheetSeat];
+            const owner = game.players[sheetSeat];
+            if (!view || !owner) return null;
+            const modifiers = modifiersOf(owner.gear);
+            const composition = (stat: "combat" | "intellect"): string => {
+              const base = owner.stats[stat];
+              const bonus = modifiers.reduce(
+                (sum, modifier) =>
+                  sum + (modifier.kind === "statBonus" && modifier.stat === stat ? modifier.bonus : 0),
+                0,
+              );
+              return bonus > 0 ? `${base} +${bonus} = ${base + bonus}` : `${base}`;
+            };
+            const directive = view.mainDirectiveId ? directiveById(view.mainDirectiveId) : null;
+
+            return (
+              <div className="absolute inset-0 z-20 overflow-y-auto bg-[#05080a]/97 p-4">
+                <div className="mx-auto w-full max-w-2xl rounded border border-[var(--accent)] bg-[var(--panel)] p-5">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="inline-block h-2.5 w-2.5 rounded-full"
+                      style={{ background: SEAT_COLOR[sheetSeat] }}
+                    />
+                    <b>{sheetSeat.toUpperCase()}</b>
+                    <span className="text-[var(--muted)]">
+                      {owner.roleId ? localized(roleById(owner.roleId).name, lang) : t(lang, "none")}
+                    </span>
+                    <button
+                      onClick={() => setSheetSeat(null)}
+                      className="ml-auto rounded border border-[var(--line)] px-3 py-1 text-xs"
+                    >
+                      {t(lang, "back")}
+                    </button>
+                  </div>
+
+                  <div className="mt-4 text-xs uppercase tracking-widest text-[var(--muted)]">
+                    {t(lang, "directive")}
+                  </div>
+                  <div className="text-sm">{directive ? localized(directive.name, lang) : t(lang, "none")}</div>
+                  {directive && (
+                    <div className="text-xs text-[var(--muted)]">{localized(directive.text, lang)}</div>
+                  )}
+
+                  <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                    <span className="text-[var(--muted)]">{t(lang, "combat")}</span>
+                    <span>{composition("combat")}</span>
+                    <span className="text-[var(--muted)]">{t(lang, "intellect")}</span>
+                    <span>{composition("intellect")}</span>
+                    <span className="text-[var(--muted)]">{t(lang, "integrity")}</span>
+                    <span>
+                      {owner.integrity}/{owner.maxIntegrity}
+                    </span>
+                    <span className="text-[var(--muted)]">{t(lang, "fate")}</span>
+                    <span>{owner.fate}</span>
+                    <span className="text-[var(--muted)]">{t(lang, "records")}</span>
+                    <span>{owner.records}</span>
+                    <span className="text-[var(--muted)]">{t(lang, "clearance")}</span>
+                    <span>{owner.clearance}</span>
+                    <span className="text-[var(--muted)]">{t(lang, "yourAspect")}</span>
+                    <span>{owner.aspectId ? localized(aspectById(owner.aspectId).name, lang) : t(lang, "none")}</span>
+                    <span className="text-[var(--muted)]">{t(lang, "evidence")}</span>
+                    <span>
+                      {t(lang, "accident")}{" "}
+                      {game.evidence.filter((token) => token.sourceSeat === sheetSeat && token.class === "accident").length}
+                      {" · "}
+                      {t(lang, "intent")}{" "}
+                      {game.evidence.filter((token) => token.sourceSeat === sheetSeat && token.class === "intent").length}
+                    </span>
+                    <span className="text-[var(--muted)]">{t(lang, "tags")}</span>
+                    <span>{owner.tags.length > 0 ? owner.tags.join(", ") : t(lang, "none")}</span>
+                  </div>
+
+                  <div className="mt-4 text-xs uppercase tracking-widest text-[var(--muted)]">
+                    {t(lang, "gear")}
+                  </div>
+                  {owner.gear.length === 0 ? (
+                    <div className="text-sm text-[var(--muted)]">{t(lang, "none")}</div>
+                  ) : (
+                    <ul className="mt-1 space-y-1 text-sm">
+                      {owner.gear.map((id) => {
+                        const item = gearById(id);
+                        return (
+                          <li key={id}>
+                            <b>{localized(item.name, lang)}</b>
+                            <span className="text-[var(--muted)]"> — {localized(item.text, lang)}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
       </main>
 
       {/* log */}

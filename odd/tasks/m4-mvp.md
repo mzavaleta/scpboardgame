@@ -149,6 +149,13 @@ presence, board integrity, footprint satisfiability, role invariants, deck suffi
   **Fixed while recording this (2026-11-21):** the encounter preview printed the raw stat and the printed card
   difficulty, ignoring the gear bonus and the `hardTest` tag — it now shows the number the engine will use
   (`src/ui/App.tsx`).
+  **Built (2026-11-21):** the hold-to-reveal panel is gone. It was theatre — a persistent peephole anyone could
+  tap, which on a shared screen hid nothing. Replaced by a **full-screen sheet** you open with one click and
+  dismiss: directive, stats as composition (`base + statBonus`), Integrity/Fate/Records/Clearance, aspect,
+  evidence, tags, and gear with each item's text. The trade is explicit: on one shared screen this is **table
+  trust**, the same as handing over a paper sheet — not security. The structural version arrives with one
+  device per player (D11 keeps v1 pass-and-play; online is Stage 3): then the overlay disappears entirely and
+  each device receives only `project(state, seat)`. Single state, N projections.
 
 ## Post-MVP backlog — recorded, **not** to be fixed in this pass
 

@@ -168,6 +168,12 @@ visual starts until Phase A and B are done**.
 
 ### Phase A — mechanics and real value (in order)
 
+**PROPOSED re-sequence (2026-11-22, after L15/L16): A5 → A2 → A3 → A4 → R7 → A6/A7.** The escape model (doomed
+site, capsule in the middle, no shared win) decides what the economy is *for* and what the clock *is*, so the
+clock and the terminal come first; everything below A1 that assumed "recontainment is the good ending" is read
+against that frame. The table keeps the original IDs so the debt references stay stable; the row order below is
+the pre-L15 order and is superseded by this line.
+
 | # | Item | Debt | Where it lives |
 | --: | --- | --- | --- |
 | A1 | **Gates become places** — **DONE 2026-11-22, `odd/tasks/m6-gates.md`**; three conditions + seal overlay, guard persists and blocks both directions, toll deleted | D10 / §14k.4 | `content/board.ts` (gate shape), `engine/reduce.ts` (`tryCrossGate`), `engine/effects.ts` (no persistence today), `content/anomalies.ts` |
@@ -417,3 +423,24 @@ threat cards so the doom advances by chance (R2), Records as typed stat progress
 modifier (R4), compels that **transfer** Fate instead of creating it (R5), two gear racks with drops staying on
 the node (R6), and hunters as real monsters fought like anomalies (R7). Nothing built. The two collisions on
 record: R3 deletes the clearance ladder, R5 makes descent/breach/cards the only Fate sources.
+
+**L17 — the M6 order after L15/L16 (2026-11-22, proposal).** The owner asked for the logical next steps. The old
+Phase A order (A2 economy before A5 clock) assumed recontainment was the good ending; it is not any more. Proposed
+sequence, with the reason each step is where it is:
+
+| Order | Step | Why here |
+| --: | --- | --- |
+| 1 | **A5 + the capsule** — one terminal: the countdown expires; whoever is inside the Core capsule wins; containment buys rounds instead of winning | the win model decides what every other system is for; nothing else can be judged until this exists |
+| 2 | **R2 — the clock by draws** | makes the deadline inevitable regardless of camping, which is what the escape needs |
+| 3 | **A2 + R3 + R6 — the economy** | Records become typed stat progress; items/equipment (two racks, drops stay on the node) are what get you to the middle |
+| 4 | **A3 — objectives and directives** | the public character objective (reward/penalty) and the hidden directive as performed steps (D13), designed together |
+| 5 | **A4 + R4 + R5 — Fate and compels** | the closed loop: Fate as a ±2 roll modifier, compels that transfer instead of creating |
+| 6 | **R7 — hunters as monsters** | pressure that is fought like a containment; independent, but reads better once the terminal is real |
+| 7 | **A6/A7 — save/resume, CI** | infrastructure; can run in parallel once the win model is frozen |
+| 8 | **B2/B3, then Phase C** | instrument and numbers after the rules settle; visuals last, per the owner |
+
+**The single decision that starts step 1:** what ends the game and who wins — *the countdown hits zero and every
+seat inside the Core wins* (recommended: containment then buys rounds, and the protocol is re-purposed or
+reduced), or *the capsule launches early and only the first seat inside wins* (sharper, and closer to the
+"first one wins" wording, but it needs a launch trigger and a turn-order answer). Nothing is built until the
+owner picks one.

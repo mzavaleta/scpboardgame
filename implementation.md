@@ -1599,6 +1599,31 @@ persists and blocks both directions, and the toll is deleted. The instrument reg
 
 ---
 
+#### 14k.5 Refinements from the owner, 2026-11-22 (recorded, not built)
+
+Offered while reading the rules page, with the instruction *"we dont need to change it now, but valuable for next
+iterations."* These refine the systems the escape model (L15: doomed site, capsule in the middle, no shared win)
+depends on. Nothing below is built.
+
+| # | Area | Today | Proposed refinement | Touches |
+| --: | --- | --- | --- | --- |
+| R1 | **Anomalies and stats** | every card names **one** stat and one difficulty (`test: { stat, difficulty }`); the rules sentence "add Combat or Intellect" reads like a player choice | a creature is contained by **the stat it says**; some may offer two approaches at different difficulties (Combat 4 *or* Intellect 5) | `content/anomalies.ts` schema (a second test), rules text |
+| R2 | **Threat inevitability** | the track rises only when a **whole round passes with no attempt** (D16), plus escalation `raiseThreat` and declines — perfect play can hold it forever | put cards in the deck(s) that raise Threat or **shorten the countdown on draw**, so the bomb advances by chance no matter how well the table plays | `content/escalation.ts`, `content/anomalies.ts`, `engine/reduce.ts`, `config/tuning.json` |
+| R3 | **Records as typed progression** | containment pays 1/2/3 Records by tier; Records buy clearance | every anomaly awards points to a **specific stat**, scaled by tier; a threshold buys +1 in that stat (D28's trophy shape with typed currency) | `content/anomalies.ts`, `engine/effects.ts`, `ui/App.tsx`, `config/tuning.json`; replaces the clearance ladder (A2) |
+| R4 | **Fate as a roll modifier** | 1 Fate rerolls a test | spend Fate to shift a roll by **up to ±2** (cost per point still undefined) | `engine/encounter.ts` (`rollTest`), `config/tuning.json`, UI |
+| R5 | **Compels transfer Fate, never create it** | invoker burns 1, the accepting target **gains 2**, refusing burns 1 | the invoker **offers 1**: accept moves that point to the target, reject moves 1 from the target to the invoker. Nothing is created or destroyed | `engine/reduce.ts` (`compel` / `respondCompel`), `config/tuning.json`; the Ethics Waiver's free refusal needs a rule |
+| R6 | **Gear: two racks, and drops stay on the floor** | 3 slots total; a fourth draw is discarded (D5) | up to **3 items (consumables) + 3 equipment (standing)**; a fourth forces a choice, and the piece left behind **stays on that node** for anyone to pick up | `engine/types.ts` (Player), `engine/effects.ts` (`drawCard`), board/UI, i18n |
+| R7 | **Hunters are monsters** | capped at 4, move at round end, fixed 1 damage on contact (D4) | each hunter has **its own stats and is fought like a containment**; there can be none, one, or several | `engine/hunters.ts`, `content/` (stat blocks), the contact path in `endRound` |
+
+**Why these belong together.** R3 and R4 are the progression and the probability dial; R5 makes the Fate
+economy a closed loop; R2 makes the clock a real deadline instead of a stall detector; R7 turns the pressure
+into creatures the table can fight. All of them are read differently once the escape model replaces recontainment
+as the good ending, so they should be designed with A2 (the sink), A3 (objectives) and A5 (the clock) — not before.
+
+**Two collisions to keep visible.** R3 deletes the clearance ladder that the `By Merit` directive and the
+checkpoint UI depend on. R5 removes Fate creation from compels, so the other sources (first descent, breach,
+escalation) stop being a trickle and become the whole supply.
+
 # Part IV — Implementation design (specification, no code)
 
 Active per the owner: *"I'd like to pause and refine all the implementation… start but not

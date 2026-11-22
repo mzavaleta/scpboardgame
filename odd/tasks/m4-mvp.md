@@ -410,3 +410,10 @@ capsule is designed, recorded so they are not discovered halfway:
 
 **The rules page still narrates the build (bomb, protocol, recontainment), and that is deliberate**: it
 describes what the engine does, not the model being designed. It changes when A5 lands.
+
+**L16 — seven system refinements for the next iterations (2026-11-22).** Owner: *"we dont need to change it now,
+but valuable for next iterations."* Recorded as **`implementation.md` §14k.5 (R1–R7)**: per-creature stats (R1),
+threat cards so the doom advances by chance (R2), Records as typed stat progression (R3), Fate as a ±2 roll
+modifier (R4), compels that **transfer** Fate instead of creating it (R5), two gear racks with drops staying on
+the node (R6), and hunters as real monsters fought like anomalies (R7). Nothing built. The two collisions on
+record: R3 deletes the clearance ladder, R5 makes descent/breach/cards the only Fate sources.

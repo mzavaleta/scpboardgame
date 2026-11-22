@@ -120,6 +120,19 @@ presence, board integrity, footprint satisfiability, role invariants, deck suffi
   and put the purpose of Records somewhere reachable. Pairs with D10 (Records need a physical sink) and with
   the owner's ask for *"items, consumables, equipment that help to go forward"* — there is still no progression
   system: D28 remains designed-not-built.
+- **D13 — The hidden directive is a predicate, not an objective.** Asked whether the private motive changed any
+  decision in the first full game, the owner answered: *"no, to be honest, we just ignored since it was not
+  clear what to do."* The cause is structural, not presentation: all **12** directives are end-state
+  conditions evaluated once, at the reveal (`evalCondition` in `engine/directives.ts`). None names a step. The
+  private panel shows the name and one sentence **while the button is held**, with no progress readout and no
+  "what advances this". So a player must reverse-engineer a plan from a logical statement about systems they
+  are still learning — and the rational response is exactly what happened: ignore it. **Consequence: the core
+  bet of the design (§7c, hidden motive → deduction) does not engage at the table.** It is decoration until a
+  motive is actionable. Fix direction: directives become **objectives with visible progress** — two to four
+  concrete steps, a private checklist, and a progress readout that updates. This is the same shape as the
+  owner's own post-MVP proposal (*"a public objective, optional, but if achieved unlock something really good"*):
+  design them together, one identity layer, not two. Needs a new action or two so that steps can be *performed*
+  rather than inferred.
 
 ## Post-MVP backlog — recorded, **not** to be fixed in this pass
 
@@ -130,10 +143,11 @@ The order is the decision; the debt entries above hold the detail.
 | --: | --- | --- | --- |
 | 1 | **Gates become places** — four states, entry draws, an unresolved guard persists and blocks everyone; Records find a physical sink | D10 / §14k.4 | `content/board.ts` (gate shape), `engine/reduce.ts` (`tryCrossGate`), `engine/effects.ts` (no persistence today), `content/anomalies.ts` |
 | 2 | **The economy is visible and reachable** — the price ladder always shown at a checkpoint, the checkpoint as a board feature, Records explained somewhere; then decide whether progression lives in Records or in gear | D12 / D28 | `ui/App.tsx`, `i18n/index.ts`, `config/tuning.json` (prices/rewards) |
-| 3 | **Compels that can fire** — 6 of 18 are unreachable; pick a resolution (last-turn memory, state conditions, or a reaction window) | D11 | `engine/conditions.ts`, `content/roles.ts`, `engine/reduce.ts` (`compel`) |
-| 4 | **The clock's ending** — guaranteed terminal; the wave clock is the leading candidate | checkpoint / §S9.6 | `engine/reduce.ts` (`endRound`), `engine/hunters.ts` (the base), `config/tuning.json` |
-| 5 | **UI comprehension** — tooltips/help for `Rest`, `Seal`, `Compel`, the Assembly's consequences; distinct labels when two compels apply to one target | D11 (UI half) | `ui/App.tsx`, `i18n/index.ts` |
-| 6 | Everything else in the debt list above | D1–D9 | — |
+| 3 | **Directives become objectives** — 2–4 concrete steps, a private checklist with live progress, and actions that perform them; designed together with the post-MVP personal stake | D13 | `content/directives.ts`, `engine/conditions.ts`, `engine/directives.ts`, `ui/App.tsx` |
+| 4 | **Compels that can fire** — 6 of 18 are unreachable; pick a resolution (last-turn memory, state conditions, or a reaction window) | D11 | `engine/conditions.ts`, `content/roles.ts`, `engine/reduce.ts` (`compel`) |
+| 5 | **The clock's ending** — guaranteed terminal; the wave clock is the leading candidate | checkpoint / §S9.6 | `engine/reduce.ts` (`endRound`), `engine/hunters.ts` (the base), `config/tuning.json` |
+| 6 | **UI comprehension** — tooltips/help for `Rest`, `Seal`, `Compel`, the Assembly's consequences; distinct labels when two compels apply to one target | D11 (UI half) | `ui/App.tsx`, `i18n/index.ts` |
+| 7 | Everything else in the debt list above | D1–D9 | — |
 
 ## Tasks
 

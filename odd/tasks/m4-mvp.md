@@ -97,6 +97,17 @@ presence, board integrity, footprint satisfiability, role invariants, deck suffi
   gate states, entry draws, and **an unresolved guard persists and blocks everyone**. Two prerequisites before
   it can be built: (a) Records need a physical sink once permission is gone; (b) the simulator needs gate
   state and guard occupancy, or §S9.4 stops measuring anything. Sequenced **before** the clock rework in M6.
+- **D11 — Six of the eighteen compels can never fire.** `inEncounter` and `activeSeat` test
+  `state.seat === seat`; `declinedThisTurn`, `containedThisTurn`, `gainedGearThisTurn` and
+  `startedContainmentThisTurn` read the *target's* per-turn events. But a compel is invoked on the **invoker's**
+  action phase (the target's answer is the one off-turn action), and `turnEvents` is only ever written for the
+  acting seat and cleared at every `endTurn`. So those six are false by construction: `reckless#1`,
+  `curious#0`, `curious#1`, `methodical#0`, `by-the-book#1`, `by-the-book#2`. This is part of why §S9.6 reads
+  0.4–2.1 compels per game. Three ways out, all M6-scale: (a) a per-seat `lastTurnEvents` memory, cheapest and
+  keeps the content; (b) rewrite the six as state conditions; (c) a reaction window — the compel fires when the
+  event happens, which is the richest and the most work. **Also a UI defect (M5):** two applicable compels on
+  the same target render two identical `Compel P2` buttons, distinguishable only by an HTML `title` tooltip —
+  invisible on touch.
 
 ## Tasks
 
@@ -170,3 +181,7 @@ Open questions are recorded as debt in the Specs section and the checkpoint, not
   stronger than the toll it replaces and it gives sabotage a physical object.
 - **Sequencing decision.** The gate rework goes **ahead of the clock rework** in M6: the clock decides when the
   game ends, the gate decides whether the game is about anything.
+- **Compel question → defect (D11).** Asked what the `Compel` button means; auditing it showed **6 of the 18
+  compels are unreachable** (turn-scoped conditions on the target evaluated during the invoker's turn). Recorded
+  as D11 with three resolutions. This is the first finding that explains a simulator number rather than a
+  feeling: compels sit at 0.4–2.1 per game partly because a third of them cannot fire at all.

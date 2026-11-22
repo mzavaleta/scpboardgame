@@ -174,6 +174,7 @@ export function createGame(
     draft: null,
     // §14k.4: the board declares what each door is; the state copy is what changes.
     gates: Object.fromEntries(BOARD.gates.map((gate) => [gate.id, { condition: gate.condition }])),
+    capsuleSeat: null,
     contentVersion: CONTENT_VERSION,
     log: [`Round 1 — ${seats[0]} to act.`],
   };
@@ -1147,6 +1148,26 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
           ...settled.log,
           ...(nextPlayer.downed ? [`— ${nextSeat} is down (respawn or skip).`] : []),
           `— ${nextSeat} to act (round ${round}).`,
+        ],
+      });
+    }
+
+    case "claimCapsule": {
+      if (!canAct(state)) return reject("wrong-phase", "Claim the capsule on your own action phase.");
+      const claimant = playerAt(state.players, state.seat);
+      if (claimant.node !== "core-00") {
+        return reject("no-core", "The escape capsule is in the Command Center.");
+      }
+      if (state.capsuleSeat !== null) {
+        return reject("capsule-taken", `${state.capsuleSeat.toUpperCase()} already holds the capsule.`);
+      }
+
+      return ok({
+        ...state,
+        capsuleSeat: state.seat,
+        log: [
+          ...state.log,
+          `${state.seat} claims the escape capsule — one seat, and it is taken.`,
         ],
       });
     }

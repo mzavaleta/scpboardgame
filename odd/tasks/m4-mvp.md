@@ -444,3 +444,10 @@ seat inside the Core wins* (recommended: containment then buys rounds, and the p
 reduced), or *the capsule launches early and only the first seat inside wins* (sharper, and closer to the
 "first one wins" wording, but it needs a launch trigger and a turn-order answer). Nothing is built until the
 owner picks one.
+
+**L18 — the capsule exists (2026-11-22).** Owner answered the step-1 decision: *"yes 1 seat"*. Built in
+`odd/tasks/m6-escape.md`: `GameState.capsuleSeat` plus the `claimCapsule` action (action phase, at the Core, one
+seat, public and permanent), a button and a status-strip holder. **The terminal and the directives are the next
+unit and are deliberately not touched**: with the site always lost, every containment directive stops being
+winnable unless the twelve directives are rewritten in the same change. That rewrite needs two answers — what the
+12 directives become, and what the protocol does now — so it is a design unit, not a cleanup.

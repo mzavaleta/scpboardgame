@@ -444,6 +444,11 @@ export function App() {
             {t(lang, "warhead")} <b>{game.warhead.remaining}</b>
           </span>
         )}
+        {game.capsuleSeat && (
+          <span className="text-[var(--muted)]">
+            {t(lang, "capsule")} <b className="text-[var(--accent)]">{game.capsuleSeat.toUpperCase()}</b>
+          </span>
+        )}
         <span className="text-[var(--muted)]">
           {t(lang, "seed")} <b className="text-[var(--text)]">{game.rng.seed}</b>
         </span>
@@ -934,6 +939,13 @@ export function App() {
                     className="rounded border border-[var(--danger)] px-3 py-2 text-sm text-[var(--danger)]"
                   >
                     {t(lang, "sabotageProtocol")}
+                  </button>
+                  <button
+                    onClick={() => dispatch({ type: "claimCapsule" })}
+                    disabled={game.capsuleSeat !== null}
+                    className="rounded border border-[var(--accent)] bg-[#0d1a22] px-3 py-2 text-sm text-[var(--accent)] disabled:opacity-30"
+                  >
+                    {game.capsuleSeat ? t(lang, "capsuleHeld", { seat: game.capsuleSeat.toUpperCase() }) : t(lang, "claimCapsule")}
                   </button>
                 </>
               )}

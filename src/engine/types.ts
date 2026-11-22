@@ -396,6 +396,12 @@ export type GameState = {
    * it is contained.
    */
   readonly gates: Readonly<Record<string, GateStatus>>;
+  /**
+   * §14k.5/L15: the escape capsule holds **one** seat. Claiming it is public and
+   * permanent; the terminal that reads it is the next unit (A5 + A3), because the
+   * ending and the directives have to change together.
+   */
+  readonly capsuleSeat: SeatId | null;
   /** §S8.3 check 11: a replay can refuse content it was not recorded with. */
   readonly contentVersion: string;
   /** Public narration. Every entry here is public by definition (§S5). */
@@ -414,6 +420,8 @@ export type Action =
   | { readonly type: "advanceProtocol" }
   /** §C4.4: push the protocol down one step and leave `tamperedProtocol` evidence. */
   | { readonly type: "sabotageProtocol" }
+  /** L15: the one-seat escape capsule in the Command Center. Public and permanent. */
+  | { readonly type: "claimCapsule" }
   /** §S2 Q26: one role from the draft's options (setup or respawn). */
   | { readonly type: "chooseRole"; readonly roleId: RoleId }
   | { readonly type: "respawn" }
@@ -460,6 +468,7 @@ export type RejectionCode =
   | "not-enough-records"
   | "clearance-order"
   | "no-core"
+  | "capsule-taken"
   | "game-over"
   | "downed"
   | "not-downed"

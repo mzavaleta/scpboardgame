@@ -26,7 +26,7 @@ import { createGame, reduce } from "../engine/reduce";
 import { getNode } from "../engine/board";
 import { peekRolls } from "../engine/rng";
 import { playerAt, playersIn, seatsFor } from "../engine/types";
-import type { Action, GameState, Phase, SeatId } from "../engine/types";
+import type { Action, DeckId, GameState, Phase, SeatId } from "../engine/types";
 import { detectLang, localized, rememberLang, t, type Lang, type Key } from "../i18n";
 import { Board } from "./board/Board";
 
@@ -39,6 +39,12 @@ const PHASE_KEY: Record<Phase, Key> = {
   space: "phaseSpace",
   action: "phaseAction",
   end: "phaseEnd",
+};
+
+const TIER_KEY: Record<DeckId, Key> = {
+  safe: "tierSafe",
+  euclid: "tierEuclid",
+  keter: "tierKeter",
 };
 
 function param(name: string): string | null {
@@ -786,7 +792,7 @@ export function App() {
               <div className="min-w-0">
                 <div className="text-sm">
                   <b>{localized(card.name, lang)}</b>
-                  <span className="text-[var(--muted)]"> · {card.tier}</span>
+                  <span className="text-[var(--muted)]"> · {t(lang, TIER_KEY[card.tier])}</span>
                 </div>
                 <div className="truncate text-xs text-[var(--muted)]">{localized(card.text, lang)}</div>
               </div>
@@ -1066,7 +1072,7 @@ export function App() {
             >
               {t(lang, "siteLost")}
             </button>
-            <span>{ROLES.length} roles</span>
+            <span>{t(lang, "rolesCount", { count: ROLES.length })}</span>
           </div>
         )}
       </footer>

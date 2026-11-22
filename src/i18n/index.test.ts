@@ -34,6 +34,15 @@ describe("the UI dictionary", () => {
     }
   });
 
+  it("keeps placeholder braces intact so the pseudo-locale still interpolates", () => {
+    // The pseudo transform used to transliterate inside `{var}`, and `t()`
+    // never matched the mangled brace — the UI printed `{gate}` raw.
+    const seal = t("pseudo", "gateTipSealed", { gate: "G1", clearance: 2, difficulty: 2, round: 7 });
+    expect(seal).toContain("G1");
+    expect(seal).toContain("7");
+    expect(seal).not.toContain("{");
+  });
+
   it("reads content in the requested locale, and falls back to EN for pseudo", () => {
     const value = { en: "Command Center", es: "Centro de Mando" };
     expect(localized(value, "en")).toBe("Command Center");

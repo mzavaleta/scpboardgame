@@ -93,6 +93,22 @@ const EN = {
   notYourSeat: "Nothing here for that seat.",
   motive: "Motive",
 
+  tierSafe: "safe",
+  tierEuclid: "euclid",
+  tierKeter: "keter",
+  kindEntry: "entry",
+  kindMedical: "medical",
+  kindCheckpoint: "checkpoint",
+  kindSupply: "supply",
+  kindTerminal: "terminal",
+  kindLab: "lab",
+  kindCell: "cell",
+  kindAlarm: "alarm",
+  kindCore: "core",
+  gateTip: "{gate} — clearance {clearance} / Intellect {difficulty}",
+  gateTipSealed: "{gate} — clearance {clearance} / Intellect {difficulty} · sealed until round {round}",
+  hunterCount: "Hunters: {count}",
+
   encounterTitle: "Anomaly",
   testLine: "{stat} {value} vs difficulty {difficulty}",
   contain: "Contain · {records} Rec",
@@ -153,6 +169,7 @@ const EN = {
   forceDirective: "Directive",
   fingerprint: "cfg",
   nextDraws: "draw",
+  rolesCount: "Roles: {count}",
 
   errorPrefix: "Rejected",
 } as const;
@@ -239,6 +256,22 @@ const ES: Record<Key, string> = {
   notYourSeat: "No hay nada para esa posición.",
   motive: "Motivo",
 
+  tierSafe: "seguro",
+  tierEuclid: "euclid",
+  tierKeter: "keter",
+  kindEntry: "entrada",
+  kindMedical: "médico",
+  kindCheckpoint: "control",
+  kindSupply: "suministros",
+  kindTerminal: "terminal",
+  kindLab: "laboratorio",
+  kindCell: "celda",
+  kindAlarm: "alarma",
+  kindCore: "núcleo",
+  gateTip: "{gate} — acceso {clearance} / Intelecto {difficulty}",
+  gateTipSealed: "{gate} — acceso {clearance} / Intelecto {difficulty} · sellada hasta la ronda {round}",
+  hunterCount: "Cazadores: {count}",
+
   encounterTitle: "Anomalía",
   testLine: "{stat} {value} contra dificultad {difficulty}",
   contain: "Contener · {records} Reg",
@@ -299,6 +332,7 @@ const ES: Record<Key, string> = {
   forceDirective: "Directriz",
   fingerprint: "cfg",
   nextDraws: "robo",
+  rolesCount: "Roles: {count}",
 
   errorPrefix: "Rechazado",
 };
@@ -319,10 +353,14 @@ function pseudo(text: string): string {
     k: "ķ", l: "ļ", m: "ɱ", n: "ñ", o: "ó", p: "þ", q: "ǫ", r: "ŕ", s: "š", t: "ţ",
     u: "ú", v: "ṽ", w: "ŵ", x: "ẋ", y: "ý", z: "ž",
   };
-  return `⟦${text.replace(/[a-z]/gi, (char) => {
-    const lower = char.toLowerCase();
+  // `{vars}` must survive untouched: `t()` substitutes them after the pseudo
+  // transform, and a mangled placeholder (`{ĝáţé}`) never matches `\w+`, so the
+  // pseudo-locale used to print raw braces instead of the value.
+  return `⟦${text.replace(/\{[^}]*\}|[a-z]/gi, (chunk) => {
+    if (chunk.startsWith("{")) return chunk;
+    const lower = chunk.toLowerCase();
     const mapped = map[lower] ?? lower;
-    return char === lower ? mapped : mapped.toUpperCase();
+    return chunk === lower ? mapped : mapped.toUpperCase();
   })}⟧`;
 }
 

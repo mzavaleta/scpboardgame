@@ -8,7 +8,7 @@ import { BOARD, type BoardNode } from "../../content/board";
 import { reachableEndpoints } from "../../engine/movement";
 import { playerAt } from "../../engine/types";
 import type { GameState, SeatId } from "../../engine/types";
-import { localized, type Lang } from "../../i18n";
+import { localized, t, type Key, type Lang } from "../../i18n";
 import { CENTER, VIEW, positionOf, ringRadius } from "./layout";
 
 const KIND_STYLE: Record<BoardNode["kind"], { short: string; color: string }> = {
@@ -21,6 +21,19 @@ const KIND_STYLE: Record<BoardNode["kind"], { short: string; color: string }> = 
   cell: { short: "CL", color: "#ff6b6b" },
   alarm: { short: "AL", color: "#ffb454" },
   core: { short: "CC", color: "#ffffff" },
+};
+
+/** Tooltip label per node kind — chrome, so it goes through `t()` (M4 S12). */
+const KIND_KEY: Record<BoardNode["kind"], Key> = {
+  entry: "kindEntry",
+  medical: "kindMedical",
+  checkpoint: "kindCheckpoint",
+  supply: "kindSupply",
+  terminal: "kindTerminal",
+  lab: "kindLab",
+  cell: "kindCell",
+  alarm: "kindAlarm",
+  core: "kindCore",
 };
 
 const SEAT_COLOR: Record<SeatId, string> = {
@@ -84,9 +97,14 @@ export function Board({ state, lang, onMove }: Props) {
             strokeDasharray={sealed ? "2 4" : "5 5"}
             opacity={sealed ? 0.95 : 0.55}
           >
-            <title>{`${gate.id} — clearance ${gate.clearance} / Intellect ${gate.test.difficulty}${
-              sealed ? ` · sealed until round ${reopen}` : ""
-            }`}</title>
+            <title>
+              {t(lang, sealed ? "gateTipSealed" : "gateTip", {
+                gate: gate.id,
+                clearance: gate.clearance,
+                difficulty: gate.test.difficulty,
+                round: reopen ?? "",
+              })}
+            </title>
           </line>
         );
       })}
@@ -108,7 +126,7 @@ export function Board({ state, lang, onMove }: Props) {
             onClick={isReachable ? () => onMove(node.id) : undefined}
             style={{ cursor: isReachable ? "pointer" : "default" }}
           >
-            <title>{`${localized(node.name, lang)} · ${node.kind}`}</title>
+            <title>{`${localized(node.name, lang)} · ${t(lang, KIND_KEY[node.kind])}`}</title>
             <circle
               r={isReachable ? 20 : 16}
               fill={isReachable ? "var(--panel)" : "var(--ink)"}
@@ -142,7 +160,7 @@ export function Board({ state, lang, onMove }: Props) {
             {here > 0 && (
               <g transform="translate(18 -16)">
                 <circle r={6} fill="#ff4d4d" stroke="#0b0d10" strokeWidth={1}>
-                  <title>{`${here} hunter${here === 1 ? "" : "s"}`}</title>
+                  <title>{t(lang, "hunterCount", { count: here })}</title>
                 </circle>
                 <text textAnchor="middle" y={3} fontSize={8} fill="#0b0d10" style={{ pointerEvents: "none" }}>
                   {here}

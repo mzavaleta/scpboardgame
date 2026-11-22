@@ -188,6 +188,7 @@ The order is the decision; the debt entries above hold the detail.
 | T10 | Screens: setup/draft, handoff, table, endgame, credits | S13 | inline | **done** |
 | T11 | Content validator + contentVersion + attribution gate | S14 | inline | **done** |
 | T12 | Close: docs, report, browser walk | all | inline | **done** |
+| T13 | English UI sweep: tier, node kinds, gate tooltip, hunter count, dev count | S12 | inline | **done** |
 
 ## Log
 
@@ -286,3 +287,21 @@ of 31 nodes already produce something on landing (9 anomalies, 8 gear, 3 escalat
 choice in a turn is the destination — which exact-distance movement has already narrowed. Adding more cards
 makes the automatic resolution richer; it does not add agency. That distinction is the M6 brief: *what does the
 player decide?* — not *how many cards are there?*
+
+**L11 — M4's last failing criterion, closed (2026-11-21).** Owner: *"depending, are thos things as debt before
+M5 then yes"*. Classification of the three items left open after the playtest:
+
+| Item | Is it debt before M5? | Why |
+| --- | --- | --- |
+| English UI sweep | **yes — and it was M4 work, not debt** | the M4 exit criterion is "zero hardcoded UI strings"; it was failing |
+| D11 — six unreachable compels | no | content/design completion, owned by M6 item 4 |
+| D2 — attribution `PENDING` | no | blocks `pnpm validate --release` only; M5 is still not public |
+
+Swept and now behind `t()`: the encounter tier (`· safe`), node-kind tooltips (`· lab`), the gate tooltip
+(`G1 — clearance 2 / Intellect 2 · sealed until round N`), the hunter count (`2 hunters` → `Hunters: 2`), and
+the dev panel's `6 roles`. **A defect in the sweep tool itself was found and fixed:** the pseudo-locale
+transliterated the characters inside `{var}`, so `t()`'s `\w+` never matched and pseudo runs printed raw
+braces — the tool that is supposed to expose untranslated chrome was hiding broken interpolation. The
+transform now skips placeholders, pinned by a new test (195 tests). Verified in the browser under
+`?lang=pseudo`: every chrome string bracketed, no raw braces, gate tooltips interpolated; content names stay
+English by design (`localized()` falls back to `en` for pseudo).

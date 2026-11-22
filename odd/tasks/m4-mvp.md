@@ -198,3 +198,21 @@ Open questions are recorded as debt in the Specs section and the checkpoint, not
   compels are unreachable** (turn-scoped conditions on the target evaluated during the invoker's turn). Recorded
   as D11 with three resolutions. This is the first finding that explains a simulator number rather than a
   feeling: compels sit at 0.4–2.1 per game partly because a third of them cannot fire at all.
+
+**L10 — the first full game to the cap (2026-11-21, 25 rounds).** Verbatim:
+
+> *"the game ended becasue we reach the top rounds. … its hard to go into inner rings, because the encounters
+> are very low and very difficult to levelup, we shoudl have more encounters or be able to het items
+> cunsumibles, equipment that help to go forward easier. becasue 25 rounds is also a little to short. even
+> trying hard to go inner rings i failed badly."*
+
+Board facts that frame it (counted, not estimated): **9 of 31 nodes draw an anomaly** (labs and cells), 8 draw
+gear, 5 are checkpoints and **every checkpoint sits at a gate mouth** (`outer-05`/G1, `middle-02`/G3,
+`inner-01`/G5, `inner-05`/G6). Clearance 1→4 costs **12 Records** total; containment pays 1/2/3 by tier.
+
+Three candidate causes, which the debrief must separate: **(a) volume** — exact-distance movement (D26) means
+you can rarely steer onto a draw node, so the encounter rate is lower than 9/31 suggests; **(b) difficulty** —
+the encounters that did happen were lethal; **(c) economy** — there is **no progression system at all** beyond
+Records→clearance and random gear. D28 (containment as a trophy spent on stats) is designed and unbuilt, so
+"level up" has no mechanic behind it today. The owner's ask — *consumables, equipment that help to go forward* —
+is that missing progression layer, not a tuning number.

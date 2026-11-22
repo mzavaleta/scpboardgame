@@ -383,3 +383,30 @@ What the build does today, so the difference is on record rather than discovered
 The one question this narrative leaves open, for when he is ready — not asked now: **does containing the facility
 win for everyone at the table, or only for the containment side?** The first makes the game co-op with a private
 bonus; the second keeps the betrayal layer the alignment matrix exists for.
+
+**L15 — the goal becomes an escape, not a defusal (2026-11-22).** Owner: *"you are right, lets not let all win,
+only the one or the ones that are inthe middle win... so then the bomb defuse is not the best. narrative. maybe
+the bomb will detonate no mater what and in the middle there like the scape capsule, first one wins. but maybe
+there is a way to make room for more but at cost ot time, rounds, rolls, spawns, etc, so you can cooperate or
+betray. but thats for later iteration, for now lets say not a bomb, scape instead."*
+
+**Closes L14's open question: no shared win.** The facility is doomed; victory is being inside the escape
+capsule, and the capsule is in the middle (the Core). Working model:
+
+| Element | Decision |
+| --- | --- |
+| The site | doomed — the detonation is not preventable |
+| Victory | being in the middle when it ends; one winner, possibly more |
+| More than one | later iteration: making room costs time/rounds/rolls/spawns, which is where cooperation and betrayal live |
+| The Core's current role | today it is the Command Center where the protocol recontains the site; under this model it is also the capsule |
+
+**Not built now, and nothing in the engine changed.** Two consequences that will have to land together when the
+capsule is designed, recorded so they are not discovered halfway:
+
+1. **Containment stops being a victory.** The protocol either becomes a way to buy time or a false hope; it
+   cannot stay the good ending. That rewrites the win matrix and the containment directives.
+2. **The clock stops being conditional.** "The bomb detonates no matter what" means a deadline, not the current
+   `threat → armed → 3 rounds` chain (A5). The fiction change and the clock change are the same change.
+
+**The rules page still narrates the build (bomb, protocol, recontainment), and that is deliberate**: it
+describes what the engine does, not the model being designed. It changes when A5 lands.

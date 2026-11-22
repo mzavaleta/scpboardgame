@@ -1,10 +1,10 @@
 /**
  * Main Directives (§C4) — the hidden motive, and the only win condition.
  *
- * Twelve for the MVP: nine containment, three breach (§C4.6). A containment
- * directive wins when the site is recontained and its condition holds. A breach
- * directive wins when the site is lost **and** the seat left its own public
- * footprint — D18's "hidden motive, visible evidence", enforced by the reducer.
+ * Twelve for the MVP: nine containment, three breach (§C4.6). After L15 the
+ * directive is the **secondary** win condition: it wins when its own condition
+ * holds at the ending, and a directive that names a `publicFootprint` also needs
+ * that evidence. The board's centre and the alignment no longer decide.
  *
  * `attribution` is `original` for every line here: the directives are ours, even
  * where they borrow the fiction.
@@ -33,8 +33,8 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     id: "m-custodian",
     name: { en: "Protocol Custodian", es: "Custodio del Protocolo" },
     text: {
-      en: "The site is recontained, and you completed the final protocol step.",
-      es: "El sitio es recontendido y tú completaste el paso final del protocolo.",
+      en: "You completed the final protocol step before the site was lost.",
+      es: "Completaste el paso final del protocolo antes de que se perdiera el sitio.",
     },
     alignment: "containment",
     condition: { kind: "completedFinalProtocolStep" },
@@ -45,8 +45,8 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     id: "m-nobody-left",
     name: { en: "No One Left Behind", es: "Nadie se Queda Atrás" },
     text: {
-      en: "The site is recontained, and every living player is in the Command Center.",
-      es: "El sitio es recontendido y cada jugador vivo está en el Centro de Mando.",
+      en: "Every living player is in the Command Center when the capsule leaves.",
+      es: "Cada jugador vivo está en el Centro de Mando cuando parte la cápsula.",
     },
     alignment: "containment",
     condition: { kind: "allLivingAtCore" },
@@ -57,8 +57,8 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     id: "m-chain",
     name: { en: "Chain of Custody", es: "Cadena de Custodia" },
     text: {
-      en: "The site is recontained, and you carry the sample's trace.",
-      es: "El sitio es recontendido y llevas el rastro de la muestra.",
+      en: "You carry the sample's trace when the site is lost.",
+      es: "Llevas el rastro de la muestra cuando se pierde el sitio.",
     },
     alignment: "containment",
     condition: { kind: "hasEvidence", evidence: "tookSample" },
@@ -69,8 +69,8 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     id: "m-merit",
     name: { en: "By Merit", es: "Por Mérito" },
     text: {
-      en: "The site is recontained, you hold Clearance 4, and you never failed a gate test.",
-      es: "El sitio es recontendido, tienes Acceso 4 y nunca fallaste una prueba de puerta.",
+      en: "You hold Clearance 4 and never failed a gate test.",
+      es: "Tienes Acceso 4 y nunca fallaste una prueba de puerta.",
     },
     alignment: "containment",
     condition: {
@@ -84,8 +84,8 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     id: "m-auditor",
     name: { en: "Auditor", es: "Auditor" },
     text: {
-      en: "The site is recontained, and at least two other players carry intent evidence.",
-      es: "El sitio es recontendido y al menos otros dos jugadores llevan evidencia de intención.",
+      en: "At least two other players carry intent evidence when the site is lost.",
+      es: "Al menos otros dos jugadores llevan evidencia de intención cuando se pierde el sitio.",
     },
     alignment: "containment",
     condition: { kind: "othersWithIntentEvidence", atLeast: 2 },
@@ -96,8 +96,8 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     id: "m-medic",
     name: { en: "Field Medic", es: "Médico de Campo" },
     text: {
-      en: "The site is recontained, and you performed two rescues.",
-      es: "El sitio es recontendido y realizaste dos rescates.",
+      en: "You performed two rescues before the end.",
+      es: "Realizaste dos rescates antes del final.",
     },
     alignment: "containment",
     condition: { kind: "rescues", atLeast: 2 },
@@ -108,8 +108,8 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     id: "m-untouched",
     name: { en: "Untouched", es: "Intacto" },
     text: {
-      en: "The site is recontained, and you end at full Integrity.",
-      es: "El sitio es recontendido y terminas con la Integridad completa.",
+      en: "You end at full Integrity.",
+      es: "Terminas con la Integridad completa.",
     },
     alignment: "containment",
     condition: { kind: "fullIntegrity" },
@@ -120,8 +120,8 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     id: "m-keter",
     name: { en: "Keter Hunter", es: "Cazador de Keter" },
     text: {
-      en: "The site is recontained, and you contained two Keter anomalies.",
-      es: "El sitio es recontendido y contuviste dos anomalías Keter.",
+      en: "You contained two Keter anomalies before the end.",
+      es: "Contuviste dos anomalías Keter antes del final.",
     },
     alignment: "containment",
     condition: { kind: "containmentsByTier", tier: "keter", atLeast: 2 },
@@ -132,8 +132,8 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     id: "m-clean",
     name: { en: "Clean Record", es: "Expediente Limpio" },
     text: {
-      en: "The site is recontained, and you carry no accident evidence.",
-      es: "El sitio es recontendido y no llevas ninguna evidencia de accidente.",
+      en: "You carry no accident evidence when the site is lost.",
+      es: "No llevas ninguna evidencia de accidente cuando se pierde el sitio.",
     },
     alignment: "containment",
     condition: { kind: "not", of: { kind: "evidenceCount", evidenceClass: "accident", atLeast: 1 } },
@@ -146,8 +146,8 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     id: "b-saboteur",
     name: { en: "Saboteur", es: "Saboteador" },
     text: {
-      en: "The warhead detonates, and you tampered with the protocol at least once.",
-      es: "La ojiva detona y sabotearon el protocolo al menos una vez.",
+      en: "You tampered with the protocol at least once, and the site was lost.",
+      es: "Saboteaste el protocolo al menos una vez y el sitio se perdió.",
     },
     alignment: "breach",
     condition: { kind: "terminalIs", terminal: "detonated" },
@@ -158,11 +158,11 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     id: "b-extraction",
     name: { en: "Extraction", es: "Extracción" },
     text: {
-      en: "The warhead detonates, and you extracted the sample.",
-      es: "La ojiva detona y tú extrajiste la muestra.",
+      en: "You extracted the sample, and the site was lost.",
+      es: "Extrajiste la muestra y el sitio se perdió.",
     },
     alignment: "breach",
-    condition: { kind: "all", of: [{ kind: "terminalIs", terminal: "detonated" }, { kind: "hasEvidence", evidence: "tookSample" }] },
+    condition: { kind: "hasEvidence", evidence: "tookSample" },
     publicFootprint: ["tookSample"],
     attribution: ours,
   },
@@ -170,11 +170,11 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     id: "b-denial",
     name: { en: "Denial", es: "Negación" },
     text: {
-      en: "The warhead detonates, and you sealed two gates.",
-      es: "La ojiva detona y tú sellaste dos puertas.",
+      en: "You sealed two gates, and the site was lost.",
+      es: "Sellaste dos puertas y el sitio se perdió.",
     },
     alignment: "breach",
-    condition: { kind: "all", of: [{ kind: "terminalIs", terminal: "detonated" }, { kind: "sealedGates", atLeast: 2 }] },
+    condition: { kind: "sealedGates", atLeast: 2 },
     publicFootprint: ["sealedGate"],
     attribution: ours,
   },

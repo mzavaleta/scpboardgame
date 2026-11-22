@@ -48,12 +48,12 @@ export const RULE_SECTIONS: readonly RuleSection[] = [
     title: { en: "The goal", es: "El objetivo" },
     body: [
       {
-        en: "The facility is failing. You are trying to survive it — and each player has a secret Main Directive that says what surviving means to them. Nobody else can see it.",
-        es: "La instalación está fallando. Intentas sobrevivir — y cada jugador tiene una Directriz Principal secreta que dice qué significa sobrevivir para él. Nadie más puede verla.",
+        en: "The facility is failing and it cannot be saved. You are trying to survive it — and each player has a secret Main Directive that says what surviving means to them. Nobody else can see it.",
+        es: "La instalación está fallando y no se puede salvar. Intentas sobrevivir — y cada jugador tiene una Directriz Principal secreta que dice qué significa sobrevivir para él. Nadie más puede verla.",
       },
       {
-        en: "The game ends in one of two ways: the site is recontained, or the Alpha Warhead detonates. At the end every directive is revealed and read: most pay off only on one of those two endings.",
-        es: "La partida termina de una de dos formas: el sitio se recontiene, o la Ojiva Alfa detona. Al final se revelan y se leen todas las directrices: la mayoría solo se cumplen con uno de esos dos finales.",
+        en: "The Command Center holds a one-seat escape capsule. The first player to claim it owns the seat; when the countdown runs out, that seat is the way out. A Main Directive whose condition holds at the end is a second way to win — and nobody can win by saving the site, because it cannot be saved.",
+        es: "El Centro de Mando contiene una cápsula de escape de un solo asiento. El primer jugador que la reclame se queda con el asiento; cuando el contador llegue a cero, ese asiento es la salida. Una Directriz Principal cuya condición se cumpla al final es una segunda forma de ganar — y nadie gana salvando el sitio, porque no se puede salvar.",
       },
     ],
   },
@@ -150,8 +150,8 @@ export const RULE_SECTIONS: readonly RuleSection[] = [
     title: { en: "The protocol", es: "El protocolo" },
     body: [
       {
-        en: `From the Command Center you can work the protocol: an Intellect test at difficulty ${protocol.difficulty}, one step per success. ${protocol.steps} steps recontain the site and end the game.`,
-        es: `Desde el Centro de Mando puedes trabajar el protocolo: una prueba de Intelecto con dificultad ${protocol.difficulty}, un paso por éxito. ${protocol.steps} pasos recontienen el sitio y terminan la partida.`,
+        en: `From the Command Center you can work the protocol: an Intellect test at difficulty ${protocol.difficulty}. Every success buys the table one round — the countdown gains a round once the warhead is armed, and the Threat track falls before that. It never saves the site.`,
+        es: `Desde el Centro de Mando puedes trabajar el protocolo: una prueba de Intelecto con dificultad ${protocol.difficulty}. Cada éxito le compra una ronda a la mesa — el contador gana una ronda una vez armada la ojiva, y antes de eso baja la Amenaza. Nunca salva el sitio.`,
       },
       {
         en: "Anyone can sabotage it: one step back, and it leaves public evidence.",
@@ -226,12 +226,12 @@ export const RULE_SECTIONS: readonly RuleSection[] = [
     title: { en: "Winning", es: "Ganar" },
     body: [
       {
-        en: "When the site is recontained, containment-aligned directives are read. A containment directive only pays if you are standing in the Core when it happens.",
-        es: "Cuando el sitio se recontiene, se leen las directrices alineadas con la contención. Una directriz de contención solo se cumple si estás en el Núcleo cuando ocurre.",
+        en: "When the countdown reaches zero the site is lost. The player holding the escape capsule wins — that seat is the way out.",
+        es: "Cuando el contador llega a cero el sitio se pierde. Gana el jugador que tiene la cápsula de escape — ese asiento es la salida.",
       },
       {
-        en: "When the warhead detonates, breach-aligned directives are read — but only if your footprint is public: evidence the table can point at. Evidence is recorded as accident or intent and never disappears.",
-        es: "Cuando la ojiva detona, se leen las directrices alineadas con la brecha — pero solo si tu huella es pública: evidencia que la mesa pueda señalar. La evidencia se registra como accidente o intención y nunca desaparece.",
+        en: "A Main Directive whose condition holds at that moment is a second win. A directive that names a public footprint also needs that evidence on the table.",
+        es: "Una Directriz Principal cuya condición se cumpla en ese momento es una segunda victoria. Una directriz que exige una huella pública también necesita esa evidencia sobre la mesa.",
       },
     ],
   },

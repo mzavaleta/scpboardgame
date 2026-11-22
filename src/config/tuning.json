@@ -200,5 +200,8 @@
       "scp-2935": 1
     }
   },
-  "version": 1
+  "version": 1,
+  "doom": {
+    "chancePercent": 50
+  }
 }

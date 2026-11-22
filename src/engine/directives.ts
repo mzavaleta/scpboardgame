@@ -116,12 +116,16 @@ export function resolveOutcome(
     };
 
     const conditionMet = evalCondition(state, player.seat, directive.condition, terminal);
-    const wins =
-      terminal === "recontained"
-        ? directive.alignment === "containment" && player.node === "core-00" && !player.downed && conditionMet
-        : directive.alignment === "breach" && conditionMet && footprintSatisfied(state, player.seat);
+    // L15: the capsule is the primary win; a directive is the secondary one. The
+    // centre of the board and the alignment no longer decide — the condition does.
+    const footprintOk = directive.publicFootprint.length === 0 || footprintSatisfied(state, player.seat);
+    const wins = conditionMet && footprintOk;
 
     if (wins) winners.push(player.seat);
+  }
+
+  if (state.capsuleSeat && !winners.includes(state.capsuleSeat)) {
+    if (!playerAt(state.players, state.capsuleSeat).downed) winners.unshift(state.capsuleSeat);
   }
 
   return { terminal, winners, revealed };
@@ -131,21 +135,15 @@ export function resolveOutcome(
 export function verdictFor(
   state: GameState,
   seat: SeatId,
-): { readonly won: boolean; readonly why: "absent" | "condition" | "alignment" | "footprint" | "won" } {
+): { readonly won: boolean; readonly why: "absent" | "condition" | "footprint" | "won" } {
   const outcome = state.outcome;
   if (!outcome) return { won: false, why: "absent" };
   if (outcome.winners.includes(seat)) return { won: true, why: "won" };
 
   const player = playerAt(state.players, seat);
   const directive = directiveById(player.mainDirectiveId);
-
-  if (outcome.terminal === "recontained") {
-    if (directive.alignment !== "containment") return { won: false, why: "alignment" };
-    if (player.node !== "core-00" || player.downed) return { won: false, why: "condition" };
-    return { won: false, why: "condition" };
+  if (directive.publicFootprint.length > 0 && !footprintSatisfied(state, seat)) {
+    return { won: false, why: "footprint" };
   }
-
-  if (directive.alignment !== "breach") return { won: false, why: "alignment" };
-  if (!footprintSatisfied(state, seat)) return { won: false, why: "footprint" };
   return { won: false, why: "condition" };
 }

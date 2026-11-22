@@ -13,6 +13,7 @@ import {
   CONFIG_FINGERPRINT,
   TUNING,
   clearancePrice,
+  doomRule,
   fateRule,
   protocolRule,
   stallRule,
@@ -20,6 +21,7 @@ import {
   voteRule,
 } from "../config/tuning";
 import { ANOMALIES } from "../content/anomalies";
+import { DOOM } from "../content/doom";
 import { ARRIVAL_NODE, BOARD } from "../content/board";
 import { MAIN_DIRECTIVES, directiveById } from "../content/directives";
 import { ESCALATION_BY_ID } from "../content/escalation";
@@ -250,6 +252,23 @@ function endRound(state: GameState): GameState {
     }
   }
 
+  // §14k.5 R2: the doom deck. The site is lost on a schedule, not on a mistake,
+  // so a table that plays well cannot hold the clock forever.
+  const [roll, afterRoll] = nextInt(next.rng, 1, 100);
+  next = { ...next, rng: afterRoll };
+  if (roll <= doomRule().chancePercent) {
+    const [index, afterDraw] = nextInt(next.rng, 0, DOOM.length - 1);
+    const card = DOOM[index] as (typeof DOOM)[number];
+    next = { ...next, rng: afterDraw };
+    const before = threat;
+    threat = Math.min(max, threat + 1);
+    notes.push(`${card.name.en} — threat ${before} → ${threat}.`);
+    if (threat >= max && warhead === null) {
+      warhead = { remaining: countdown };
+      notes.push(`the Alpha Warhead is armed — ${countdown} rounds to detonation.`);
+    }
+  }
+
   // 4–5. An already-armed warhead spends one round; arming never ticks itself.
   if (state.warhead !== null) {
     const remaining = state.warhead.remaining - 1;
@@ -446,6 +465,12 @@ function dealOneDirective(state: GameState, seat: SeatId, exclude: readonly stri
   const directive = pool[directivesSeed(state, seat, pool.length)] as (typeof MAIN_DIRECTIVES)[number];
   const player = playerAt(state.players, seat);
   return replacePlayer(state, { ...player, mainDirectiveId: directive.id });
+}
+
+/** L15: each protocol step buys the table one round of countdown. */
+function buyRound(state: GameState): GameState {
+  if (state.warhead) return { ...state, warhead: { remaining: state.warhead.remaining + 1 } };
+  return { ...state, threat: Math.max(0, state.threat - 1) };
 }
 
 function sealedGateBetween(state: GameState, from: string, to: string, steps: number): string | null {
@@ -830,27 +855,26 @@ export function reduce(state: GameState, action: Action): Result<GameState> {
       }
 
       const steps = Math.min(ceiling, rolled.protocolSteps + 1);
-      const fired = steps >= ceiling;
+      // L15: a completed step buys the table time; it does not recontain the site.
       let next: GameState = { ...rolled, protocolSteps: steps };
-
-      if (fired) {
+      if (steps >= ceiling && rolled.protocolSteps < ceiling) {
         const finisher = playerAt(next.players, state.seat);
         next = replacePlayer(next, {
           ...finisher,
           counters: { ...finisher.counters, protocolFinishers: finisher.counters.protocolFinishers + 1 },
         });
-        next = { ...next, outcome: resolveOutcome(next, "recontained"), phase: "end" };
       }
+      next = buyRound(next);
+      const bought = next.warhead
+        ? `the countdown gains a round — ${next.warhead.remaining} left`
+        : `the threat track falls to ${next.threat}`;
 
-      const winners = next.outcome?.winners ?? [];
       return ok({
         ...next,
         log: [
           ...next.log,
           `  protocol ${rolled.protocolSteps} → ${steps} — ${describeTest(result)}`,
-          ...(fired
-            ? [`the site is recontained. ${winners.join(", ") || "nobody"} ${winners.length === 1 ? "wins" : "win"} by their directive.`]
-            : []),
+          `  ${bought}.`,
         ],
       });
     }

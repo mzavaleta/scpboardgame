@@ -339,11 +339,9 @@ export function App() {
             const why =
               verdict.why === "won"
                 ? "whyWon"
-                : verdict.why === "alignment"
-                  ? "whyAlignment"
-                  : verdict.why === "footprint"
-                    ? "whyFootprint"
-                    : "whyCondition";
+                : verdict.why === "footprint"
+                  ? "whyFootprint"
+                  : "whyCondition";
 
             return (
               <li key={player.seat} className="rounded border border-[var(--line)] p-4">
@@ -351,9 +349,6 @@ export function App() {
                   <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: SEAT_COLOR[player.seat] }} />
                   <b>{player.seat.toUpperCase()}</b>
                   <span className="text-[var(--muted)]">{localized(roleById(player.roleId).name, lang)}</span>
-                  <span className="text-[var(--muted)]">
-                    · {t(lang, final.alignment === "containment" ? "containmentAligned" : "breachAligned")}
-                  </span>
                   <b className={`ml-auto ${verdict.won ? "text-[var(--accent)]" : "text-[var(--danger)]"}`}>
                     {t(lang, verdict.won ? "won" : "lost")} — {t(lang, why)}
                   </b>

@@ -146,6 +146,8 @@ export const tuningSchema = z.object({
     euclid: z.number().int().min(0),
     keter: z.number().int().min(0),
   }),
+  /** §14k.5 R2: the doom deck's draw chance at the end of each round. */
+  doom: z.object({ chancePercent: z.number().int().min(0).max(100) }),
   gates: z.record(z.string(), gateSchema),
   clearancePrices: z.record(z.string(), z.number().int().min(0)),
   decks: z.object({
@@ -203,6 +205,10 @@ export function tierReward(deck: DeckId): number {
 /** §7b.3: the Fate economy's numbers. Rules (who pays, who chooses) stay in code. */
 export function fateRule(): Tuning["fate"] {
   return TUNING.fate;
+}
+
+export function doomRule(): Tuning["doom"] {
+  return TUNING.doom;
 }
 
 export function hunterRule(): Tuning["hunters"] {

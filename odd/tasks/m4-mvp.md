@@ -451,3 +451,11 @@ seat, public and permanent), a button and a status-strip holder. **The terminal 
 unit and are deliberately not touched**: with the site always lost, every containment directive stops being
 winnable unless the twelve directives are rewritten in the same change. That rewrite needs two answers — what the
 12 directives become, and what the protocol does now — so it is a design unit, not a cleanup.
+
+**L19 — the escape ending is wired (2026-11-22).** Protocol steps now buy rounds instead of recontaining; the
+ending hands the site to the capsule holder and treats a met directive as the second win; the twelve directive
+texts were re-written out of the recontainment frame; the rules page follows the build. R2 landed early
+(`content/doom.ts`, four facility cards drawn at `doom.chancePercent` per round) because without it the only
+ending could not fire. **And the simulator was caught lying**: it broke samples on rejected bot actions and
+counted them as cap hits; after three bot fixes the reading is cap 0%, detonated 100%, median 8–10 rounds —
+so the old 44–82% "cap" was partly an artefact. Balance stays in Phase B.

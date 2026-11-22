@@ -1,15 +1,16 @@
 /**
  * M3c: the protocol track (§C4.4, D22).
  *
- * The Command Center was an empty room. This is the mechanic that makes it the
- * room you hold: three steps up recontain the site, one action pushing down
- * sabotages it, and everybody can see the number move — which is the only reason
- * a hidden agenda can be deduced from behaviour.
+ * The Command Center was an empty room. Since L15 the protocol no longer
+ * recontains the site: each step buys the table one round of countdown, so the
+ * number moving is the table buying time — and the same room holds the only
+ * escape capsule, which is the decision the room exists for.
  */
 
 import { describe, expect, it } from "vitest";
 import { TUNING } from "../config/tuning";
 import { createGame, reduce } from "./reduce";
+import { evalCondition } from "./conditions";
 import { seatsFor } from "./types";
 import type { Action, GameState } from "./types";
 
@@ -94,26 +95,32 @@ describe("advancing the protocol", () => {
   });
 });
 
-describe("recontaining the site", () => {
-  it("ends the game on the third step and rewards the seats at the centre", () => {
-    const onLastStep = atCore({ steps: TUNING.protocol.steps - 1, seat2: "core-00" });
-    const done = advanceOnce(onLastStep);
+describe("the protocol buys time (L15)", () => {
+  it("does not end the game on the third step", () => {
+    const done = advanceOnce(atCore({ steps: TUNING.protocol.steps - 1 }));
 
     expect(done.protocolSteps).toBe(TUNING.protocol.steps);
-    expect(done.outcome?.terminal).toBe("recontained");
-    expect(done.outcome?.winners).toEqual(["p1", "p2"]);
-    expect(done.phase).toBe("end");
+    expect(done.outcome).toBeNull();
+    expect(done.phase).toBe("action");
   });
 
-  it("leaves the seats outside the centre with nothing (§7c.3)", () => {
-    const done = advanceOnce(atCore({ steps: TUNING.protocol.steps - 1, seat2: "inner-02" }));
+  it("adds one round to the countdown once the warhead is armed", () => {
+    const armed = { ...atCore({ steps: 0 }), warhead: { remaining: 2 } };
+    const done = advanceOnce(armed);
 
-    expect(done.outcome?.winners).toEqual(["p1"]);
+    expect(done.warhead?.remaining).toBe(3);
   });
 
-  it("refuses to keep playing once the site is recontained", () => {
+  it("takes one off the threat track before the warhead arms", () => {
+    const done = advanceOnce({ ...atCore({ steps: 0 }), threat: 3 });
+
+    expect(done.threat).toBe(2);
+  });
+
+  it("still marks the final step, which one directive asks for", () => {
     const done = advanceOnce(atCore({ steps: TUNING.protocol.steps - 1 }));
-    expect(rejection(done, { type: "endTurn" })).toBe("game-over");
+
+    expect(evalCondition(done, "p1", { kind: "completedFinalProtocolStep" })).toBe(true);
   });
 });
 

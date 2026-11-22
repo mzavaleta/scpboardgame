@@ -59,8 +59,9 @@ describe("the threat track reads attempts, not outcomes", () => {
     const after = idleRound(state);
 
     expect(state.threat).toBe(0);
-    expect(after.threat).toBe(1);
-    expect(after.log.join("\n")).toMatch(/threat 0 → 1/);
+    // The stall rule adds one; the doom deck (§14k.5 R2) may add another.
+    expect(after.threat).toBeGreaterThanOrEqual(1);
+    expect(after.log.join("\n")).toMatch(/no one advanced the site/);
   });
 
   it("holds when a seat attempted something, even a failed thing", () => {
@@ -79,7 +80,8 @@ describe("the threat track reads attempts, not outcomes", () => {
       const resolved = apply(moved, { type: "resolveAnomaly", choice: "contain" });
       const after = idleTurn(apply(resolved, { type: "endTurn" }));
 
-      expect(after.threat).toBe(0);
+      // The attempt holds the stall rule; the doom deck is allowed to move it.
+      expect(after.log.join("\n")).not.toMatch(/no one advanced the site/);
       held += 1;
     }
 
@@ -87,9 +89,9 @@ describe("the threat track reads attempts, not outcomes", () => {
   });
 
   it("does not count walking around the same ring", () => {
-    // The idle round above moves twice inside the outer ring and advances the
-    // track, which is the same statement from the other side.
-    expect(idleRound(createGame(7, seatsFor(2))).threat).toBe(1);
+    // Walking is not an attempt, so the stall rule fires exactly as it does in
+    // an idle round.
+    expect(idleRound(createGame(7, seatsFor(2))).log.join("\n")).toMatch(/no one advanced the site/);
   });
 
   it("stops at the cap instead of running past it", () => {
@@ -125,15 +127,17 @@ describe("the warhead is the clock's face", () => {
     expect(second.outcome?.terminal).toBe("detonated");
   });
 
-  it("gives the site to nobody until directives exist (§7c.3)", () => {
+  it("hands the lost site to whoever holds the capsule (§7c.3, L15)", () => {
     const armed = {
       ...createGame(2026, seatsFor(2)),
       threat: TUNING.threat.max,
       warhead: { remaining: 1 },
+      capsuleSeat: "p1" as const,
     };
     const dead = idleRound(armed);
 
-    expect(dead.outcome).toMatchObject({ terminal: "detonated", winners: [] });
+    expect(dead.outcome?.terminal).toBe("detonated");
+    expect(dead.outcome?.winners).toContain("p1");
     expect(dead.log.join("\n")).toMatch(/detonated/i);
   });
 });

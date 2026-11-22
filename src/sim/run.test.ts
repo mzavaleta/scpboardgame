@@ -58,13 +58,12 @@ describe("what M3a is allowed to claim", () => {
     expect(short.rows.every((row) => row.roundsP50 === 1)).toBe(true);
   });
 
-  it("plays the two strategies differently: one pays, one gambles", () => {
+  it("keeps the aggressive policy from spending anything at a checkpoint", () => {
+    // The purchase contrast belongs to A2: clearance no longer buys passage, so
+    // "one pays, one gambles" is no longer a meaningful difference to pin.
     const report = runSimulation({ ...options, games: 8 });
-    const cautious = report.rows.find((row) => row.policy === "cautious");
     const aggressive = report.rows.find((row) => row.policy === "aggressive");
 
-    expect(cautious?.purchasesPerGame).toBeGreaterThan(0);
-    expect(aggressive?.purchasesPerGame).toBe(0);
     expect(aggressive?.recordsSpentPerGame).toBe(0);
   });
 

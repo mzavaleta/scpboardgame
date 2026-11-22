@@ -187,6 +187,11 @@ function pickCompel(state: GameState, policy: Policy): Action | null {
   const player = playerAt(state.players, state.seat);
   const minimum = policy === "cautious" ? 2 : 1;
   if (player.fate < minimum) return null;
+  // Mirror the reducer's own gate (§C3.5): one compel per turn, and the invoker
+  // must actually be able to act. Without this the bot chose actions it could
+  // not take, and the sample stopped silently — the instrument lied.
+  if (player.downed || player.tags.includes("held") || player.tags.includes("distracted")) return null;
+  if (state.turnEvents.some((event) => event.seat === state.seat && event.event === "compelled")) return null;
 
   for (const other of playersIn(state.players)) {
     if (other.seat === state.seat || !other.aspectId) continue;
@@ -218,6 +223,11 @@ function chooseAction(state: GameState, policy: Policy): Action | null {
     case "space":
       return state.encounter ? { type: "resolveAnomaly", choice: "contain" } : null;
     case "action": {
+      // A held or distracted seat cannot act, and the reducer says so; the bot
+      // must not ask for an action it cannot take (it stopped samples silently).
+      if (player.downed || player.tags.includes("held") || player.tags.includes("distracted")) {
+        return { type: "endTurn" };
+      }
       const atCore = getNode(player.node).kind === "core";
       const breach = alignmentOf(state, state.seat) === "breach";
 
@@ -233,7 +243,7 @@ function chooseAction(state: GameState, policy: Policy): Action | null {
       const compel = pickCompel(state, policy);
       if (compel) return compel;
 
-      if (player.integrity * 2 < player.maxIntegrity) return { type: "rest" };
+      if (player.integrity * 2 < player.maxIntegrity && !player.tags.includes("rested")) return { type: "rest" };
 
       if (policy === "cautious") {
         const level = player.clearance < 4 ? player.clearance + 1 : null;

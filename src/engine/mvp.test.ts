@@ -130,28 +130,27 @@ describe("directives and the safety valve (§S4, §S5, D19)", () => {
   });
 });
 
-describe("victory is explicit (§7c.3, D18)", () => {
-  it("rewards a containment seat at the centre whose condition holds", () => {
-    const base = createGame(1, seatsFor(2));
-    const state = at(at({ ...base, outcome: null }, "p1", { node: "core-00", mainDirectiveId: "m-untouched" }), "p2", {
-      node: "inner-02",
-    });
-    const outcome = resolveOutcome(state, "recontained");
-    expect(outcome?.winners).toEqual(["p1"]);
-  });
-
-  it("leaves a containment seat outside the centre with nothing", () => {
+describe("victory is explicit (§7c.3, D18, L15)", () => {
+  it("rewards a directive whose condition holds, wherever the seat stands", () => {
     const base = createGame(1, seatsFor(2));
     const state = at(at({ ...base, outcome: null }, "p1", { node: "inner-02", mainDirectiveId: "m-untouched" }), "p2", {
-      mainDirectiveId: "m-clean",
+      mainDirectiveId: "m-keter",
     });
-    expect(resolveOutcome(state, "recontained")?.winners).toEqual([]);
+    expect(resolveOutcome(state, "detonated")?.winners).toEqual(["p1"]);
+  });
+
+  it("rewards nobody whose condition does not hold", () => {
+    const base = createGame(1, seatsFor(2));
+    const state = at(at({ ...base, outcome: null }, "p1", { mainDirectiveId: "m-keter" }), "p2", {
+      mainDirectiveId: "m-medic",
+    });
+    expect(resolveOutcome(state, "detonated")?.winners).toEqual([]);
   });
 
   it("rewards a breach seat only with its own intent footprint", () => {
     const base = createGame(1, seatsFor(2));
     const withFootprint = {
-      ...at({ ...base, outcome: null }, "p1", { mainDirectiveId: "b-saboteur" }),
+      ...at(at({ ...base, outcome: null }, "p1", { mainDirectiveId: "b-saboteur" }), "p2", { mainDirectiveId: "m-keter" }),
       evidence: [
         { class: "intent" as const, kind: "tamperedProtocol" as const, sourceSeat: "p1" as const, nodeId: "core-00", round: 2 },
       ],
@@ -159,7 +158,7 @@ describe("victory is explicit (§7c.3, D18)", () => {
     expect(resolveOutcome(withFootprint, "detonated")?.winners).toEqual(["p1"]);
 
     const accidentOnly = {
-      ...at({ ...base, outcome: null }, "p1", { mainDirectiveId: "b-saboteur" }),
+      ...at(at({ ...base, outcome: null }, "p1", { mainDirectiveId: "b-saboteur" }), "p2", { mainDirectiveId: "m-keter" }),
       evidence: [
         { class: "accident" as const, kind: "uncontained" as const, sourceSeat: "p1" as const, nodeId: "core-00", round: 2 },
       ],
@@ -167,9 +166,25 @@ describe("victory is explicit (§7c.3, D18)", () => {
     expect(resolveOutcome(accidentOnly, "detonated")?.winners).toEqual([]);
   });
 
-  it("makes a containment seat lose when the site detonates", () => {
+  it("gives the capsule holder the ending, whatever their directive says", () => {
     const base = createGame(1, seatsFor(2));
-    const state = at({ ...base, outcome: null }, "p1", { mainDirectiveId: "m-untouched", node: "core-00" });
+    const state = {
+      ...at(at({ ...base, outcome: null }, "p1", { mainDirectiveId: "m-keter" }), "p2", { mainDirectiveId: "m-keter" }),
+      capsuleSeat: "p1" as const,
+    };
+    expect(resolveOutcome(state, "detonated")?.winners).toEqual(["p1"]);
+  });
+
+  it("leaves a downed capsule holder behind", () => {
+    const base = createGame(1, seatsFor(2));
+    const state = {
+      ...at(
+        at({ ...base, outcome: null }, "p1", { mainDirectiveId: "m-keter", downed: true }),
+        "p2",
+        { mainDirectiveId: "m-keter" },
+      ),
+      capsuleSeat: "p1" as const,
+    };
     expect(resolveOutcome(state, "detonated")?.winners).toEqual([]);
   });
 });

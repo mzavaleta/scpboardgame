@@ -346,3 +346,40 @@ gate table from `BOARD.gates` + `gateRule()`, so the page cannot drift from the 
 that, including "names every gate"). Reachable from setup and from the table header, with its own language
 toggle. Two things it states plainly because they are true: the checkpoint shop is being reworked (clearance buys
 no door), and a containment directive only pays if you are in the Core at the end.
+
+**L14 — the owner's narrative of the goal, recorded while reading the rules (2026-11-22).** No action taken (his
+words: *"im still reading, the rules, just takenotes, no actions or fix needs to be done yet"*), but it is the
+clearest statement of the intended win model so far, and it differs from the build in four concrete ways.
+
+Verbatim, as written:
+
+> *"THE GOAL: as i picture is: The facility failed to contain and is having a breach. as a player you have
+> directives that is hidden as a secondary win con. alsoyou have a objective, public, as a character, not random,
+> is character objective, this is the reason of the char to be in there. the accomplishment of that objective has
+> a great reward else a mild punish. there is a countdown bomb that obliterates the facility if the breach is not
+> contained (all loose). if you accomplish your directive (hiden mission) you win. if you contain the facility ,
+> you win (can be shared)"*
+
+Read as three layers:
+
+| Layer | Visibility | What it pays |
+| --- | --- | --- |
+| **Containment** | public, shared | containing the facility is a win, and it can be shared |
+| **Main directive** | hidden | accomplishing it is a second win condition |
+| **Character objective** | public, per character, not random | a large reward on success, a mild penalty on failure |
+
+What the build does today, so the difference is on record rather than discovered later:
+
+1. **Containment is not a shared win.** `resolveOutcome` gives victory only to a seat whose *own* directive is
+   met: on `recontained` the directive must be containment-aligned, the seat must be standing in the Core, alive,
+   and its condition true. A player whose directive is unmet loses even though the site was saved.
+2. **There is no public character objective.** That is the personal-stake idea recorded earlier (D13's design
+   partner, A3); nothing like it exists yet.
+3. **The bomb is not "if the breach is not contained".** It arms when a full round passes with **no attempt**
+   (D16), regardless of how many anomalies are loose; loose anomalies feed Threat through declines and
+   escalation cards, but containment itself is not the trigger.
+4. **A hidden directive is a predicate, not a mission** (D13): it is evaluated once at the ending, never performed.
+
+The one question this narrative leaves open, for when he is ready — not asked now: **does containing the facility
+win for everyone at the table, or only for the containment side?** The first makes the game co-op with a private
+bonus; the second keeps the betrayal layer the alignment matrix exists for.

@@ -20,6 +20,12 @@ export type MainDirective = {
   readonly text: Localized;
   readonly alignment: Alignment;
   readonly condition: Condition;
+  /**
+   * A3: the legible checklist behind the condition. The win rule still reads
+   * `condition`; these exist so the private sheet can show progress instead of a
+   * sentence the player has to reverse-engineer.
+   */
+  readonly steps: readonly Condition[];
   /** Breach directives only: the intent evidence a valid victory requires (§C4.1). */
   readonly publicFootprint: readonly EvidenceKind[];
   readonly attribution: ItemAttribution;
@@ -38,6 +44,7 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     },
     alignment: "containment",
     condition: { kind: "completedFinalProtocolStep" },
+    steps: [{ kind: "completedFinalProtocolStep" }],
     publicFootprint: [],
     attribution: ours,
   },
@@ -50,6 +57,7 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     },
     alignment: "containment",
     condition: { kind: "allLivingAtCore" },
+    steps: [{ kind: "allLivingAtCore" }],
     publicFootprint: [],
     attribution: ours,
   },
@@ -62,6 +70,7 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     },
     alignment: "containment",
     condition: { kind: "hasEvidence", evidence: "tookSample" },
+    steps: [{ kind: "hasEvidence", evidence: "tookSample" }],
     publicFootprint: [],
     attribution: ours,
   },
@@ -77,6 +86,7 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
       kind: "all",
       of: [{ kind: "containments", atLeast: 3 }, { kind: "noGateFailures" }],
     },
+    steps: [{ kind: "containments", atLeast: 2 }, { kind: "containments", atLeast: 3 }, { kind: "noGateFailures" }],
     publicFootprint: [],
     attribution: ours,
   },
@@ -89,6 +99,7 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     },
     alignment: "containment",
     condition: { kind: "othersWithIntentEvidence", atLeast: 2 },
+    steps: [{ kind: "othersWithIntentEvidence", atLeast: 1 }, { kind: "othersWithIntentEvidence", atLeast: 2 }],
     publicFootprint: [],
     attribution: ours,
   },
@@ -101,6 +112,7 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     },
     alignment: "containment",
     condition: { kind: "rescues", atLeast: 2 },
+    steps: [{ kind: "rescues", atLeast: 1 }, { kind: "rescues", atLeast: 2 }],
     publicFootprint: [],
     attribution: ours,
   },
@@ -113,6 +125,7 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     },
     alignment: "containment",
     condition: { kind: "fullIntegrity" },
+    steps: [{ kind: "fullIntegrity" }],
     publicFootprint: [],
     attribution: ours,
   },
@@ -125,6 +138,7 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     },
     alignment: "containment",
     condition: { kind: "containmentsByTier", tier: "keter", atLeast: 2 },
+    steps: [{ kind: "containmentsByTier", tier: "keter", atLeast: 1 }, { kind: "containmentsByTier", tier: "keter", atLeast: 2 }],
     publicFootprint: [],
     attribution: ours,
   },
@@ -137,6 +151,7 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     },
     alignment: "containment",
     condition: { kind: "not", of: { kind: "evidenceCount", evidenceClass: "accident", atLeast: 1 } },
+    steps: [{ kind: "not", of: { kind: "evidenceCount", evidenceClass: "accident", atLeast: 1 } }],
     publicFootprint: [],
     attribution: ours,
   },
@@ -151,6 +166,7 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     },
     alignment: "breach",
     condition: { kind: "terminalIs", terminal: "detonated" },
+    steps: [{ kind: "hasEvidence", evidence: "tamperedProtocol" }],
     publicFootprint: ["tamperedProtocol"],
     attribution: ours,
   },
@@ -163,6 +179,7 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     },
     alignment: "breach",
     condition: { kind: "hasEvidence", evidence: "tookSample" },
+    steps: [{ kind: "hasEvidence", evidence: "tookSample" }],
     publicFootprint: ["tookSample"],
     attribution: ours,
   },
@@ -175,6 +192,7 @@ export const MAIN_DIRECTIVES: readonly MainDirective[] = [
     },
     alignment: "breach",
     condition: { kind: "sealedGates", atLeast: 2 },
+    steps: [{ kind: "sealedGates", atLeast: 1 }, { kind: "sealedGates", atLeast: 2 }],
     publicFootprint: ["sealedGate"],
     attribution: ours,
   },

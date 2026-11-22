@@ -478,3 +478,8 @@ destroys, failure applies the card's payload). 211 tests, build clean, median 11
 reward when met and a mild penalty at the moment the warhead arms; visible in the table and the sheet. Layer 2 —
 the hidden directive as a stepped, legible checklist — is the next unit and the remaining half of D13. 215 tests,
 build clean, median 11–12 rounds.
+
+**L23 — the directive checklist (2026-11-22).** The hidden directive is legible at last: 12 directives × 1–3 steps,
+rendered as a private checklist with live counts in the player sheet (`Containments 2/3`), labels derived by one
+helper. The win rule is unchanged, so this is presentation without behavior risk. What remains of D13 is
+performability — steps you can *do*, not only watch. 218 tests, build clean.

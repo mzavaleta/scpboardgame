@@ -16,6 +16,7 @@ import { MAIN_DIRECTIVES, directiveById } from "../content/directives";
 import { ESCALATION } from "../content/escalation";
 import { EQUIPMENT, gearById, gearTestBonus, hasModifier, modifiersOf } from "../content/gear";
 import { objectiveFor } from "../content/objectives";
+import { stepText } from "./conditionText";
 import { RULE_SECTIONS } from "../content/rules";
 import { aspectById, roleById, ROLES } from "../content/roles";
 import { TUNING, progressionRule } from "../config/tuning";
@@ -782,6 +783,21 @@ export function App() {
                   <div className="text-sm">{directive ? localized(directive.name, lang) : t(lang, "none")}</div>
                   {directive && (
                     <div className="text-xs text-[var(--muted)]">{localized(directive.text, lang)}</div>
+                  )}
+                  {directive && (
+                    <ul className="mt-2 space-y-0.5">
+                      {directive.steps.map((step, index) => {
+                        const info = stepText(game, sheetSeat, step, lang);
+                        return (
+                          <li
+                            key={index}
+                            className={`text-xs ${info.done ? "text-[var(--accent)]" : "text-[var(--muted)]"}`}
+                          >
+                            {info.done ? "✓" : "○"} {info.text}
+                          </li>
+                        );
+                      })}
+                    </ul>
                   )}
 
                   {owner.roleId && (

@@ -89,8 +89,9 @@ warhead arms — the moment the site's destruction stops being a threat. An alre
 It is visible in the players panel and in the player sheet, with ✓/○/✗. 215 tests. Balance after: median 11–12,
 deaths 1.05–3.05.
 
-**L8 — A3, layer 2 is still open.** The hidden Main Directive is still a **predicate read once at the end**, which
-is D13's core complaint. The design I would build next: give each directive 2–4 `steps` (conditions), render them
-as a private checklist with live ✓/○ in the player sheet, and derive the labels with one `describeCondition`
-helper rather than 20 new strings. That keeps the win rule unchanged (the existing condition) while making the
-motive legible and actionable; a later pass turns the steps into actions that perform them.
+**L8 — A3, layer 2: the hidden directive now shows its steps (2026-11-22).** Each of the twelve directives carries
+1–3 `steps` (conditions) beside its win `condition`. The player sheet renders them as a private checklist with live
+✓/○ and real counts (`Containments 2/3`), through one `stepText` helper in `src/ui/conditionText.ts` rather than
+twenty hand-written strings. The win rule is untouched: the engine still reads `condition`, so behavior cannot
+change — only the player's ability to see what advances the motive. Verified in the browser. **Still open:** turning
+the steps into *actions that perform them* (the directive is legible now, not yet performable).

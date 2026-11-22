@@ -229,3 +229,23 @@ the encounters that did happen were lethal; **(c) economy** — there is **no pr
 Records→clearance and random gear. D28 (containment as a trophy spent on stats) is designed and unbuilt, so
 "level up" has no mechanic behind it today. The owner's ask — *consumables, equipment that help to go forward* —
 is that missing progression layer, not a tuning number.
+
+**The debrief, answered (same session).** The ledger, and what it proves:
+
+| Measured | Value | What it settles |
+| --- | --- | --- |
+| Anomaly encounters | **4** in 25 rounds (50 seat-turns) | not a difficulty problem — 4/4 were contained |
+| Tier of those encounters | **all Safe** (pays 1) | a single purchase of clearance 2 costs 3, so 1 + 3 = 4 Records forces all four to be Safe → **all four were in the outer ring** |
+| Records earned / spent | **4 / 0** | a purchase subtracts 3; the table's 4 proves none happened |
+| Gate crossings | **1**, around round 24 | by Intellect test, not by purchase — the owner's *"somehow lucky"* |
+| Checkpoint purchase seen | **never** | *"i did not see the buy thing"* |
+| Turn shape | *"basically roll and move, fight if so and pass"* | 44 of 50 seat-turns produced no decision |
+
+**The owner's verdict, recorded verbatim:** *"boring, but that isbecause there are lot of things missing, ,
+balance, cards, equipment, play things, use cosumible items etc, its ok to be boring for now, we have very few
+things in place"* — accepted as the MVP verdict, with one correction: **the board is not short of events.** 20
+of 31 nodes already produce something on landing (9 anomalies, 8 gear, 3 escalation). What the turn lacks is a
+**decision**: every one of those events resolves itself, the action phase offers only End turn, and the only
+choice in a turn is the destination — which exact-distance movement has already narrowed. Adding more cards
+makes the automatic resolution richer; it does not add agency. That distinction is the M6 brief: *what does the
+player decide?* — not *how many cards are there?*

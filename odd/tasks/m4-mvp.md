@@ -133,6 +133,22 @@ presence, board integrity, footprint satisfiability, role invariants, deck suffi
   owner's own post-MVP proposal (*"a public objective, optional, but if achieved unlock something really good"*):
   design them together, one identity layer, not two. Needs a new action or two so that steps can be *performed*
   rather than inferred.
+- **D14 — There is no player sheet, and the table hides the numbers that matter.** Owner request (2026-11-21):
+  *"want to be able to see not only the current data of a player … the player itself entirely. all the stats,
+  objectives, items, cards, all that player in its possesion, if bought something like a stat i like to see the
+  base stat + the bought ones."* Today the table shows Integrity, Fate, Records, Clearance, node, aspect, gear
+  names, evidence counts and tags — **but no stats at all** (they appear only during the draft), and gear
+  modifiers are invisible: the engine rolls `stats[stat] + gearTestBonus(...)` while the screen shows nothing.
+  Note the phrasing correction: **nothing buys stats today** — there is no stat purchase, so "base + bought" is
+  currently "base + gear". Fix direction: a per-seat sheet (own seat: everything; other seats: public only) with
+  stats rendered as *composition* (`Combat 3 +1 Sidearm = 4`), the directive shown as an objective with progress
+  (D13), gear with its modifier, and carried items. **Privacy boundary:** the directive is the only hidden
+  value; everything else in that list is public by design. On multi-screen play the concealment UI becomes
+  scaffolding — each device receives its own projection — so build the sheet from `project(state, seat)` and it
+  works for both.
+  **Fixed while recording this (2026-11-21):** the encounter preview printed the raw stat and the printed card
+  difficulty, ignoring the gear bonus and the `hardTest` tag — it now shows the number the engine will use
+  (`src/ui/App.tsx`).
 
 ## Post-MVP backlog — recorded, **not** to be fixed in this pass
 
@@ -146,7 +162,7 @@ The order is the decision; the debt entries above hold the detail.
 | 3 | **Directives become objectives** — 2–4 concrete steps, a private checklist with live progress, and actions that perform them; designed together with the post-MVP personal stake | D13 | `content/directives.ts`, `engine/conditions.ts`, `engine/directives.ts`, `ui/App.tsx` |
 | 4 | **Compels that can fire** — 6 of 18 are unreachable; pick a resolution (last-turn memory, state conditions, or a reaction window) | D11 | `engine/conditions.ts`, `content/roles.ts`, `engine/reduce.ts` (`compel`) |
 | 5 | **The clock's ending** — guaranteed terminal; the wave clock is the leading candidate | checkpoint / §S9.6 | `engine/reduce.ts` (`endRound`), `engine/hunters.ts` (the base), `config/tuning.json` |
-| 6 | **UI comprehension** — tooltips/help for `Rest`, `Seal`, `Compel`, the Assembly's consequences; distinct labels when two compels apply to one target | D11 (UI half) | `ui/App.tsx`, `i18n/index.ts` |
+| 6 | **UI comprehension and the player sheet** — tooltips/help for `Rest`, `Seal`, `Compel`, the Assembly's consequences; distinct labels when two compels apply to one target; a per-seat sheet showing stats as `base + modifier`, gear, items and objective progress | D11 (UI half) / D14 | `ui/App.tsx`, `i18n/index.ts` |
 | 7 | Everything else in the debt list above | D1–D9 | — |
 
 ## Tasks

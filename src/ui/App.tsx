@@ -14,7 +14,7 @@ import { ANOMALIES, anomalyById } from "../content/anomalies";
 import { BOARD } from "../content/board";
 import { MAIN_DIRECTIVES, directiveById } from "../content/directives";
 import { ESCALATION } from "../content/escalation";
-import { EQUIPMENT, gearById, hasModifier } from "../content/gear";
+import { EQUIPMENT, gearById, gearTestBonus, hasModifier } from "../content/gear";
 import { aspectById, roleById, ROLES } from "../content/roles";
 import { TUNING, clearancePrice } from "../config/tuning";
 import { evalCondition } from "../engine/conditions";
@@ -690,7 +690,13 @@ export function App() {
       <footer className="col-span-3 flex flex-col gap-2 rounded border border-[var(--line)] bg-[var(--panel)] px-4 py-3">
         {game.phase === "space" && game.encounter && active && (() => {
           const card = anomalyById(game.encounter!.card);
-          const statValue = card.test.stat === "combat" ? active.stats.combat : active.stats.intellect;
+          // The preview must show the number the engine will actually use:
+          // gear bonuses are added to the stat, and the `hardTest` tag raises
+          // the difficulty (Reckless #2). Showing the raw stat lied to the table.
+          const gearBonus = gearTestBonus(active.gear, "anomaly", card.test.stat);
+          const hard = active.tags.includes("hardTest");
+          const statValue = active.stats[card.test.stat] + gearBonus;
+          const difficulty = card.test.difficulty + (hard ? 1 : 0);
           const threatCost = card.declineCost.length > 0 ? 1 : 0;
           return (
             <div className="flex items-center gap-4 rounded border border-[var(--accent)] bg-[#0d1a22] px-3 py-2">
@@ -705,7 +711,7 @@ export function App() {
                 {t(lang, "testLine", {
                   stat: t(lang, card.test.stat === "combat" ? "combat" : "intellect"),
                   value: statValue,
-                  difficulty: card.test.difficulty,
+                  difficulty,
                 })}
               </div>
               <button

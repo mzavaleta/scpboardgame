@@ -160,17 +160,41 @@ presence, board integrity, footprint satisfiability, role invariants, deck suffi
 ## Post-MVP backlog — recorded, **not** to be fixed in this pass
 
 Owner's instruction (2026-11-21, playtest): *"ok record it to be fixed later."* Nothing below is built now.
-The order is the decision; the debt entries above hold the detail.
 
-| Order | Item | Debt | Where it lives |
+**Re-sequenced by the owner (2026-11-22, verbatim):** *"ok then lets go with next M6-7 butcould we differ and
+separate all visual improvements , im interested in first finish all related with mechanics and reall value
+improvements, then finetuning and balance, then visuals"* — so the backlog is three phases, and **nothing
+visual starts until Phase A and B are done**.
+
+### Phase A — mechanics and real value (in order)
+
+| # | Item | Debt | Where it lives |
 | --: | --- | --- | --- |
-| 1 | **Gates become places** — four states, entry draws, an unresolved guard persists and blocks everyone; Records find a physical sink | D10 / §14k.4 | `content/board.ts` (gate shape), `engine/reduce.ts` (`tryCrossGate`), `engine/effects.ts` (no persistence today), `content/anomalies.ts` |
-| 2 | **The economy is visible and reachable** — the price ladder always shown at a checkpoint, the checkpoint as a board feature, Records explained somewhere; then decide whether progression lives in Records or in gear | D12 / D28 | `ui/App.tsx`, `i18n/index.ts`, `config/tuning.json` (prices/rewards) |
-| 3 | **Directives become objectives** — 2–4 concrete steps, a private checklist with live progress, and actions that perform them; designed together with the post-MVP personal stake | D13 | `content/directives.ts`, `engine/conditions.ts`, `engine/directives.ts`, `ui/App.tsx` |
-| 4 | **Compels that can fire** — 6 of 18 are unreachable; pick a resolution (last-turn memory, state conditions, or a reaction window) | D11 | `engine/conditions.ts`, `content/roles.ts`, `engine/reduce.ts` (`compel`) |
-| 5 | **The clock's ending** — guaranteed terminal; the wave clock is the leading candidate | checkpoint / §S9.6 | `engine/reduce.ts` (`endRound`), `engine/hunters.ts` (the base), `config/tuning.json` |
-| 6 | **UI comprehension and the player sheet** — tooltips/help for `Rest`, `Seal`, `Compel`, the Assembly's consequences; distinct labels when two compels apply to one target; a per-seat sheet showing stats as `base + modifier`, gear, items and objective progress | D11 (UI half) / D14 | `ui/App.tsx`, `i18n/index.ts` |
-| 7 | Everything else in the debt list above | D1–D9 | — |
+| A1 | **Gates become places** — four states, entry draws, an unresolved guard persists and blocks everyone; the toll is deleted | D10 / §14k.4 | `content/board.ts` (gate shape), `engine/reduce.ts` (`tryCrossGate`), `engine/effects.ts` (no persistence today), `content/anomalies.ts` |
+| A2 | **The economy: what Records buy** — the sink the gate rework deletes (gear/consumables, stats, or rank), visible on the board and explained in place | D12 / D28 | `ui/App.tsx`, `i18n/index.ts`, `config/tuning.json` |
+| A3 | **Directives become objectives** — 2–4 concrete steps, a private checklist with live progress, and actions that perform them; designed together with the post-MVP personal stake | D13 | `content/directives.ts`, `engine/conditions.ts`, `engine/directives.ts`, `ui/App.tsx` |
+| A4 | **Compels that can fire** — 6 of 18 are unreachable; pick a resolution (last-turn memory, state conditions, or a reaction window) | D11 | `engine/conditions.ts`, `content/roles.ts`, `engine/reduce.ts` (`compel`) |
+| A5 | **The clock's ending** — guaranteed terminal; the wave clock is the leading candidate | checkpoint / §S9.6 | `engine/reduce.ts` (`endRound`), `engine/hunters.ts`, `config/tuning.json` |
+| A6 | **Save/resume and the respawn handoff** — 90-minute games without saving are not a complete product; infra, not polish | M5 | `engine/serialize*`, `ui/App.tsx` |
+| A7 | **CI and a committed Playwright path** — protects every item after it | M5 | `.github/`, `e2e/` |
+
+### Phase B — fine-tuning and balance
+
+| # | Item | Debt | Where it lives |
+| --: | --- | --- | --- |
+| B1 | **Content volume that creates choices** — more anomalies, gear and consumables; only after A1–A3 give them something to decide | owner's *"cards, equipment, play things"* | `content/` |
+| B2 | **The instrument** — gate state and guard occupancy in the simulator, then §S9.4 thresholds | §S9.6 | `sim/`, `config/tuning.json` |
+| B3 | **Numbers** — rewards, prices, difficulty, hunters, protocol, thresholds | §S9.6 | `config/tuning.json` |
+
+### Phase C — visuals and comprehension
+
+| # | Item | Debt | Where it lives |
+| --: | --- | --- | --- |
+| C1 | **UI comprehension** — tooltips/help for `Rest`, `Seal`, `Compel`, the Assembly's consequences; distinct labels when two compels apply to one target | D11 (UI half) | `ui/App.tsx`, `i18n/index.ts` |
+| C2 | **Player sheet polish** — objective progress, items, `base + modifier` wherever a stat is used | D14 / D13 | `ui/App.tsx`, `i18n/index.ts` |
+| C3 | **Presentation** — animation, sound, layout below ~900 px, keyboard board navigation | M5 | `ui/` |
+| C4 | **Bilingual engine log** — needs structured events instead of pre-rendered sentences | D9 | `engine/log*`, `ui/` |
+| C5 | Everything else in the debt list above | D1–D9 | — |
 
 ## Tasks
 
@@ -305,3 +329,12 @@ braces — the tool that is supposed to expose untranslated chrome was hiding br
 transform now skips placeholders, pinned by a new test (195 tests). Verified in the browser under
 `?lang=pseudo`: every chrome string bracketed, no raw braces, gate tooltips interpolated; content names stay
 English by design (`localized()` falls back to `en` for pseudo).
+
+**L12 — re-sequenced for M6 (2026-11-22).** Owner: *"ok then lets go with next M6-7 butcould we differ and
+separate all visual improvements , im interested in first finish all related with mechanics and reall value
+improvements, then finetuning and balance, then visuals"*. The backlog is now three phases (above): **A —
+mechanics and real value**, **B — fine-tuning and balance**, **C — visuals and comprehension**. Consequence
+worth stating: UI comprehension (tooltips, help) and the sheet polish move to Phase C even though the playtest
+found them confusing — the owner's call, and the mechanics work below will change what needs explaining anyway,
+so the help text is written once instead of twice. The first item is **A1: gates become places**; its feature
+document is `odd/tasks/m6-gates.md`.

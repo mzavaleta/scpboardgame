@@ -31,8 +31,9 @@ failure. Leaving it behind is a public act (the evidence rules already make a fa
 when it lapses the gate returns to its underlying condition, not automatically to `open`.
 
 **S7 — The toll is deleted.** Clearance no longer grants passage and `buyClearance` / `attemptClearance` no
-longer exist at a gate. **ASSUMPTION, pending the owner's decision on the economy**: what replaces them is
-A2, not this item.
+longer exist at a gate. **Temporary state (recorded, not hidden):** `buyClearance` still exists as an
+administrative rank used only by directives until **A2** decides what Records buy and what clearance becomes;
+it is a dead purchase in the meantime, and A2 is the very next item.
 
 **S8 — The board says what each gate is.** Condition and seal are visible on the board (colour + tooltip),
 localized through `t()`; the crossing prompt names the requirement (`locked · Intellect 2`, `guarded`, `sealed
@@ -49,13 +50,13 @@ direction; a seal lapses to the underlying condition; crossing marks progress ex
 
 | ID | Task | Specs | Route | Status |
 | --- | --- | --- | --- | --- |
-| T1 | Gate state model: `gates` map in `GameState`, defaults from tuning, seal derived, hash/serialization | S1, S2, S6 | inline | pending |
-| T2 | Crossing: open free, locked opens permanently, sealed refuses | S2, S3, S6, S7 | inline | pending |
-| T3 | Guarded: entry draw, containment crosses, failure persists the guard and blocks everyone | S4, S5 | inline | pending |
-| T4 | Content + tuning: starting conditions, lock difficulties, core entry deck | S1, S4 | inline | pending |
-| T5 | Simulator: gate condition and guard occupancy replace the clearance check | S9 | inline | pending |
-| T6 | Board and prompts: condition, seal, guard badge, requirement text, i18n | S8 | inline | pending |
-| T7 | Close: docs, feature log, full suite and build | all | inline | pending |
+| T1 | Gate state model: `gates` map in `GameState`, defaults from tuning, seal derived, hash/serialization | S1, S2, S6 | inline | **done** |
+| T2 | Crossing: open free, locked opens permanently, sealed refuses | S2, S3, S6, S7 | inline | **done** |
+| T3 | Guarded: entry draw, containment crosses, failure persists the guard and blocks everyone | S4, S5 | inline | **done** |
+| T4 | Content + tuning: starting conditions, lock difficulties, core entry deck | S1, S4 | inline | **done** |
+| T5 | Simulator: gate condition and guard occupancy replace the clearance check | S9 | inline | **done** |
+| T6 | Board and prompts: condition, seal, guard badge, requirement text, i18n | S8 | inline | **done** |
+| T7 | Close: docs, feature log, full suite and build | all | inline | **done** |
 
 ## Log
 
@@ -68,3 +69,28 @@ of it (the board work in T6 exists because a state you cannot see is not a rule)
 fourth state. Reason: `sealedGates` already exists and is *time-bounded*, while `open/locked/guarded` describe
 the door itself; modelling `sealed` as a fifth condition would have to remember what to return to. The
 `condition` field is the truth; `reopen > round` is the seal.
+
+**L3 — built (2026-11-22).** `GameState.sealedGates` (gate id → round) is replaced by `GameState.gates`
+(gate id → `{ condition, guard?, reopen? }`). The seal is now an **overlay**: `reopen > round` blocks crossing
+and lapses back to whatever the door actually is, which is why sealing no longer accidentally unlocks a locked
+gate. The toll is gone from `tryCrossGate` (now `tryOpenLock`): key tag, then one Intellect test, and success
+rewrites the gate to `open` for everyone. A guarded gate stops the walk at the mouth (`startGuardEncounter`),
+draws from the deeper ring's deck, and its card is stored on the gate: a failure or a decline leaves it there,
+blocking both directions, and resolving it moves the crosser to the far side and opens the door. Content starts
+G1 open, G2/G4/G5 locked, G3/G6 guarded — one of each shape per boundary, so the mechanic is reachable without
+a dev tool.
+
+**L4 — verification.** 200 tests / 15 files, `pnpm typecheck` clean, `vite build` clean. `gates.test.ts` pins
+the five rules (draw at the mouth, decline persists, containment crosses and opens, the standing guard blocks
+the reverse direction with the same card, the seal lapses to the door's own condition). RED was observed for
+T2 through the five old tests that asserted the toll (`clearance 2 crosses G1`, key bypass, held-at-the-mouth,
+the seal fixture and the `sealedGates` shape); the guard tests of T3 were written after the code, so their RED
+was not observed and that is stated rather than implied. Browser: the three gate strokes and the six tooltips
+render (`G1 — open`, `G2 — locked`, `G3 — guarded`, …), and every chrome string is behind `t()`.
+
+**L5 — the instrument took the hit, as predicted (§14k.4).** `pnpm sim --games 20`: cap hit **70–100%**
+(2p cautious 95%, 2p aggressive 70%) against 44–82% before, `gate fail 0%`, and `purchases 0.45/game` while
+clearance buys nothing. Two causes, both instrument-side: the bot's `gateIsPassable` still models the old
+economy (it buys rank it cannot use), and it now avoids guarded gates entirely instead of confronting them.
+The warhead still fires, so the `capHitShare < 1` assertion moved from 6 to 20 games to keep it honest.
+**This is B2 work, not a number to tune now** (owner: balance comes after mechanics).

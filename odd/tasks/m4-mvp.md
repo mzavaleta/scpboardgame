@@ -170,7 +170,7 @@ visual starts until Phase A and B are done**.
 
 | # | Item | Debt | Where it lives |
 | --: | --- | --- | --- |
-| A1 | **Gates become places** — four states, entry draws, an unresolved guard persists and blocks everyone; the toll is deleted | D10 / §14k.4 | `content/board.ts` (gate shape), `engine/reduce.ts` (`tryCrossGate`), `engine/effects.ts` (no persistence today), `content/anomalies.ts` |
+| A1 | **Gates become places** — **DONE 2026-11-22, `odd/tasks/m6-gates.md`**; three conditions + seal overlay, guard persists and blocks both directions, toll deleted | D10 / §14k.4 | `content/board.ts` (gate shape), `engine/reduce.ts` (`tryCrossGate`), `engine/effects.ts` (no persistence today), `content/anomalies.ts` |
 | A2 | **The economy: what Records buy** — the sink the gate rework deletes (gear/consumables, stats, or rank), visible on the board and explained in place | D12 / D28 | `ui/App.tsx`, `i18n/index.ts`, `config/tuning.json` |
 | A3 | **Directives become objectives** — 2–4 concrete steps, a private checklist with live progress, and actions that perform them; designed together with the post-MVP personal stake | D13 | `content/directives.ts`, `engine/conditions.ts`, `engine/directives.ts`, `ui/App.tsx` |
 | A4 | **Compels that can fire** — 6 of 18 are unreachable; pick a resolution (last-turn memory, state conditions, or a reaction window) | D11 | `engine/conditions.ts`, `content/roles.ts`, `engine/reduce.ts` (`compel`) |
@@ -183,7 +183,7 @@ visual starts until Phase A and B are done**.
 | # | Item | Debt | Where it lives |
 | --: | --- | --- | --- |
 | B1 | **Content volume that creates choices** — more anomalies, gear and consumables; only after A1–A3 give them something to decide | owner's *"cards, equipment, play things"* | `content/` |
-| B2 | **The instrument** — gate state and guard occupancy in the simulator, then §S9.4 thresholds | §S9.6 | `sim/`, `config/tuning.json` |
+| B2 | **The instrument** — gate state and guard occupancy in the simulator, then §S9.4 thresholds. **Known regression from A1:** cap 70–100% (was 44–82%), `gate fail 0%`, the bot still buys rank it cannot use | §S9.6 | `sim/`, `config/tuning.json` |
 | B3 | **Numbers** — rewards, prices, difficulty, hunters, protocol, thresholds | §S9.6 | `config/tuning.json` |
 
 ### Phase C — visuals and comprehension

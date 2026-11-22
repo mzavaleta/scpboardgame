@@ -90,7 +90,7 @@ boundary until the previous one has zero `OPEN` items.
 | --- | --- | --- |
 | **D1** | Win axis = **descend to the Command Center to recontain**. The "escape" feeling is delivered by pressure, not by a puzzle-escape victory. | `AGREED` |
 | **D5** | **Dice split: `1d6` for movement, `4dF` for tests** (combat, containment checks, achievements). | `AGREED` |
-| **D29** | **A bridge has a gatekeeper, not a check** — a door (clearance/hacking), a creature (a fight), an officer (clearance/social), instead of a bare 4dF test. The current check fails only 18.5% of the time, so entry is cheap while the room behind is lethal. **Amended 2026-11-21 (§14k.4): a gate is a place with a state, not a toll** — open / locked / guarded / sealed; a guard is an entry draw whose unresolved creature **stays and blocks everyone**; the "buy permission" shape is rejected, and Records must find a physical sink. `PROPOSED` |
+| **D29** | **A bridge has a gatekeeper, not a check** — a door (clearance/hacking), a creature (a fight), an officer (clearance/social), instead of a bare 4dF test. The current check fails only 18.5% of the time, so entry is cheap while the room behind is lethal. **Amended 2026-11-21 (§14k.4): a gate is a place with a state, not a toll** — open / locked / guarded / sealed; a guard is an entry draw whose unresolved creature **stays and blocks everyone**; the "buy permission" shape is rejected, and Records must find a physical sink. **BUILT 2026-11-22 (A1, `odd/tasks/m6-gates.md`)**: the three conditions plus the seal overlay are in `GameState.gates`; the toll is gone; the sink is A2. `BUILT` |
 | **D30** | **Declining costs something, scaled by tier** — priced in Fate, or an escape check that can fail, instead of the flat `+1 Threat` of §14f.3. (§14k.3) `PROPOSED` |
 | **D31** | **Every landing produces something** — a table per node kind, so medical/supply/alarm/terminal do something instead of nothing. Same design as §14g seen from the other end; do them once. D27 makes the content free, so the cost is turn length. (§14k.3) `PROPOSED` |
 | **D28** | **Containment is a collectible spent on stats** (Talisman shape): containing yields a trophy typed by tier, trophies are exchanged for stats at a facility, and some entries are usable objects that can be dropped onto a node and stay there. Cheap variant: `records` (already 1/2/3 by tier) *is* the tally. (§14i) `PROPOSED` |
@@ -1589,6 +1589,9 @@ toll is gone. The sim needs gate state and guard occupancy before the change can
 
 **Status:** `PROPOSED`, unscheduled. Sequence it **ahead of the clock rework** in M6 — the clock decides
 *when* the game ends; the gate decides whether the game is *about* anything.
+**Update 2026-11-22 — built as A1** (`odd/tasks/m6-gates.md`): conditions live in `GameState.gates`, the guard
+persists and blocks both directions, and the toll is deleted. The instrument regressed as predicted (cap
+70–100%, `gate fail 0%`); that is B2's job, and the Records sink is A2's.
 
 **The playtest line that produced it** (the format from §14j):
 

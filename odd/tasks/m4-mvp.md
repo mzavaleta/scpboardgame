@@ -190,7 +190,7 @@ visual starts until Phase A and B are done**.
 
 | # | Item | Debt | Where it lives |
 | --: | --- | --- | --- |
-| C1 | **UI comprehension** — tooltips/help for `Rest`, `Seal`, `Compel`, the Assembly's consequences; distinct labels when two compels apply to one target | D11 (UI half) | `ui/App.tsx`, `i18n/index.ts` |
+| C1 | **UI comprehension** — tooltips/help for `Rest`, `Seal`, `Compel`, the Assembly's consequences; distinct labels when two compels apply to one target. **Rules page DONE 2026-11-22** (owner request, pulled ahead of the phase): `src/content/rules.ts`, reachable from setup and the table | D11 (UI half) | `ui/App.tsx`, `i18n/index.ts`, `content/rules.ts` |
 | C2 | **Player sheet polish** — objective progress, items, `base + modifier` wherever a stat is used | D14 / D13 | `ui/App.tsx`, `i18n/index.ts` |
 | C3 | **Presentation** — animation, sound, layout below ~900 px, keyboard board navigation | M5 | `ui/` |
 | C4 | **Bilingual engine log** — needs structured events instead of pre-rendered sentences | D9 | `engine/log*`, `ui/` |
@@ -338,3 +338,11 @@ worth stating: UI comprehension (tooltips, help) and the sheet polish move to Ph
 found them confusing — the owner's call, and the mechanics work below will change what needs explaining anyway,
 so the help text is written once instead of twice. The first item is **A1: gates become places**; its feature
 document is `odd/tasks/m6-gates.md`.
+
+**L13 — the rules page (2026-11-22, owner request).** Owner: *"there are rules and things im not aware of …
+create a rules page so i can go through"* — and it doubles as player onboarding, so it was pulled out of Phase C
+and built now. `src/content/rules.ts` holds 15 sections in EN/ES; the numbers are **read from `TUNING`** and the
+gate table from `BOARD.gates` + `gateRule()`, so the page cannot drift from the build (four content tests pin
+that, including "names every gate"). Reachable from setup and from the table header, with its own language
+toggle. Two things it states plainly because they are true: the checkpoint shop is being reworked (clearance buys
+no door), and a containment directive only pays if you are in the Core at the end.

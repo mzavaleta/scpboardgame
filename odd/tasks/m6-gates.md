@@ -15,9 +15,10 @@ existing Assembly/Lockdown: `reopen > round` blocks it regardless of condition) 
 
 **S2 — Open crosses free.** No roll, no spend, either direction, any player.
 
-**S3 — Locked opens, and opening is permanent.** A locked gate opens by, in order: the `key` tag (consumed),
-gear that opens locks, or one successful Intellect test at the gate's difficulty. Opening sets the gate to
-`open` **for everyone, for the rest of the game** — a door that was opened is open.
+**S3 — Locked opens, and opening is permanent.** A locked gate opens by the `key` tag (consumed), or by one
+successful Intellect test at the gate's difficulty. (A gear effect that opens locks does not exist yet; when it
+does, it joins this list.) Opening sets the gate to `open` **for everyone, for the rest of the game** — a door
+that was opened is open.
 
 **S4 — Guarded draws on the way through.** Crossing a guarded gate draws an anomaly from the deck of the ring
 being **entered** (core entries draw from the inner deck). Containing it lets you cross and the gate becomes
@@ -39,9 +40,9 @@ it is a dead purchase in the meantime, and A2 is the very next item.
 localized through `t()`; the crossing prompt names the requirement (`locked · Intellect 2`, `guarded`, `sealed
 until round N`).
 
-**S9 — The instrument is told the truth.** The simulator models gate condition and guard occupancy instead of
-`clearance >= gate.clearance`; `purchasesPerGame` is dropped until A2 gives Records a sink (the metric's
-detail work is B2).
+**S9 — The instrument is told the truth.** The simulator reads gate condition and guard occupancy instead of
+`clearance >= gate.clearance`. Its purchase heuristic is now stale and says so in L5; fixing the bot is B2, and
+`purchasesPerGame` is removed there once A2 gives Records a sink.
 
 **S10 — Tests pin each rule.** One test per state, plus: opening is permanent; a failed guard blocks the other
 direction; a seal lapses to the underlying condition; crossing marks progress exactly once.

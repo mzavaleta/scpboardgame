@@ -10,9 +10,12 @@ Tuning fingerprint: `cfg 0a2eeb10` · 80 games · cap 40 rounds
 | 3 | cautious | 20 | 0% | 100% | 0% | 11 | 11 | 16 | 100% | 65% | 2.25 | 6.75 | 0% | 2.35 | 11.15 |
 | 3 | aggressive | 20 | 0% | 100% | 0% | 12 | 12 | 19 | 100% | 90% | 0 | 0 | 0% | 3.05 | 8.8 |
 
+> `Recontained` is no longer produced (L15): the site is always lost and the escape is the ending. The two
+> win columns count seats whose own directive was met, by the directive's flavor — not a side.
+
 ## The political layer
 
-| Players | Policy | Containment win | Breach win | Breach achievable | Compels / game | Votes / game | Hazards / game | Declines / game |
+| Players | Policy | Win: containment directive | Win: breach directive | Breach achievable | Compels / game | Votes / game | Hazards / game | Declines / game |
 | --: | --- | --: | --: | --: | --: | --: | --: | --: |
 | 2 | cautious | 33% | 60% | 60% | 7.95 | 1.8 | 0.85 | 0 |
 | 2 | aggressive | 37% | 60% | 30% | 13.85 | 1.65 | 0.45 | 0 |

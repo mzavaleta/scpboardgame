@@ -515,9 +515,12 @@ export function toMarkdown(report: SimReport): string {
         `${row.deathsPerGame} | ${row.drawsPerGame} |`,
     ),
     "",
+    "> `Recontained` is no longer produced (L15): the site is always lost and the escape is the ending. The two",
+    "> win columns count seats whose own directive was met, by the directive's flavor — not a side.",
+    "",
     "## The political layer",
     "",
-    "| Players | Policy | Containment win | Breach win | Breach achievable | Compels / game | Votes / game | Hazards / game | Declines / game |",
+    "| Players | Policy | Win: containment directive | Win: breach directive | Breach achievable | Compels / game | Votes / game | Hazards / game | Declines / game |",
     "| --: | --- | --: | --: | --: | --: | --: | --: | --: |",
     ...report.rows.map(
       (row) =>
